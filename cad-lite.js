@@ -327,6 +327,15 @@ btnExportPDF && (btnExportPDF.onclick = async ()=>{
         if (!piece) return;
         migratePieceForSinks(piece);
 
+        if (!piece) {
+          const note = document.createElement('div');
+          note.className = 'lc-small';
+          note.textContent = 'Select a piece to add a sink.';
+          root.appendChild(note);
+          return;
+        }
+
+
         if (!piece.sinks.length){
           const btn = el('button','lc-btn','Add sink');
           btn.onclick = ()=>{ if (piece.sinks.length<MAX_SINKS_PER_PIECE){ piece.sinks.push(createDefaultSink()); onStateChange?.(); render(); } };
@@ -427,7 +436,7 @@ btnExportPDF && (btnExportPDF.onclick = async ()=>{
     state.pieces.forEach(migratePieceForSinks);
 
     // Build Sinks UI
-    const sinksUI = initSinksCard({
+    sinksUI = initSinksCard({
       uiMountEl: document.getElementById('lc-sinks-card'),
       getSelectedPiece: () => state.pieces.find(p => p.id === state.selectedId) || null,
       onStateChange: () => { draw(); scheduleSave?.(); sinksUI.refresh(); }
@@ -438,7 +447,6 @@ btnExportPDF && (btnExportPDF.onclick = async ()=>{
 
 
       // ------- Utils -------
-      const clamp = (n,min,max) => Math.min(max, Math.max(min, n));
       const snap  = (n,step) => Math.round(n/step)*step;
       const i2p   = (inches) => inches*state.scale;
       const p2i   = (px) => px/state.scale;
@@ -552,7 +560,7 @@ function restore(){
 
       function clampToCanvas(p){ const rs=realSize(p); p.x=clamp(p.x,0,state.cw-rs.w); p.y=clamp(p.y,0,state.ch-rs.h); }
 
-      function roundedRectPath(x,y,w,h,r){
+      function roundedRectPathSimple(x, y, w, h, r){
         const rtl=r.tl||0, rtr=r.tr||0, rbr=r.br||0, rbl=r.bl||0;
         return `M${x+rtl},${y} H${x+w-rtr} Q${x+w},${y} ${x+w},${y+rtr} V${y+h-rbr} Q${x+w},${y+h} ${x+w-rbr},${y+h} H${x+rbl} Q${x},${y+h} ${x},${y+h-rbl} V${y+rtl} Q${x},${y} ${x+rtl},${y} Z`;
       }
@@ -579,10 +587,10 @@ function restore(){
         let cx, cy, angle = (piece.rotation||0) + (sink.rotation||0);
 
         if (side === 'front'){ cx = sink.centerline;                        cy = setback + sink.h/2; }
-        else if (side === 'back'){ cx = sink.centerline;                    cy = piece.height - (setback + sink.h/2); }
+        else if (side === 'back'){ cx = sink.centerline;                    cy = piece.h - (setback + sink.h/2); }
         else if (side === 'left'){ cx = setback + sink.h/2;                 cy = sink.centerline; angle += 90; }
-        else /* right */        { cx = piece.width - (setback + sink.h/2);  cy = sink.centerline; angle += 90; }
-
+        else /* right */        { cx = piece.w - (setback + sink.h/2);      cy = sink.centerline; angle += 90; }
+      
         const sinkRect = { x: cx - sink.w/2, y: cy - sink.h/2, w: sink.w, h: sink.h };
         return { cx, cy, angle, sinkRect };
       }
@@ -628,7 +636,7 @@ function restore(){
               g.appendChild(e);
             } else {
               const w2 = (sink.w/2)*scale, h2=(sink.h/2)*scale, r = Math.min(sink.cornerR||0, 4)*scale;
-              const path = roundedRectPath(-w2, -h2, w2*2, h2*2, r);
+              const path = roundedRectPathSimple(-w2, -h2, w2*2, h2*2, r);
               g.appendChild(svgEl('path', { d:path, fill:'none', stroke:'#333', 'stroke-width':1 }));
             }
 
@@ -822,10 +830,6 @@ function restore(){
             gg.appendChild(dims);
           }
 
-        // Draw sinks and faucet holes on top of pieces
-        state.pieces.forEach(p => renderSinksForPiece({ svg, piece: p, scale: state.scale }));
-
-
           // add the drag/selection handler
           g.addEventListener('pointerdown', (e)=>{
             const pt = svgPoint(e);                 // SVG px
@@ -870,6 +874,9 @@ function restore(){
           // append the group *once* here, not inside the handler
           svg.appendChild(g);
         }); 
+
+        // after all pieces are appended:
+        state.pieces.forEach(p => renderSinksForPiece({ svg, piece: p, scale: state.scale }));
 
         meta.textContent = `Canvas: ${state.cw}" × ${state.ch}" · Grid ${state.grid}" · Scale ${state.scale}px/in`;
       }
