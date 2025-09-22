@@ -1593,11 +1593,4 @@ if(btnAddLayout){
       document.dispatchEvent(new CustomEvent('cad:ready', { detail: window.CADLITE }));
 
       } // <-- end of init()
-
-      // Run after DOM is fully ready (Squarespace can defer/relocate scripts)
-      if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', init);
-      } else {
-        init();
-      }
-      })();
+      )();
