@@ -1,0 +1,303 @@
+/* CAD Lite CSS */
+
+/* --- Layout & cards --- */
+    .lc-wrap{display:grid;gap:14px;grid-template-columns:1fr}
+    @media(min-width:900px){.lc-wrap{grid-template-columns:320px 340px minmax(0,1fr)}}
+    .lc-card{background:#fff;border:1px solid #e5e7eb;border-radius:16px;padding:14px;box-shadow:0 1px 2px rgba(0,0,0,.04)}
+    .lc-card h3{margin:0 0 8px;font-size:16px;font-weight: 600}
+    .lc-card-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+    .lc-col{display:flex;flex-direction:column;gap:14px}
+
+    /* Inputs / rows */
+    .lc-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+    .lc-row3{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+    .lc-label{font-size:12px;color:#374151;display:block;margin-bottom:2px}
+    .lc-input,.lc-select{width:100%;padding:6px 8px;border:1px solid #d1d5db;border-radius:10px;font-size:14px;box-sizing:border-box}
+    .compact .lc-input,.compact .lc-select{max-width:120px}
+
+    /* Color swatch with ghost input (reliable in Squarespace) */
+    .lc-color-stack{position:relative;width:100%;height:40px}
+    .lc-color-ghost{position:absolute;inset:0;opacity:0;cursor:pointer}
+    .lc-swatch{position:absolute;inset:0;border:1px solid #d1d5db;border-radius:10px;background:var(--c,#fff)}
+
+    /* Kill native color-input chrome so only our swatch shows */
+    .lite-cad input[type="color"],
+    .lc-color-ghost{
+      -webkit-appearance: none;
+      appearance: none;
+      border: 0;
+      outline: 0;
+      background: transparent;
+    }
+
+    .lc-color-ghost::-webkit-color-swatch-wrapper { padding: 0; }
+    .lc-color-ghost::-webkit-color-swatch { border: none; }
+
+    /* Optional: remove the visible box edge entirely */
+    .lc-swatch{ border: 0; }
+
+
+    /* Buttons (uniform) */
+    .lc-btn{border:0;background:#111;color:#fff;height:36px;padding:0 12px;border-radius:12px;font-size:14px;cursor:pointer;min-width:120px}
+    .lc-btn.alt{background:#f3f4f6;color:#111}
+    .lc-btn.red{background:#dc2626}
+    .lc-btn.ghost{background:transparent;border:1px solid #d1d5db;color:#111}
+    .lc-btn.sm{height:30px;min-width:110px;padding:0 10px;border-radius:10px}
+
+    /* Lists */
+    .lc-list{max-height:65vh;overflow:auto;border:1px solid #e5e7eb;border-radius:12px;padding:8px}
+    .lc-item{border:1px solid #e5e7eb;border-radius:12px;padding:10px;margin-bottom:10px}
+    .lc-item.selected{border-color:#0ea5e9;box-shadow:0 0 0 2px rgba(14,165,233,.15) inset}
+    .lc-item-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px}
+    .lc-chip{display:inline-block;font-size:11px;padding:2px 6px;border-radius:999px;border:1px solid #d1d5db;background:#f9fafb}
+
+    /* Canvas */
+    .lc-toolbar{display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end;margin-bottom:10px}
+    .lc-ctl{display:flex;flex-direction:column}
+    .lc-canvas-wrap{overflow:auto;border:1px solid #e5e7eb;border-radius:14px}
+    /* beat Squarespace max-width rules */
+    .lite-cad svg, .lite-cad img{max-width:none !important}
+    #lc-svg{display:block;width:auto !important;height:auto !important;background:#fff}
+
+    /* Ensure inputs stay visible in Squarespace */
+    .lite-cad input[type="number"],
+    .lite-cad input[type="text"],
+    .lite-cad input[type="color"],
+    .lite-cad input[type="range"],
+    .lite-cad input[type="file"],
+    .lite-cad select{
+      display:inline-block !important;visibility:visible !important;opacity:1 !important;
+      height:auto !important;background:#fff !important;color:#111 !important
+    }
+
+    .lc-btnrow{display:flex;flex-wrap:wrap;gap:8px}
+    .lc-top{display:flex;justify-content:space-between;align-items:center;font-size:12px;color:#6b7280;margin-bottom:8px}
+
+    /* Corner buttons */
+    .lc-corner-grid{display:grid;grid-template-columns:repeat(2,28px);gap:8px}
+    .lc-corner-btn{width:28px;height:28px;border:1px solid #d1d5db;border-radius:8px;background:#fff;display:grid;place-items:center;cursor:pointer}
+    .lc-corner-btn.active{outline:2px solid #0ea5e9}
+    /* Rotate the right-angle icon per corner */
+    .lc-corner-btn svg{ transform-origin:50% 50%; }
+    .lc-corner-btn.pos-tr svg{ transform: rotate(90deg); }
+    .lc-corner-btn.pos-br svg{ transform: rotate(180deg); }
+    .lc-corner-btn.pos-bl svg{ transform: rotate(270deg); }
+
+/* --- Mobile spacing & stacking --- */
+@media (max-width: 899px){
+  /* stack inner form grids */
+  .lc-row,
+  .lc-row3{ grid-template-columns: 1fr; gap: 10px; }
+
+  /* tighter cards and columns */
+  .lc-card{ padding: 12px; }
+  .lc-col{ gap: 10px; }
+
+  /* toolbar: wrap into 2-up blocks on phones, full-width where needed */
+  .lc-toolbar{ gap: 8px; }
+  .lc-toolbar .lc-ctl{ flex: 1 1 48%; min-width: 0; }
+  .lc-toolbar input[type="range"]{ width: 100%; }
+  /* keep the Show grid + Snap all usable on one line or wrap cleanly */
+  .lc-toolbar .lc-btn{ min-width: 0; }
+
+  /* buttons: full-width for comfy tapping */
+  .lc-btn{ min-width: unset; width: 100%; }
+  .lc-btnrow{ flex-direction: column; gap: 8px; }
+
+  /* list & canvas panels */
+  .lc-list{ max-height: 40vh; }
+  .lc-canvas-wrap{ max-height: 60vh; }
+
+  /* labels a hair smaller on mobile */
+  .lc-label{ font-size: 11px; }
+
+  /* kill compact width cap so inputs don’t clip */
+  .compact .lc-input,
+  .compact .lc-select{ max-width: none; }
+
+  /* make the SVG scale with the container (still scrollable if larger) */
+  #lc-svg{ width: 100% !important; height: auto !important; }
+}
+
+/* Small phones: make each toolbar control full-width */
+@media (max-width: 480px){
+  .lc-toolbar .lc-ctl{ flex: 1 1 100%; }
+}
+
+/* Mobile: move toolbar under the canvas inside the canvas card */
+@media (max-width: 899px){
+  .lc-col:nth-child(3) .lc-card{ display:flex; flex-direction:column; }
+  .lc-col:nth-child(3) .lc-card .lc-top{ order: 0; }        /* meta row */
+  .lc-col:nth-child(3) .lc-card .lc-canvas-wrap{ order: 1; }/* SVG */
+  .lc-col:nth-child(3) .lc-card .lc-toolbar{ order: 2; }    /* settings */
+}
+
+@media (max-width: 899px){
+  /* Let the slider get full width and proper touch handling */
+  #lc-scale{ width: 100%; height: 32px; touch-action: pan-y; pointer-events: auto; }
+
+  /* Improve mobile ergonomics (iOS/Android) */
+  input[type="range"]{ -webkit-appearance:none; appearance:none; }
+  input[type="range"]::-webkit-slider-runnable-track{ height:6px; border-radius:999px; border:1px solid #e5e7eb; }
+  input[type="range"]::-webkit-slider-thumb{
+    -webkit-appearance:none; appearance:none;
+    width:22px; height:22px; border-radius:50%;
+    background:#fff; border:1px solid #d1d5db; margin-top:-8px;
+  }
+  input[type="range"]::-moz-range-track{ height:6px; border-radius:999px; border:1px solid #e5e7eb; }
+  input[type="range"]::-moz-range-thumb{ width:22px; height:22px; border-radius:50%; background:#fff; border:1px solid #d1d5db; }
+}
+
+/* Pieces as a compact nav list */
+.lc-list.lc-nav { border: 1px solid #e5e7eb; border-radius: 12px; padding: 8px; }
+.lc-item.nav {
+  display:flex; align-items:center; justify-content:space-between;
+  gap:10px; padding:10px 12px; margin:0 0 8px; border-radius:10px;
+  background: var(--c, #eef2ff); color: var(--fg, #111);
+  border: 1px solid rgba(0,0,0,.06); cursor:pointer;
+}
+.lc-item.nav.selected { outline: 2px solid rgba(14,165,233,.25); }
+.lc-item.nav .lc-line {
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 13px;
+}
+.lc-item.nav .lc-line strong { font-weight: 600; }
+.lc-item.nav .lc-select-btn { min-width: auto; height: 28px; padding: 0 10px; border-radius: 8px; }
+
+.lc-list.lc-nav { border:1px solid #e5e7eb; border-radius:12px; padding:8px; }
+.lc-item.nav{
+  display:flex; align-items:center; justify-content:space-between;
+  gap:10px; padding:10px 12px; margin:0 0 8px; border-radius:10px;
+  background: var(--c, #eef2ff);
+  color: var(--fg, #111);
+  border:1px solid rgba(0,0,0,.06); cursor:pointer;
+}
+.lc-item.nav.selected{ outline:2px solid rgba(14,165,233,.25); }
+.lc-item.nav .lc-line{ white-space:nowrap; overflow:hidden; text-overflow:ellipsis; font-size:13px; }
+.lc-item.nav .lc-line strong{ font-weight:600; }
+.lc-item.nav .lc-select-btn{ min-width:auto; height:28px; padding:0 10px; border-radius:8px; }
+
+.lc-iconbtn{ padding:0 6px; height:28px; display:inline-flex; align-items:center; justify-content:center; border-radius:8px; }
+.lc-icon{ width:16px; height:16px; display:block; }
+.lc-item.nav.selected{ outline:2px solid rgba(14,165,233,.35); } /* stronger highlight */
+
+/* Let full-width fields span the entire card grid */
+.lc-row .full{ grid-column: 1 / -1; }
+
+/* Compact icon buttons in Layouts panel */
+#lc-layouts .lc-iconbtn{
+  min-width: 0;
+  height: 22px;            /* was ~28px */
+  padding: 0 4px;          /* tighter */
+  border-radius: 6px;
+  line-height: 1;
+}
+#lc-layouts .lc-icon{
+  width: 12px;             /* was 16px */
+  height: 12px;
+  display: block;
+}
+
+/* (optional) tighten the right-side actions spacing a touch */
+#lc-layouts .lc-item.nav{ gap: 6px; padding: 8px 10px; }  /* was roomier */
+
+/* Compact icon buttons everywhere (Layouts, Inspector, Pieces) */
+.lc-iconbtn{ padding:0 6px; height:28px; display:inline-flex; align-items:center; justify-content:center; border-radius:8px; line-height:1; }
+.lc-icon{ width:16px; height:16px; display:block; }
+
+/* Make Layouts icons extra tiny (you already asked for this) */
+#lc-layouts .lc-iconbtn{ height:22px; padding:0 4px; border-radius:6px; }
+#lc-layouts .lc-icon{ width:12px; height:12px; }
+
+/* Inspector & Pieces: slightly compact too */
+#lc-inspector .lc-iconbtn, .lc-list.lc-nav .lc-iconbtn{ height:24px; padding:0 5px; border-radius:6px; }
+#lc-inspector .lc-icon, .lc-list.lc-nav .lc-icon{ width:14px; height:14px; }
+
+/* Export section 2x2 grid + Import row */
+.lc-subhead{ margin:12px 0 8px; font-weight:600; font-size:13px; opacity:.8; }
+.lc-export-grid{ display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+.lc-import-row{ display:flex; gap:8px; flex-wrap:wrap; }
+
+/* Tiny icon buttons—match Layouts—for Pieces and Inspector */
+.lc-list.lc-nav .lc-iconbtn,
+#lc-inspector .lc-iconbtn{
+  height: 22px;              /* small */
+  padding: 0 4px;
+  border-radius: 6px;
+  min-width: 0;
+}
+.lc-list.lc-nav .lc-icon,
+#lc-inspector .lc-icon{
+  width: 12px;
+  height: 12px;
+}
+
+/* (optional) slightly tighter row padding in Pieces */
+.lc-list.lc-nav .lc-item.nav{ padding: 8px 10px; gap: 6px; }
+
+/* Drag UI */
+.lc-item.nav.dragging{ opacity:.6 }
+.lc-drop-marker{ height:2px; background:#0ea5e9; border-radius:1px; margin:4px 0 }
+#lc-list.reordering{ user-select:none }
+
+/* Optional: small “handle” (if you add it) */
+.lc-drag{ cursor:grab; display:inline-flex; align-items:center; opacity:.7 }
+.lc-drag:active{ cursor:grabbing; opacity:1 }
+.lc-drag svg{ width:12px; height:12px; display:block }
+
+/* Force tiny icon buttons in Pieces & Inspector (override mobile width:100%) */
+#lc-list .lc-iconbtn,
+#lc-inspector .lc-iconbtn{
+  width: auto;           /* <-- key line to beat the mobile full-width rule */
+  min-width: 0;
+  height: 22px;
+  padding: 0 4px;
+  border-radius: 6px;
+}
+
+#lc-list .lc-icon,
+#lc-inspector .lc-icon{
+  width: 12px;
+  height: 12px;
+}
+
+/* keep rows compact */
+#lc-list .lc-item.nav{ padding: 8px 10px; gap: 6px; }
+
+#lc-svg{ touch-action: none; }
+
+/* Inspector: keep Backward / Forward / Rotate inside the container */
+#lc-inspector .lc-row3{
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr)); /* allow tracks to shrink */
+  gap: 8px;
+}
+
+#lc-inspector .lc-row3 .lc-btn{
+  width: 100%;      /* fill the track */
+  min-width: 0;     /* let content shrink inside grid */
+  box-sizing: border-box;
+  white-space: nowrap;          /* avoid wrapping to a new line */
+  overflow: hidden;             /* clip if needed */
+  text-overflow: ellipsis;      /* … if it’s extremely tight */
+}
+
+/* Make the small variant truly compact */
+#lc-inspector .lc-row3 .lc-btn.sm{
+  padding: 6px 8px;
+  font-size: 12px;
+}
+
+/* On very narrow screens, fall back to 1-per-row so it never spills */
+@media (max-width: 480px){
+  #lc-inspector .lc-row3{
+    grid-template-columns: 1fr;
+  }
+}
+
+/* 2-up grid rows inside the Inspector */
+#lc-inspector .lc-row2{
+  display:grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  align-items: end;
+}
