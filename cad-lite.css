@@ -300,4 +300,12 @@
   grid-template-columns: 1fr 1fr;
   gap: 8px;
   align-items: end;
+
 }
+
+  /* force the sinks card visible */
+  #lc-sinks-card { display:block !important; }
+  /* make sure details/summary are visible in Squarespace */
+  #lc-sinks-card details.lc-sink { display:block; }
+  #lc-sinks-card summary { list-style: none; cursor: pointer; }
+  #lc-sinks-card summary::-webkit-details-marker { display: none; }
