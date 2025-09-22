@@ -1244,27 +1244,32 @@ if(btnAddLayout){
         img.src = 'data:image/svg+xml;charset=utf-8,'+encodeURIComponent(src);
       };
 
-      // ------- Init -------
-      inProject.value = state.projectName; inDate.value = state.projectDate || todayISO();
+     // ------- Init -------
+      inProject.value = state.projectName;
+      inDate.value = state.projectDate || todayISO();
       syncToolbarFromLayout();
       renderLayouts();
-      if(!restore()){
+      
+      if (!restore()) {
         // first-time load
-        draw(); renderList(); updateInspector();
-
-        // --- expose a minimal API for external modules (like the Sinks card) ---
-        window.CADLITE = { state, svg, draw, scheduleSave, updateInspector };
-
-        // fire a custom event so modules can safely hook in even if scripts load out of order
-        document.dispatchEvent(new CustomEvent('cad:ready', { detail: window.CADLITE }));
-
+        draw();
+        renderList();
+        updateInspector();
       }
+      
+      // --- expose a minimal API for external modules (like the Sinks card) ---
+      // (Always do this, regardless of restore())
+      window.CADLITE = { state, svg, draw, scheduleSave, updateInspector };
+      
+      // fire a custom event so modules can safely hook in even if scripts load out of order
+      document.dispatchEvent(new CustomEvent('cad:ready', { detail: window.CADLITE }));
+      
       } // <-- end of init()
-
+      
       // Run after DOM is fully ready (Squarespace can defer/relocate scripts)
-      if(document.readyState === 'loading'){
+      if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', init);
-      }else{
-      init();
+      } else {
+        init();
       }
       })();
