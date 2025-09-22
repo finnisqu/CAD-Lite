@@ -302,180 +302,130 @@ btnExportPDF && (btnExportPDF.onclick = async ()=>{
       placeForMobile(mm.matches); // run once on load
 
       function initSinksCard({ uiMountEl, getSelectedPiece, onStateChange }) {
-      const root = document.createElement('div');
-      root.className = 'sinks-card';
-      uiMountEl.appendChild(root);
+        const root = document.createElement('div');
+        root.className = 'sinks-card';
+        uiMountEl.appendChild(root);
 
-      function el(tag, cls, text){
-      const n = document.createElement(tag);
-      if (cls) n.className = cls;
-      if (text != null) n.textContent = text;
-      return n;
-    }
-    function labelWrap(label, node){
-      const wrap = el('label', 'lc-label');
-      const cap  = el('div', 'lc-small', label);
-      wrap.appendChild(cap);
-      wrap.appendChild(node);
-      return wrap;
-    }
-    function select(options, value){
-      const s = document.createElement('select');
-      s.className = 'lc-input';
-      options.forEach(o => {
-        const opt = document.createElement('option');
-        opt.value = o.v;
-        opt.textContent = o.t;
-        s.appendChild(opt);
-      });
-      if (value != null) s.value = String(value);
-      return s;
-    }
-    function numInput(value, step = 0.001, min = null, max = null){
-      const i = document.createElement('input');
-      i.type = 'number';
-      i.className = 'lc-input';
-      i.value = (typeof fmt3 === 'function') ? fmt3(value ?? 0) : String(value ?? 0);
-      i.step = String(step);
-      if (min != null) i.min = String(min);
-      if (max != null) i.max = String(max);
-      i.addEventListener('blur', () => { i.value = (typeof fmt3 === 'function') ? fmt3(i.value) : i.value; });
-      return i;
-    }
-
-      function createDefaultSink(){
-        const m = SINK_MODELS[0];
-        return {
-          id:'sink_'+Math.random().toString(36).slice(2,9),
-          type:'model', modelId:m.id, shape:m.shape, w:m.w, h:m.h, cornerR:m.cornerR,
-          side:'front', centerline:0, setback:SINK_STANDARD_SETBACK, faucets:[], rotation:0
-        };
-      }
-
-      function render(){
-      const piece = getSelectedPiece?.();
-      root.innerHTML = '';
-
-      // Always show a header so the card never looks blank
-      const header = el('div','lc-card-head');
-      header.appendChild(el('h3', null, 'Sinks'));
-      root.appendChild(header);
-
-      if (!piece){
-        const msg = el('div','lc-small','Select a piece to add a sink.');
-        root.appendChild(msg);
-        return;
-      }
-
-      migratePieceForSinks(piece);
-
-      // Empty state: piece selected but no sinks yet
-      if (!piece.sinks.length){
-        const row = el('div','lc-row');
-        const btn = el('button','lc-btn','Add sink');
-        btn.onclick = () => {
-          if (piece.sinks.length < MAX_SINKS_PER_PIECE){
-            piece.sinks.push(createDefaultSink());
-            onStateChange?.();
-            render();
-          }
-        };
-        row.appendChild(btn);
-        root.appendChild(row);
-        return;
-      }
-
-      // ... keep your existing per-sink UI here ...
-    }
-
-
-        const header = el('div','lc-card-head');
-        header.appendChild(el('h3',null,'Sinks'));
-        if (piece.sinks.length<MAX_SINKS_PER_PIECE){
-          const add = el('button','lc-btn alt','+ Add sink');
-          add.onclick = ()=>{ piece.sinks.push(createDefaultSink()); onStateChange?.(); render(); };
-          header.appendChild(add);
+        // small DOM helpers
+        function el(tag, cls, text){ const n=document.createElement(tag); if(cls) n.className=cls; if(text!=null) n.textContent=text; return n; }
+        function labelWrap(label, node){ const w=el('label','lc-label'); w.appendChild(el('div','lc-small',label)); w.appendChild(node); return w; }
+        function select(options, value){
+          const s=document.createElement('select'); s.className='lc-input';
+          options.forEach(o=>{ const opt=document.createElement('option'); opt.value=o.v; opt.textContent=o.t; s.appendChild(opt); });
+          if(value!=null) s.value=String(value); return s;
         }
-        root.appendChild(header);
+        function numInput(value, step=0.001, min=null, max=null){
+          const i=document.createElement('input'); i.type='number'; i.className='lc-input';
+          i.value = (typeof fmt3==='function') ? fmt3(value??0) : String(value??0);
+          i.step=String(step); if(min!=null) i.min=String(min); if(max!=null) i.max=String(max);
+          i.addEventListener('blur',()=>{ i.value=(typeof fmt3==='function')?fmt3(i.value):i.value; });
+          return i;
+        }
 
-        piece.sinks.forEach((sink, idx)=>{
-          const card = el('div','lc-card'); // reuse your card styling
+        function createDefaultSink(){
+          const m = SINK_MODELS[0];
+          return { id:'sink_'+Math.random().toString(36).slice(2,9),
+            type:'model', modelId:m.id, shape:m.shape, w:m.w, h:m.h, cornerR:m.cornerR,
+            side:'front', centerline:0, setback:SINK_STANDARD_SETBACK, faucets:[], rotation:0 };
+        }
 
-          // Type + Model
-          const row1 = el('div','lc-row');
-          const typeSel = select([{v:'model',t:'Model'},{v:'custom',t:'Custom'}], sink.type);
-          typeSel.onchange = ()=>{ sink.type = typeSel.value; if (sink.type==='model'){ const m=SINK_MODELS.find(m=>m.id===sink.modelId)||SINK_MODELS[0]; applyModelToSink(sink,m); } onStateChange?.(); render(); };
-          const modelSel = select(SINK_MODELS.map(m=>({v:m.id,t:m.label})), sink.modelId||SINK_MODELS[0].id);
-          modelSel.onchange = ()=>{ sink.modelId = modelSel.value; const m=SINK_MODELS.find(m=>m.id===sink.modelId); applyModelToSink(sink,m); onStateChange?.(); render(); };
-          row1.appendChild(labelWrap('Type', typeSel));
-          row1.appendChild(labelWrap('Model', modelSel));
-          card.appendChild(row1);
+        function render(){
+          root.innerHTML = '';
 
-          // Custom fields
-          if (sink.type==='custom'){
-            const rc = el('div','lc-row');
-            const shapeSel = select([{v:'rect',t:'Rectangle'},{v:'oval',t:'Oval'}], sink.shape);
-            shapeSel.onchange = ()=>{ sink.shape=shapeSel.value; onStateChange?.(); };
-            const w = numInput(sink.w, 0.001, 0);
-            w.oninput = ()=>{ sink.w = round3(w.value); onStateChange?.(); };
-            const h = numInput(sink.h, 0.001, 0);
-            h.oninput = ()=>{ sink.h = round3(h.value); onStateChange?.(); };
-            const r = numInput(sink.cornerR, 0.001, 0, 4);
-            r.oninput = ()=>{ sink.cornerR = clamp(round3(r.value),0,4); onStateChange?.(); };
-            rc.appendChild(labelWrap('Shape', shapeSel));
-            rc.appendChild(labelWrap('Width (in)', w));
-            rc.appendChild(labelWrap('Height (in)', h));
-            rc.appendChild(labelWrap('Corner R (0–4″)', r));
-            card.appendChild(rc);
+          const header = el('div','lc-card-head');
+          header.appendChild(el('h3',null,'Sinks'));
+          root.appendChild(header);
+
+          const piece = getSelectedPiece?.();
+          if(!piece){
+            root.appendChild(el('div','lc-small','Select a piece to add a sink.'));
+            return;
+          }
+          migratePieceForSinks(piece);
+
+          // empty state
+          if(!piece.sinks.length){
+            const row = el('div','lc-row');
+            const btn = el('button','lc-btn','Add sink');
+            btn.onclick = ()=>{ if(piece.sinks.length<MAX_SINKS_PER_PIECE){ piece.sinks.push(createDefaultSink()); onStateChange?.(); } };
+            row.appendChild(btn);
+            root.appendChild(row);
+            return;
           }
 
-          // Side + Centerline + Setback + Rotation
-          const row2 = el('div','lc-row');
-          const sideSel = select([{v:'front',t:'Front'},{v:'back',t:'Back'},{v:'left',t:'Left'},{v:'right',t:'Right'}], sink.side||'front');
-          sideSel.onchange = ()=>{ sink.side=sideSel.value; onStateChange?.(); };
-          const cl = numInput(sink.centerline||0, 0.001, 0);
-          cl.oninput   = ()=>{ sink.centerline = round3(cl.value); onStateChange?.(); };
-          const setback = numInput(sink.setback ?? SINK_STANDARD_SETBACK, 0.001, 0);
-          setback.oninput= ()=>{ sink.setback = clamp(round3(setback.value),0, 999); onStateChange?.(); };
-          const rot = numInput(sink.rotation||0, 1, 0, 90);
-          rot.oninput = ()=>{ sink.rotation = clamp(Math.round(Number(rot.value)||0), 0, 90); rot.value=String(sink.rotation); onStateChange?.(); };
-          row2.appendChild(labelWrap('Side', sideSel));
-          row2.appendChild(labelWrap('Centerline (in)', cl));
-          row2.appendChild(labelWrap('Setback (in)', setback));
-          row2.appendChild(labelWrap('Rotation (°)', rot));
-          card.appendChild(row2);
-
-          // Faucet rack (9 checkboxes)
-          const row3 = el('div','lc-row');
-          const rack = el('div','lc-row');
-          for (let i=0;i<9;i++){
-            const cb = document.createElement('input');
-            cb.type='checkbox';
-            cb.checked = sink.faucets?.includes(i) || false;
-            cb.onchange = ()=>{
-              const s = new Set(sink.faucets||[]);
-              if (cb.checked) s.add(i); else s.delete(i);
-              sink.faucets = [...s].sort((a,b)=>a-b);
-              onStateChange?.();
-            };
-            rack.appendChild(cb);
+          // add button (when already have sinks)
+          if(piece.sinks.length<MAX_SINKS_PER_PIECE){
+            const add = el('button','lc-btn alt','+ Add sink');
+            add.onclick = ()=>{ piece.sinks.push(createDefaultSink()); onStateChange?.(); };
+            header.appendChild(add);
           }
-          row3.appendChild(labelWrap('Faucet holes', rack));
-          card.appendChild(row3);
 
-          // Remove
-          const row4 = el('div','lc-row');
-          const del = el('button','lc-btn red','Remove sink');
-          del.onclick = ()=>{ piece.sinks.splice(idx,1); onStateChange?.(); render(); };
-          row4.appendChild(del);
-          card.appendChild(row4);
+          piece.sinks.forEach((sink, idx)=>{
+            const card = el('div','sink-editor');
 
-          root.appendChild(card);
-        });
+            // type + model
+            const row1 = el('div','row');
+            const typeSel = select([{v:'model',t:'Model'},{v:'custom',t:'Custom'}], sink.type||'model');
+            typeSel.onchange = ()=>{ sink.type=typeSel.value; if(sink.type==='model'){ const m=SINK_MODELS.find(m=>m.id=== (sink.modelId||SINK_MODELS[0].id))||SINK_MODELS[0]; applyModelToSink(sink,m); } onStateChange?.(); };
+            const modelSel = select(SINK_MODELS.map(m=>({v:m.id,t:m.label})), sink.modelId||SINK_MODELS[0].id);
+            modelSel.onchange = ()=>{ sink.modelId=modelSel.value; const m=SINK_MODELS.find(m=>m.id===sink.modelId); applyModelToSink(sink,m); onStateChange?.(); };
+            row1.append(labelWrap('Type', typeSel), labelWrap('Model', modelSel));
+            card.appendChild(row1);
+
+            // custom dims
+            if(sink.type==='custom'){
+              const rc = el('div','row');
+              const shapeSel = select([{v:'rect',t:'Rectangle'},{v:'oval',t:'Oval'}], sink.shape||'rect');
+              shapeSel.onchange = ()=>{ sink.shape=shapeSel.value; onStateChange?.(); };
+              const w = numInput(sink.w||0, 0.001, 0); w.oninput = ()=>{ sink.w=round3(w.value); onStateChange?.(); };
+              const h = numInput(sink.h||0, 0.001, 0); h.oninput = ()=>{ sink.h=round3(h.value); onStateChange?.(); };
+              const r = numInput(sink.cornerR||0, 0.001, 0, 4); r.oninput = ()=>{ sink.cornerR=clamp(round3(r.value),0,4); onStateChange?.(); };
+              rc.append(labelWrap('Shape', shapeSel), labelWrap('Width (in)', w), labelWrap('Height (in)', h), labelWrap('Corner R (0–4″)', r));
+              card.appendChild(rc);
+            }
+
+            // side + centerline + setback + rotation
+            const row2 = el('div','row');
+            const sideSel = select([{v:'front',t:'Front'},{v:'back',t:'Back'},{v:'left',t:'Left'},{v:'right',t:'Right'}], sink.side||'front');
+            sideSel.onchange = ()=>{ sink.side=sideSel.value; onStateChange?.(); };
+            const cl = numInput(sink.centerline||0, 0.001, 0); cl.oninput = ()=>{ sink.centerline=round3(cl.value); onStateChange?.(); };
+            const setback = numInput(sink.setback ?? SINK_STANDARD_SETBACK, 0.001, 0); setback.oninput = ()=>{ sink.setback=clamp(round3(setback.value),0,999); onStateChange?.(); };
+            const rot = numInput(sink.rotation||0, 1, 0, 90); rot.oninput = ()=>{ sink.rotation=clamp(Math.round(Number(rot.value)||0),0,90); rot.value=String(sink.rotation); onStateChange?.(); };
+            row2.append(labelWrap('Side', sideSel), labelWrap('Centerline (in)', cl), labelWrap('Setback (in)', setback), labelWrap('Rotation (°)', rot));
+            card.appendChild(row2);
+
+            // faucet holes (9 checkboxes)
+            const row3 = el('div','row');
+            const rack  = el('div','lc-row');
+            for(let i=0;i<9;i++){
+              const cb=document.createElement('input'); cb.type='checkbox';
+              cb.checked = !!(sink.faucets||[]).includes(i);
+              cb.onchange = ()=>{
+                const s=new Set(sink.faucets||[]);
+                if(cb.checked) s.add(i); else s.delete(i);
+                sink.faucets = Array.from(s).sort((a,b)=>a-b);
+                onStateChange?.();
+              };
+              rack.appendChild(cb);
+            }
+            row3.appendChild(labelWrap('Faucet holes', rack));
+            card.appendChild(row3);
+
+            // remove
+            const row4 = el('div','row');
+            const del = el('button','lc-btn red','Remove sink');
+            del.onclick = ()=>{ piece.sinks.splice(idx,1); onStateChange?.(); };
+            row4.appendChild(del);
+            card.appendChild(row4);
+
+            root.appendChild(card);
+          });
+        }
+
+        render();
+        return { refresh: render, get root(){ return root; } };
       }
 
-      return { refresh: render, get root(){ return root; } };
-    }
 
     // Ensure sinks array exists on any existing pieces
     state.pieces.forEach(migratePieceForSinks);
@@ -605,7 +555,7 @@ function restore(){
 
       function clampToCanvas(p){ const rs=realSize(p); p.x=clamp(p.x,0,state.cw-rs.w); p.y=clamp(p.y,0,state.ch-rs.h); }
 
-      function roundedRectPathSimple(x, y, w, h, r){
+      function roundedRectPathCorners(x, y, w, h, r){
         const rtl=r.tl||0, rtr=r.tr||0, rbr=r.br||0, rbl=r.bl||0;
         return `M${x+rtl},${y} H${x+w-rtr} Q${x+w},${y} ${x+w},${y+rtr} V${y+h-rbr} Q${x+w},${y+h} ${x+w-rbr},${y+h} H${x+rbl} Q${x},${y+h} ${x},${y+h-rbl} V${y+rtl} Q${x},${y} ${x+rtl},${y} Z`;
       }
@@ -659,10 +609,6 @@ function restore(){
           `V${y+r}`,      `A${r},${r} 0 0 1 ${x+r},${y}`, 'Z'
         ].join(' ');
       }
-
-
-      function renderSinksForPiece({ svg, piece, scale=1 }){
-          if (!piece?.sinks?.length) return;
 
           let group = svg.querySelector(`#sinks-for-${piece.id}`);
           if (!group){
@@ -759,7 +705,7 @@ function restore(){
 
           // draw the rectangle unrotated, centered at (cx,cy), then rotate gg
           const path = document.createElementNS('http://www.w3.org/2000/svg','path');
-          path.setAttribute('d', roundedRectPathSimple(cx - W0/2, cy - H0/2, W0, H0, r));
+          path.setAttribute('d', roundedRectPathCorners(cx - W0/2, cy - H0/2, W0, H0, r));
           path.setAttribute('fill', p.color || '#ffffff');
           path.setAttribute('stroke', '#94a3b8');
           path.setAttribute('stroke-width', '1');
@@ -768,7 +714,7 @@ function restore(){
           // selected outline (keep corners, do not scale stroke)
           if (isSelected(p.id)) {
             const outline = document.createElementNS(svgNS, 'path');
-            outline.setAttribute('d', roundedRectPathSimple(cx - W0/2, cy - H0/2, W0, H0, r));
+            outline.setAttribute('d', roundedRectPathCorners(cx - W0/2, cy - H0/2, W0, H0, r));
             outline.setAttribute('fill', 'none');
             outline.setAttribute('stroke', '#0ea5e9');
             outline.setAttribute('stroke-width', '2');
@@ -776,6 +722,71 @@ function restore(){
             outline.setAttribute('pointer-events', 'none');
             gg.appendChild(outline);
           }
+
+        // --- Sinks (draw inside the rotated group so they follow the piece rotation) ---
+        if (Array.isArray(p.sinks) && p.sinks.length){
+          // left/top of the unrotated rect in pixels
+          const leftPx = cx - W0/2;
+          const topPx  = cy - H0/2;
+
+          const sinksG = document.createElementNS('http://www.w3.org/2000/svg','g');
+          sinksG.setAttribute('id', `sinks-for-${p.id}`);
+
+          p.sinks.forEach((sink) => {
+            // center in piece-local inches (no rotation here)
+            const { cx: sxIn, cy: syIn } = sinkPoseOnPiece(p, sink);
+
+            // convert to px within the same coordinate space as `gg`
+            const sx = leftPx + i2p(sxIn);
+            const sy = topPx  + i2p(syIn);
+
+            // additional local rotation for left/right sides
+            const localAngle = (sink.side === 'left' || sink.side === 'right')
+              ? (sink.rotation || 0) + 90
+              : (sink.rotation || 0);
+
+            const gSink = document.createElementNS('http://www.w3.org/2000/svg','g');
+            gSink.setAttribute('transform', `translate(${sx}, ${sy}) rotate(${localAngle})`);
+
+            // sink shape
+            if (sink.shape === 'oval'){
+              const e = svgEl('ellipse', {
+                cx: 0, cy: 0,
+                rx: i2p(sink.w/2), ry: i2p(sink.h/2),
+                fill: 'none', stroke: '#333', 'stroke-width': 1
+              });
+              gSink.appendChild(e);
+            } else {
+              const w2 = i2p(sink.w/2), h2 = i2p(sink.h/2);
+              const r  = i2p(Math.min(sink.cornerR || 0, 4));
+              const d  = roundedRectPathSimple(-w2, -h2, w2*2, h2*2, r);
+              gSink.appendChild(svgEl('path', { d, fill: 'none', stroke: '#333', 'stroke-width': 1 }));
+            }
+
+            // faucet holes: 9 slots, 2" spacing, 2.5" back from sink edge (centerline)
+            if (Array.isArray(sink.faucets) && sink.faucets.length){
+              const holeOffsetIn = holeOffsetFromSinkEdge(sink); // inches
+              const startIndex = -4;
+              sink.faucets.forEach(idx => {
+                const x = (startIndex + idx) * i2p(HOLE_SPACING);
+                const y = - (i2p(sink.h/2) + i2p(holeOffsetIn)); // behind the sink (negative y)
+                gSink.appendChild(svgEl('circle', {
+                  cx: x, cy: y, r: i2p(HOLE_RADIUS),
+                  fill: 'none', stroke: '#333', 'stroke-width': 1
+                }));
+              });
+            }
+
+            sinksG.appendChild(gSink);
+          });
+
+          // add sinks inside the rotated group
+          gg.appendChild(sinksG);
+        }
+
+        // (keep this line after the sinks block)
+        g.appendChild(gg);
+
 
           g.appendChild(gg); // append rotated geometry to the piece group
 
@@ -921,9 +932,6 @@ function restore(){
           // append the group *once* here, not inside the handler
           svg.appendChild(g);
         }); 
-
-        // after all pieces are appended:
-        state.pieces.forEach(p => renderSinksForPiece({ svg, piece: p, scale: state.scale }));
 
         meta.textContent = `Canvas: ${state.cw}" × ${state.ch}" · Grid ${state.grid}" · Scale ${state.scale}px/in`;
       }
