@@ -6,7 +6,7 @@
     .lc-card{background:#fff;border:1px solid #e5e7eb;border-radius:16px;padding:14px;box-shadow:0 1px 2px rgba(0,0,0,.04)}
     .lc-card h3{margin:0 0 8px;font-size:16px;font-weight: 600}
     .lc-card-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
-    .lc-col{display:flex;flex-direction:column;gap:14px}
+    .lc-col{display:flex;flex-direction:column;gap:140px}
 
     /* Inputs / rows */
     .lc-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
@@ -309,3 +309,4 @@
   #lc-sinks-card details.lc-sink { display:block; }
   #lc-sinks-card summary { list-style: none; cursor: pointer; }
   #lc-sinks-card summary::-webkit-details-marker { display: none; }
+
