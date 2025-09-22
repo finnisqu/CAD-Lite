@@ -306,10 +306,42 @@ btnExportPDF && (btnExportPDF.onclick = async ()=>{
       root.className = 'sinks-card';
       uiMountEl.appendChild(root);
 
-      function el(tag, cls, text){ const n=document.createElement(tag); if(cls) n.className=cls; if(text) n.textContent=text; return n; }
-      function labelWrap(label, node){ const wrap=el('label','lc-label'); const cap=el('div','lc-small',label); wrap.appendChild(cap); wrap.appendChild(node); return wrap; }
-      function select(options, value){ const s=document.createElement('select'); s.className='lc-input'; options.forEach(o=>{const opt=document.createElement('option'); opt.value=o.v; opt.textContent=o.t; s.appendChild(opt)}); if(value!=null) s.value=String(value); return s; }
-      function numInput(value, step=0.001, min=null, max=null){ const i=document.createElement('input'); i.type='number'; i.className='lc-input'; i.value=fmt3(value??0); i.step=String(step); if(min!=null) i.min=String(min); if(max!=null) i.max=String(max); i.addEventListener('blur',()=>{ i.value = fmt3(i.value); }); return i; }
+      function el(tag, cls, text){
+      const n = document.createElement(tag);
+      if (cls) n.className = cls;
+      if (text != null) n.textContent = text;
+      return n;
+    }
+    function labelWrap(label, node){
+      const wrap = el('label', 'lc-label');
+      const cap  = el('div', 'lc-small', label);
+      wrap.appendChild(cap);
+      wrap.appendChild(node);
+      return wrap;
+    }
+    function select(options, value){
+      const s = document.createElement('select');
+      s.className = 'lc-input';
+      options.forEach(o => {
+        const opt = document.createElement('option');
+        opt.value = o.v;
+        opt.textContent = o.t;
+        s.appendChild(opt);
+      });
+      if (value != null) s.value = String(value);
+      return s;
+    }
+    function numInput(value, step = 0.001, min = null, max = null){
+      const i = document.createElement('input');
+      i.type = 'number';
+      i.className = 'lc-input';
+      i.value = (typeof fmt3 === 'function') ? fmt3(value ?? 0) : String(value ?? 0);
+      i.step = String(step);
+      if (min != null) i.min = String(min);
+      if (max != null) i.max = String(max);
+      i.addEventListener('blur', () => { i.value = (typeof fmt3 === 'function') ? fmt3(i.value) : i.value; });
+      return i;
+    }
 
       function createDefaultSink(){
         const m = SINK_MODELS[0];
@@ -615,7 +647,8 @@ function restore(){
         for (const k in attrs) n.setAttribute(k, attrs[k]);
         return n;
       }
-      function roundedRectPath(x, y, w, h, r){
+      // rename the sinks one:
+      function roundedRectPathSimple(x, y, w, h, r){
         if (r<=0) return `M${x},${y} h${w} v${h} h${-w} z`;
         r = Math.min(r, w/2, h/2);
         const x2 = x+w, y2 = y+h;
@@ -626,6 +659,7 @@ function restore(){
           `V${y+r}`,      `A${r},${r} 0 0 1 ${x+r},${y}`, 'Z'
         ].join(' ');
       }
+
 
       function renderSinksForPiece({ svg, piece, scale=1 }){
           if (!piece?.sinks?.length) return;
@@ -725,7 +759,7 @@ function restore(){
 
           // draw the rectangle unrotated, centered at (cx,cy), then rotate gg
           const path = document.createElementNS('http://www.w3.org/2000/svg','path');
-          path.setAttribute('d', roundedRectPath(cx - W0/2, cy - H0/2, W0, H0, r));
+          path.setAttribute('d', roundedRectPathSimple(cx - W0/2, cy - H0/2, W0, H0, r));
           path.setAttribute('fill', p.color || '#ffffff');
           path.setAttribute('stroke', '#94a3b8');
           path.setAttribute('stroke-width', '1');
@@ -734,7 +768,7 @@ function restore(){
           // selected outline (keep corners, do not scale stroke)
           if (isSelected(p.id)) {
             const outline = document.createElementNS(svgNS, 'path');
-            outline.setAttribute('d', roundedRectPath(cx - W0/2, cy - H0/2, W0, H0, r));
+            outline.setAttribute('d', roundedRectPathSimple(cx - W0/2, cy - H0/2, W0, H0, r));
             outline.setAttribute('fill', 'none');
             outline.setAttribute('stroke', '#0ea5e9');
             outline.setAttribute('stroke-width', '2');
