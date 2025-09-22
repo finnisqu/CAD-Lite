@@ -102,6 +102,9 @@
         return (Math.abs(v % 1) < 1e-9) ? String(Math.round(v)) : v.toFixed(3).replace(/\.?0+$/,'');
       };
 
+      let sinksUI; // Sinks card handle
+
+
       // ===== Sinks: config =====
       const SINK_STANDARD_SETBACK = 3.125; // inches
       const MAX_SINKS_PER_PIECE = 4;
@@ -501,7 +504,11 @@ function restore(){
       inDate.value = state.projectDate;
       if(inNotes) inNotes.value = state.notes;
       syncToolbarFromLayout();
-      renderLayouts(); renderList(); updateInspector(); draw();
+      renderLayouts(); 
+      renderList(); 
+      updateInspector(); 
+      sinksUI?.refresh(); 
+      draw();
       return true;
     } else {
       // fallback: legacy single-layout file
@@ -599,6 +606,46 @@ function restore(){
         ].join(' ');
       }
 
+      function renderSinksForPiece({ svg, piece, scale=1 }){
+          if (!piece?.sinks?.length) return;
+
+          let group = svg.querySelector(`#sinks-for-${piece.id}`);
+          if (!group){
+            group = document.createElementNS('http://www.w3.org/2000/svg','g');
+            group.setAttribute('id', `sinks-for-${piece.id}`);
+            svg.appendChild(group);
+          }
+          group.innerHTML = '';
+
+          piece.sinks.forEach((sink) => {
+            const { cx, cy, angle } = sinkPoseOnPiece(piece, sink);
+            const g = document.createElementNS('http://www.w3.org/2000/svg','g');
+            g.setAttribute('transform', `translate(${(piece.x + cx)*scale}, ${(piece.y + cy)*scale}) rotate(${angle})`);
+
+            // Sink shape
+            if (sink.shape === 'oval'){
+              const e = svgEl('ellipse', { cx:0, cy:0, rx:(sink.w/2)*scale, ry:(sink.h/2)*scale, fill:'none', stroke:'#333', 'stroke-width':1 });
+              g.appendChild(e);
+            } else {
+              const w2 = (sink.w/2)*scale, h2=(sink.h/2)*scale, r = Math.min(sink.cornerR||0, 4)*scale;
+              const path = roundedRectPath(-w2, -h2, w2*2, h2*2, r);
+              g.appendChild(svgEl('path', { d:path, fill:'none', stroke:'#333', 'stroke-width':1 }));
+            }
+
+            // Faucet holes
+            if (Array.isArray(sink.faucets) && sink.faucets.length){
+              const holeOffset = holeOffsetFromSinkEdge(sink);
+              const startIndex = -4; // positions -4..+4
+              sink.faucets.forEach(idx => {
+                const x = (startIndex + idx) * HOLE_SPACING * scale;
+                const y = - (sink.h/2 + holeOffset) * scale;
+                g.appendChild(svgEl('circle', { cx:x, cy:y, r: HOLE_RADIUS*scale, fill:'none', stroke:'#333', 'stroke-width':1 }));
+              });
+            }
+
+            group.appendChild(g);
+          });
+        }
 
       // ------- Drawing -------
       function draw(){
@@ -775,48 +822,6 @@ function restore(){
             gg.appendChild(dims);
           }
 
-
-          function renderSinksForPiece({ svg, piece, scale=1 }){
-          if (!piece?.sinks?.length) return;
-
-          let group = svg.querySelector(`#sinks-for-${piece.id}`);
-          if (!group){
-            group = document.createElementNS('http://www.w3.org/2000/svg','g');
-            group.setAttribute('id', `sinks-for-${piece.id}`);
-            svg.appendChild(group);
-          }
-          group.innerHTML = '';
-
-          piece.sinks.forEach((sink) => {
-            const { cx, cy, angle } = sinkPoseOnPiece(piece, sink);
-            const g = document.createElementNS('http://www.w3.org/2000/svg','g');
-            g.setAttribute('transform', `translate(${(piece.x + cx)*scale}, ${(piece.y + cy)*scale}) rotate(${angle})`);
-
-            // Sink shape
-            if (sink.shape === 'oval'){
-              const e = svgEl('ellipse', { cx:0, cy:0, rx:(sink.w/2)*scale, ry:(sink.h/2)*scale, fill:'none', stroke:'#333', 'stroke-width':1 });
-              g.appendChild(e);
-            } else {
-              const w2 = (sink.w/2)*scale, h2=(sink.h/2)*scale, r = Math.min(sink.cornerR||0, 4)*scale;
-              const path = roundedRectPath(-w2, -h2, w2*2, h2*2, r);
-              g.appendChild(svgEl('path', { d:path, fill:'none', stroke:'#333', 'stroke-width':1 }));
-            }
-
-            // Faucet holes
-            if (Array.isArray(sink.faucets) && sink.faucets.length){
-              const holeOffset = holeOffsetFromSinkEdge(sink);
-              const startIndex = -4; // positions -4..+4
-              sink.faucets.forEach(idx => {
-                const x = (startIndex + idx) * HOLE_SPACING * scale;
-                const y = - (sink.h/2 + holeOffset) * scale;
-                g.appendChild(svgEl('circle', { cx:x, cy:y, r: HOLE_RADIUS*scale, fill:'none', stroke:'#333', 'stroke-width':1 }));
-              });
-            }
-
-            group.appendChild(g);
-          });
-        }
-
         // Draw sinks and faucet holes on top of pieces
         state.pieces.forEach(p => renderSinksForPiece({ svg, piece: p, scale: state.scale }));
 
@@ -832,7 +837,10 @@ function restore(){
             }else{
               if(!isSelected(p.id)) selectOnly(p.id);
             }
-            renderList(); updateInspector();
+            renderList(); 
+            updateInspector();
+            sinksUI?.refresh();
+
 
             // capture group
             const start = state.pieces
@@ -903,7 +911,7 @@ function restore(){
           selectOnly(p.id);
           state.lastSelIndex = idx;
         }
-        renderList(); updateInspector(); draw();
+        renderList(); updateInspector(); sinksUI?.refresh(); draw();
       });
 
 
@@ -930,7 +938,7 @@ function restore(){
           np.y = clamp(snap(p.y + state.grid, state.grid), 0, state.ch - rs.h);
           state.pieces.push(np);
           state.selectedId = np.id;
-          renderList(); updateInspector(); draw(); scheduleSave();
+          renderList(); updateInspector(); sinksUI?.refresh(); draw(); scheduleSave();
         });
 
         const btnDel = document.createElement('button');
@@ -946,6 +954,7 @@ function restore(){
             state.selectedId=null;
             renderList(); 
             updateInspector(); 
+            sinksUI?.refresh();
             draw(); 
             scheduleSave();
           }
@@ -1040,7 +1049,7 @@ function installPieceReorder(){
     // keep z-order matching list order (optional)
     state.pieces.forEach((p,i)=> p.layer = i);
 
-    renderList(); updateInspector(); draw(); scheduleSave();
+    renderList(); updateInspector(); sinksUI?.refresh(); draw(); scheduleSave();
   });
 
   list.addEventListener('pointercancel', ()=>{
@@ -1064,7 +1073,7 @@ function renderLayouts(){
     row.addEventListener('click', (e)=>{
       if(e.target.closest('button, input, textarea')) return;
       state.active = idx; state.selectedId = null;
-      syncToolbarFromLayout(); renderList(); updateInspector(); draw();
+      syncToolbarFromLayout(); renderList(); updateInspector(); sinksUI?.refresh(); draw();
       renderLayouts(); scheduleSave();
     });
 
@@ -1108,7 +1117,7 @@ function renderLayouts(){
       state.layouts.splice(idx,1);
       if(state.active>=state.layouts.length) state.active=state.layouts.length-1;
       state.selectedId=null;
-      renderLayouts(); renderList(); updateInspector(); draw(); scheduleSave();
+      renderLayouts(); renderList(); updateInspector(); sinksUI?.refresh(); draw(); scheduleSave();
     });
 
     actions.append(btnDup, btnDel);
@@ -1121,7 +1130,7 @@ if(btnAddLayout){
   btnAddLayout.onclick = ()=>{
     const L = makeLayout(`Layout ${state.layouts.length+1}`);
     state.layouts.push(L); state.active = state.layouts.length-1;
-    renderLayouts(); renderList(); updateInspector(); draw(); syncToolbarFromLayout(); scheduleSave();
+    renderLayouts(); renderList(); updateInspector(); sinksUI?.refresh(); draw(); syncToolbarFromLayout(); scheduleSave();
   };
 }
 
@@ -1160,11 +1169,11 @@ if(btnAddLayout){
 
         const bBack = mkBtn('Backward','ghost sm', ()=> {
           p.layer = (p.layer||0) - 1;
-          renderList(); updateInspector(); draw();
+          renderList(); updateInspector(); sinksUI?.refresh(); draw();
         });
         const bFwd  = mkBtn('Forward','ghost sm', ()=> {
           p.layer = (p.layer||0) + 1;
-          renderList(); updateInspector(); draw();
+          renderList(); updateInspector(); sinksUI?.refresh(); draw();
         });
 
         row3.append(bBack, bFwd);
@@ -1245,7 +1254,7 @@ if(btnAddLayout){
           np.y = clamp(snap(p.y + state.grid, state.grid), 0, state.ch - rs.h);
           state.pieces.push(np);
           state.selectedId = np.id;
-          renderList(); updateInspector(); draw(); scheduleSave();
+          renderList(); updateInspector(); sinksUI?.refresh(); draw(); scheduleSave();
         };
 
         const btnDelI = document.createElement('button');
@@ -1261,6 +1270,7 @@ if(btnAddLayout){
             state.selectedId = null;
             renderList(); 
             updateInspector(); 
+            sinksUI?.refresh(); 
             draw(); 
             scheduleSave();
           }
@@ -1337,7 +1347,7 @@ if(btnAddLayout){
         if (!blankDown) return;           // didn’t start on blank space
         if (state.drag) { blankDown = null; return; } // a piece drag was in progress—ignore
         clearSelection();
-        renderList(); updateInspector(); draw();
+        renderList(); updateInspector(); sinksUI?.refresh(); draw();
         blankDown = null;
       });
 
@@ -1374,7 +1384,7 @@ if(btnAddLayout){
 
       btnClearSel && (btnClearSel.onclick = ()=>{
         clearSelection();
-        renderList(); updateInspector(); draw();
+        renderList(); updateInspector(); sinksUI?.refresh(); draw();
       });
 
       // ------- Project fields -------
@@ -1388,14 +1398,14 @@ if(btnAddLayout){
       btnAdd.onclick = () => {
         const idx = state.pieces.length; const top = Math.max(0,...state.pieces.map(x=>x.layer||0))+1;
         const p = { id: uid(), name: `Piece ${idx+1}`, w:24, h:12, x:0, y:0, rotation:0, color:'#ffffff', layer: top, rTL:false, rTR:false, rBL:false, rBR:false };
-        clampToCanvas(p); state.pieces.push(p); state.selectedId=p.id; renderList(); updateInspector(); draw(); scheduleSave();
+        clampToCanvas(p); state.pieces.push(p); state.selectedId=p.id; renderList(); updateInspector(); sinksUI?.refresh(); draw(); scheduleSave();
       };
 
       function duplicatePiece(p){
         const top=Math.max(0,...state.pieces.map(x=>x.layer||0))+1; 
         const rs = realSize(p);
         const d={...p, id: uid(), name: p.name+' Copy', x:clamp(p.x+state.grid,0,state.cw-rs.w), y:clamp(p.y+state.grid,0,state.ch-rs.h), layer:top};
-        state.pieces.push(d); state.selectedId=d.id; renderList(); updateInspector(); draw();
+        state.pieces.push(d); state.selectedId=d.id; renderList(); updateInspector(); sinksUI?.refresh(); draw();
       }
 
       // ------- Import / Export -------
@@ -1430,7 +1440,7 @@ if(btnAddLayout){
           }));
         }
         state.selectedId = null;
-        renderList(); updateInspector(); draw();
+        renderList(); updateInspector(); sinksUI?.refresh(); draw();
       }
       
       inImport.onchange = (e)=>{
@@ -1466,7 +1476,7 @@ if(btnAddLayout){
         state.active = 0; state.selectedId = null;
 
         syncToolbarFromLayout();
-        renderLayouts(); renderList(); updateInspector(); draw();
+        renderLayouts(); renderList(); updateInspector(); sinksUI?.refresh(); draw();
 
         try{ localStorage.removeItem(SAVE_KEY); }catch(_){}
         scheduleSave();
@@ -1510,6 +1520,7 @@ if(btnAddLayout){
         draw();
         renderList();
         updateInspector();
+        sinksUI?.refresh();
       }
 
       // --- expose a minimal API for external modules (like the Sinks card) ---
