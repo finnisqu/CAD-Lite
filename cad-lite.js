@@ -321,28 +321,41 @@ btnExportPDF && (btnExportPDF.onclick = async ()=>{
       }
 
       function render(){
-        const piece = getSelectedPiece?.();
-        root.innerHTML='';
+      const piece = getSelectedPiece?.();
+      root.innerHTML = '';
 
-        if (!piece) return;
-        migratePieceForSinks(piece);
+      // Always show a header so the card never looks blank
+      const header = el('div','lc-card-head');
+      header.appendChild(el('h3', null, 'Sinks'));
+      root.appendChild(header);
 
-        if (!piece) {
-          const note = document.createElement('div');
-          note.className = 'lc-small';
-          note.textContent = 'Select a piece to add a sink.';
-          root.appendChild(note);
-          return;
-        }
+      if (!piece){
+        const msg = el('div','lc-small','Select a piece to add a sink.');
+        root.appendChild(msg);
+        return;
+      }
 
+      migratePieceForSinks(piece);
 
-        if (!piece.sinks.length){
-          const btn = el('button','lc-btn','Add sink');
-          btn.onclick = ()=>{ if (piece.sinks.length<MAX_SINKS_PER_PIECE){ piece.sinks.push(createDefaultSink()); onStateChange?.(); render(); } };
-          const head = el('div','lc-row'); head.appendChild(btn);
-          root.appendChild(head);
-          return;
-        }
+      // Empty state: piece selected but no sinks yet
+      if (!piece.sinks.length){
+        const row = el('div','lc-row');
+        const btn = el('button','lc-btn','Add sink');
+        btn.onclick = () => {
+          if (piece.sinks.length < MAX_SINKS_PER_PIECE){
+            piece.sinks.push(createDefaultSink());
+            onStateChange?.();
+            render();
+          }
+        };
+        row.appendChild(btn);
+        root.appendChild(row);
+        return;
+      }
+
+      // ... keep your existing per-sink UI here ...
+    }
+
 
         const header = el('div','lc-card-head');
         header.appendChild(el('h3',null,'Sinks'));
