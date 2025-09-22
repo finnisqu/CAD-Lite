@@ -94,39 +94,30 @@
 
       const inspectorCard = document.getElementById('lc-inspector');
 
-      const SINK_MODELS = {
-        'SS_3218': {
-          id: 'SS_3218',
-          label: 'SS 3218',
-          shape: 'rect',
-          outerW: 31,
-          outerH: 17,
-          cornerR: 4,        // inches
-        },
-        'US_1714_OVAL': {
-          id: 'US_1714_OVAL',
-          label: 'US 1714 Oval',
-          shape: 'oval',
-          outerW: 17,
-          outerH: 14,
-          cornerR: 0,
-        },
-        'US_1813_RECT': {
-          id: 'US_1813_RECT',
-          label: 'US 1813 Rectangle',
-          shape: 'rect',
-          outerW: 18,
-          outerH: 13,
-          cornerR: 2,
-        },
+     // ===== General helpers (also used for rounding/inputs) =====
+      const clamp = (n,a,b)=>Math.max(a,Math.min(b,n));
+      const round3 = (n)=>Math.round((Number(n)||0)*1000)/1000;
+      const fmt3 = (n)=>{
+        const v = round3(n);
+        return (Math.abs(v % 1) < 1e-9) ? String(Math.round(v)) : v.toFixed(3).replace(/\.?0+$/,'');
       };
 
-      const FAUCET_HOLE_DIAMETER = 1.5;        // in
-      const FAUCET_HOLE_RADIUS   = FAUCET_HOLE_DIAMETER / 2; // 0.75"
-      const FAUCET_HOLE_BACKSET  = 2.5;        // distance from sink edge to hole center
-      const FAUCET_HOLE_PITCH    = 2;          // center-to-center gap
-      const MAX_SINKS_PER_PIECE  = 4;
-      const DEFAULT_SINK_SETBACK = 3.125;      // front edge setback (piece front to sink front)
+      // ===== Sinks: config =====
+      const SINK_STANDARD_SETBACK = 3.125; // inches
+      const MAX_SINKS_PER_PIECE = 4;
+      const HOLE_DIAMETER = 1.5;                 // inches
+      const HOLE_RADIUS = HOLE_DIAMETER / 2;
+      const HOLE_BACKSET_FROM_SINK_EDGE = 2.5;   // center of hole from sink edge (in)
+      const HOLE_SPACING = 2;                    // center-to-center (in)
+
+      // Example presets (adjust to your catalog)
+      const SINK_MODELS = [
+        { id:'k3218-single', label:'Kitchen 3218 Single Bowl', shape:'rect', w:21, h:16, cornerR:0.5 },
+        { id:'k3218-50-50',  label:'Kitchen 3218 50/50 Bowl',  shape:'rect', w:32, h:18, cornerR:0.5 },
+        { id:'k3040-60-40',  label:'Kitchen 60/40 Bowl',       shape:'rect', w:32, h:18, cornerR:0.5 },
+        { id:'oval-1714',    label:'Oval 1714 Vanity',         shape:'oval', w:17, h:14, cornerR:0 },
+        { id:'rect-1813',    label:'Rectangle 1813 Vanity',    shape:'rect', w:18, h:13, cornerR:0.25 },
+      ];
       
       // store the largest “selected” inspector height we've seen
       let inspectorLockH = 0;
@@ -138,7 +129,6 @@
           inspectorCard.style.minHeight = inspectorLockH + 'px';
         }
       }
-
 
       const svgNS = 'http://www.w3.org/2000/svg';
       let gGrid = document.getElementById('g-grid');
@@ -308,6 +298,141 @@ btnExportPDF && (btnExportPDF.onclick = async ()=>{
       mm.addEventListener('change', e => placeForMobile(e.matches));
       placeForMobile(mm.matches); // run once on load
 
+      function initSinksCard({ uiMountEl, getSelectedPiece, onStateChange }) {
+      const root = document.createElement('div');
+      root.className = 'sinks-card';
+      uiMountEl.appendChild(root);
+
+      function el(tag, cls, text){ const n=document.createElement(tag); if(cls) n.className=cls; if(text) n.textContent=text; return n; }
+      function labelWrap(label, node){ const wrap=el('label','lc-label'); const cap=el('div','lc-small',label); wrap.appendChild(cap); wrap.appendChild(node); return wrap; }
+      function select(options, value){ const s=document.createElement('select'); s.className='lc-input'; options.forEach(o=>{const opt=document.createElement('option'); opt.value=o.v; opt.textContent=o.t; s.appendChild(opt)}); if(value!=null) s.value=String(value); return s; }
+      function numInput(value, step=0.001, min=null, max=null){ const i=document.createElement('input'); i.type='number'; i.className='lc-input'; i.value=fmt3(value??0); i.step=String(step); if(min!=null) i.min=String(min); if(max!=null) i.max=String(max); i.addEventListener('blur',()=>{ i.value = fmt3(i.value); }); return i; }
+
+      function createDefaultSink(){
+        const m = SINK_MODELS[0];
+        return {
+          id:'sink_'+Math.random().toString(36).slice(2,9),
+          type:'model', modelId:m.id, shape:m.shape, w:m.w, h:m.h, cornerR:m.cornerR,
+          side:'front', centerline:0, setback:SINK_STANDARD_SETBACK, faucets:[], rotation:0
+        };
+      }
+
+      function render(){
+        const piece = getSelectedPiece?.();
+        root.innerHTML='';
+
+        if (!piece) return;
+        migratePieceForSinks(piece);
+
+        if (!piece.sinks.length){
+          const btn = el('button','lc-btn','Add sink');
+          btn.onclick = ()=>{ if (piece.sinks.length<MAX_SINKS_PER_PIECE){ piece.sinks.push(createDefaultSink()); onStateChange?.(); render(); } };
+          const head = el('div','lc-row'); head.appendChild(btn);
+          root.appendChild(head);
+          return;
+        }
+
+        const header = el('div','lc-card-head');
+        header.appendChild(el('h3',null,'Sinks'));
+        if (piece.sinks.length<MAX_SINKS_PER_PIECE){
+          const add = el('button','lc-btn alt','+ Add sink');
+          add.onclick = ()=>{ piece.sinks.push(createDefaultSink()); onStateChange?.(); render(); };
+          header.appendChild(add);
+        }
+        root.appendChild(header);
+
+        piece.sinks.forEach((sink, idx)=>{
+          const card = el('div','lc-card'); // reuse your card styling
+
+          // Type + Model
+          const row1 = el('div','lc-row');
+          const typeSel = select([{v:'model',t:'Model'},{v:'custom',t:'Custom'}], sink.type);
+          typeSel.onchange = ()=>{ sink.type = typeSel.value; if (sink.type==='model'){ const m=SINK_MODELS.find(m=>m.id===sink.modelId)||SINK_MODELS[0]; applyModelToSink(sink,m); } onStateChange?.(); render(); };
+          const modelSel = select(SINK_MODELS.map(m=>({v:m.id,t:m.label})), sink.modelId||SINK_MODELS[0].id);
+          modelSel.onchange = ()=>{ sink.modelId = modelSel.value; const m=SINK_MODELS.find(m=>m.id===sink.modelId); applyModelToSink(sink,m); onStateChange?.(); render(); };
+          row1.appendChild(labelWrap('Type', typeSel));
+          row1.appendChild(labelWrap('Model', modelSel));
+          card.appendChild(row1);
+
+          // Custom fields
+          if (sink.type==='custom'){
+            const rc = el('div','lc-row');
+            const shapeSel = select([{v:'rect',t:'Rectangle'},{v:'oval',t:'Oval'}], sink.shape);
+            shapeSel.onchange = ()=>{ sink.shape=shapeSel.value; onStateChange?.(); };
+            const w = numInput(sink.w, 0.001, 0);
+            w.oninput = ()=>{ sink.w = round3(w.value); onStateChange?.(); };
+            const h = numInput(sink.h, 0.001, 0);
+            h.oninput = ()=>{ sink.h = round3(h.value); onStateChange?.(); };
+            const r = numInput(sink.cornerR, 0.001, 0, 4);
+            r.oninput = ()=>{ sink.cornerR = clamp(round3(r.value),0,4); onStateChange?.(); };
+            rc.appendChild(labelWrap('Shape', shapeSel));
+            rc.appendChild(labelWrap('Width (in)', w));
+            rc.appendChild(labelWrap('Height (in)', h));
+            rc.appendChild(labelWrap('Corner R (0–4″)', r));
+            card.appendChild(rc);
+          }
+
+          // Side + Centerline + Setback + Rotation
+          const row2 = el('div','lc-row');
+          const sideSel = select([{v:'front',t:'Front'},{v:'back',t:'Back'},{v:'left',t:'Left'},{v:'right',t:'Right'}], sink.side||'front');
+          sideSel.onchange = ()=>{ sink.side=sideSel.value; onStateChange?.(); };
+          const cl = numInput(sink.centerline||0, 0.001, 0);
+          cl.oninput   = ()=>{ sink.centerline = round3(cl.value); onStateChange?.(); };
+          const setback = numInput(sink.setback ?? SINK_STANDARD_SETBACK, 0.001, 0);
+          setback.oninput= ()=>{ sink.setback = clamp(round3(setback.value),0, 999); onStateChange?.(); };
+          const rot = numInput(sink.rotation||0, 1, 0, 90);
+          rot.oninput = ()=>{ sink.rotation = clamp(Math.round(Number(rot.value)||0), 0, 90); rot.value=String(sink.rotation); onStateChange?.(); };
+          row2.appendChild(labelWrap('Side', sideSel));
+          row2.appendChild(labelWrap('Centerline (in)', cl));
+          row2.appendChild(labelWrap('Setback (in)', setback));
+          row2.appendChild(labelWrap('Rotation (°)', rot));
+          card.appendChild(row2);
+
+          // Faucet rack (9 checkboxes)
+          const row3 = el('div','lc-row');
+          const rack = el('div','lc-row');
+          for (let i=0;i<9;i++){
+            const cb = document.createElement('input');
+            cb.type='checkbox';
+            cb.checked = sink.faucets?.includes(i) || false;
+            cb.onchange = ()=>{
+              const s = new Set(sink.faucets||[]);
+              if (cb.checked) s.add(i); else s.delete(i);
+              sink.faucets = [...s].sort((a,b)=>a-b);
+              onStateChange?.();
+            };
+            rack.appendChild(cb);
+          }
+          row3.appendChild(labelWrap('Faucet holes', rack));
+          card.appendChild(row3);
+
+          // Remove
+          const row4 = el('div','lc-row');
+          const del = el('button','lc-btn red','Remove sink');
+          del.onclick = ()=>{ piece.sinks.splice(idx,1); onStateChange?.(); render(); };
+          row4.appendChild(del);
+          card.appendChild(row4);
+
+          root.appendChild(card);
+        });
+      }
+
+      return { refresh: render, get root(){ return root; } };
+    }
+
+    // Ensure sinks array exists on any existing pieces
+    state.pieces.forEach(migratePieceForSinks);
+
+    // Build Sinks UI
+    const sinksUI = initSinksCard({
+      uiMountEl: document.getElementById('lc-sinks-card'),
+      getSelectedPiece: () => state.pieces.find(p => p.id === state.selectedId) || null,
+      onStateChange: () => { draw(); scheduleSave?.(); sinksUI.refresh(); }
+    });
+
+    // If you have events for selection or piece creation, refresh/seed:
+    document.addEventListener('click', () => sinksUI.refresh()); // or your own selection events
+
 
       // ------- Utils -------
       const clamp = (n,min,max) => Math.min(max, Math.max(min, n));
@@ -425,6 +550,56 @@ function restore(){
         return `M${x+rtl},${y} H${x+w-rtr} Q${x+w},${y} ${x+w},${y+rtr} V${y+h-rbr} Q${x+w},${y+h} ${x+w-rbr},${y+h} H${x+rbl} Q${x},${y+h} ${x},${y+h-rbl} V${y+rtl} Q${x},${y} ${x+rtl},${y} Z`;
       }
 
+      // Ensure any piece has a sinks array
+      function migratePieceForSinks(piece){
+        if (!piece.sinks) piece.sinks = [];
+        return piece;
+      }
+
+      function applyModelToSink(sink, model){
+        if (!model) return;
+        sink.modelId = model.id;
+        sink.shape   = model.shape;
+        sink.w       = model.w;
+        sink.h       = model.h;
+        sink.cornerR = clamp(model.cornerR ?? 0, 0, 4);
+      }
+
+      // Compute the sink center & angle in piece space
+      function sinkPoseOnPiece(piece, sink){
+        const side    = sink.side || 'front';
+        const setback = (sink.setback ?? SINK_STANDARD_SETBACK);
+        let cx, cy, angle = (piece.rotation||0) + (sink.rotation||0);
+
+        if (side === 'front'){ cx = sink.centerline;                        cy = setback + sink.h/2; }
+        else if (side === 'back'){ cx = sink.centerline;                    cy = piece.height - (setback + sink.h/2); }
+        else if (side === 'left'){ cx = setback + sink.h/2;                 cy = sink.centerline; angle += 90; }
+        else /* right */        { cx = piece.width - (setback + sink.h/2);  cy = sink.centerline; angle += 90; }
+
+        const sinkRect = { x: cx - sink.w/2, y: cy - sink.h/2, w: sink.w, h: sink.h };
+        return { cx, cy, angle, sinkRect };
+      }
+
+      function holeOffsetFromSinkEdge(_sink){ return HOLE_BACKSET_FROM_SINK_EDGE; }
+
+      function svgEl(tag, attrs){
+        const n = document.createElementNS('http://www.w3.org/2000/svg', tag);
+        for (const k in attrs) n.setAttribute(k, attrs[k]);
+        return n;
+      }
+      function roundedRectPath(x, y, w, h, r){
+        if (r<=0) return `M${x},${y} h${w} v${h} h${-w} z`;
+        r = Math.min(r, w/2, h/2);
+        const x2 = x+w, y2 = y+h;
+        return [
+          `M${x+r},${y}`, `H${x2-r}`, `A${r},${r} 0 0 1 ${x2},${y+r}`,
+          `V${y2-r}`,     `A${r},${r} 0 0 1 ${x2-r},${y2}`,
+          `H${x+r}`,      `A${r},${r} 0 0 1 ${x},${y2-r}`,
+          `V${y+r}`,      `A${r},${r} 0 0 1 ${x+r},${y}`, 'Z'
+        ].join(' ');
+      }
+
+
       // ------- Drawing -------
       function draw(){
         const Wpx = i2p(state.cw), Hpx = i2p(state.ch);
@@ -522,48 +697,128 @@ function restore(){
          text.appendChild(t1);
          text.appendChild(t2);
           g.appendChild(text);
-          if(state.showDims){
+          if (state.showDims) {
             const dimStroke = '#94a3b8';
-            // width dimension (above piece)
-            const y0 = Math.max(0, y - 12);
+            const off = 12;  // px away from the edge
+            const tick = 6;  // px tick half-length
+
+            const dims = document.createElementNS('http://www.w3.org/2000/svg','g');
+            dims.setAttribute('class','dims');
+
+            // WIDTH dimension (across the top of the unrotated rect)
+            const yTop = (cy - H0/2) - off;
+            const xL = cx - W0/2;
+            const xR = cx + W0/2;
+
             const wLine = document.createElementNS('http://www.w3.org/2000/svg','line');
-            wLine.setAttribute('x1', x); wLine.setAttribute('y1', y0);
-            wLine.setAttribute('x2', x+W); wLine.setAttribute('y2', y0);
-            wLine.setAttribute('stroke', dimStroke); wLine.setAttribute('vector-effect','non-scaling-stroke');
-            const wT = document.createElementNS('http://www.w3.org/2000/svg','text');
-            wT.setAttribute('x', x+W/2); wT.setAttribute('y', y0-4);
-            wT.setAttribute('text-anchor','middle'); wT.setAttribute('font-size','12'); wT.setAttribute('fill','#111');
-            wT.textContent = `${rs.w}"`;
+            wLine.setAttribute('x1', xL); wLine.setAttribute('y1', yTop);
+            wLine.setAttribute('x2', xR); wLine.setAttribute('y2', yTop);
+            wLine.setAttribute('stroke', dimStroke);
+            wLine.setAttribute('vector-effect','non-scaling-stroke');
 
-            // ticks for width
             const wt1 = document.createElementNS('http://www.w3.org/2000/svg','line');
-            wt1.setAttribute('x1',x); wt1.setAttribute('y1',y0-6); wt1.setAttribute('x2',x); wt1.setAttribute('y2',y0+6);
-            wt1.setAttribute('stroke',dimStroke); wt1.setAttribute('vector-effect','non-scaling-stroke');
-            const wt2 = document.createElementNS('http://www.w3.org/2000/svg','line');
-            wt2.setAttribute('x1',x+W); wt2.setAttribute('y1',y0-6); wt2.setAttribute('x2',x+W); wt2.setAttribute('y2',y0+6);
-            wt2.setAttribute('stroke',dimStroke); wt2.setAttribute('vector-effect','non-scaling-stroke');
+            wt1.setAttribute('x1', xL); wt1.setAttribute('y1', yTop - tick);
+            wt1.setAttribute('x2', xL); wt1.setAttribute('y2', yTop + tick);
+            wt1.setAttribute('stroke', dimStroke);
+            wt1.setAttribute('vector-effect','non-scaling-stroke');
 
-            // height dimension (left of piece)
-            const x0 = Math.max(0, x - 12);
+            const wt2 = document.createElementNS('http://www.w3.org/2000/svg','line');
+            wt2.setAttribute('x1', xR); wt2.setAttribute('y1', yTop - tick);
+            wt2.setAttribute('x2', xR); wt2.setAttribute('y2', yTop + tick);
+            wt2.setAttribute('stroke', dimStroke);
+            wt2.setAttribute('vector-effect','non-scaling-stroke');
+
+            const wT = document.createElementNS('http://www.w3.org/2000/svg','text');
+            wT.setAttribute('x', cx);
+            wT.setAttribute('y', yTop - 4);
+            wT.setAttribute('text-anchor','middle');
+            wT.setAttribute('font-size','12');
+            wT.setAttribute('fill','#111');
+            // If you have fmt3(), use it; else fallback to p.w
+            wT.textContent = (typeof fmt3 === 'function' ? `${fmt3(p.w)}` : `${p.w}`) + '"';
+
+            // HEIGHT dimension (down the left of the unrotated rect)
+            const xLeft = (cx - W0/2) - off;
+            const yT = cy - H0/2;
+            const yB = cy + H0/2;
+
             const hLine = document.createElementNS('http://www.w3.org/2000/svg','line');
-            hLine.setAttribute('x1', x0); hLine.setAttribute('y1', y);
-            hLine.setAttribute('x2', x0); hLine.setAttribute('y2', y+H);
-            hLine.setAttribute('stroke', dimStroke); hLine.setAttribute('vector-effect','non-scaling-stroke');
-            const hT = document.createElementNS('http://www.w3.org/2000/svg','text');
-            hT.setAttribute('x', x0-4); hT.setAttribute('y', y+H/2);
-            hT.setAttribute('text-anchor','end'); hT.setAttribute('dominant-baseline','middle');
-            hT.setAttribute('font-size','12'); hT.setAttribute('fill','#111');
-            hT.textContent = `${rs.h}"`;
+            hLine.setAttribute('x1', xLeft); hLine.setAttribute('y1', yT);
+            hLine.setAttribute('x2', xLeft); hLine.setAttribute('y2', yB);
+            hLine.setAttribute('stroke', dimStroke);
+            hLine.setAttribute('vector-effect','non-scaling-stroke');
 
             const ht1 = document.createElementNS('http://www.w3.org/2000/svg','line');
-            ht1.setAttribute('x1',x0-6); ht1.setAttribute('y1',y); ht1.setAttribute('x2',x0+6); ht1.setAttribute('y2',y);
-            ht1.setAttribute('stroke',dimStroke); ht1.setAttribute('vector-effect','non-scaling-stroke');
-            const ht2 = document.createElementNS('http://www.w3.org/2000/svg','line');
-            ht2.setAttribute('x1',x0-6); ht2.setAttribute('y1',y+H); ht2.setAttribute('x2',x0+6); ht2.setAttribute('y2',y+H);
-            ht2.setAttribute('stroke',dimStroke); ht2.setAttribute('vector-effect','non-scaling-stroke');
+            ht1.setAttribute('x1', xLeft - tick); ht1.setAttribute('y1', yT);
+            ht1.setAttribute('x2', xLeft + tick); ht1.setAttribute('y2', yT);
+            ht1.setAttribute('stroke', dimStroke);
+            ht1.setAttribute('vector-effect','non-scaling-stroke');
 
-            g.append(wLine, wt1, wt2, wT, hLine, ht1, ht2, hT);
+            const ht2 = document.createElementNS('http://www.w3.org/2000/svg','line');
+            ht2.setAttribute('x1', xLeft - tick); ht2.setAttribute('y1', yB);
+            ht2.setAttribute('x2', xLeft + tick); ht2.setAttribute('y2', yB);
+            ht2.setAttribute('stroke', dimStroke);
+            ht2.setAttribute('vector-effect','non-scaling-stroke');
+
+            const hT = document.createElementNS('http://www.w3.org/2000/svg','text');
+            hT.setAttribute('x', xLeft - 4);
+            hT.setAttribute('y', cy);
+            hT.setAttribute('text-anchor','end');
+            hT.setAttribute('dominant-baseline','middle');
+            hT.setAttribute('font-size','12');
+            hT.setAttribute('fill','#111');
+            hT.textContent = (typeof fmt3 === 'function' ? `${fmt3(p.h)}` : `${p.h}`) + '"';
+
+            dims.append(wLine, wt1, wt2, wT, hLine, ht1, ht2, hT);
+
+            // ⬅️ key change: append to the ROTATED child group
+            gg.appendChild(dims);
           }
+
+
+          function renderSinksForPiece({ svg, piece, scale=1 }){
+          if (!piece?.sinks?.length) return;
+
+          let group = svg.querySelector(`#sinks-for-${piece.id}`);
+          if (!group){
+            group = document.createElementNS('http://www.w3.org/2000/svg','g');
+            group.setAttribute('id', `sinks-for-${piece.id}`);
+            svg.appendChild(group);
+          }
+          group.innerHTML = '';
+
+          piece.sinks.forEach((sink) => {
+            const { cx, cy, angle } = sinkPoseOnPiece(piece, sink);
+            const g = document.createElementNS('http://www.w3.org/2000/svg','g');
+            g.setAttribute('transform', `translate(${(piece.x + cx)*scale}, ${(piece.y + cy)*scale}) rotate(${angle})`);
+
+            // Sink shape
+            if (sink.shape === 'oval'){
+              const e = svgEl('ellipse', { cx:0, cy:0, rx:(sink.w/2)*scale, ry:(sink.h/2)*scale, fill:'none', stroke:'#333', 'stroke-width':1 });
+              g.appendChild(e);
+            } else {
+              const w2 = (sink.w/2)*scale, h2=(sink.h/2)*scale, r = Math.min(sink.cornerR||0, 4)*scale;
+              const path = roundedRectPath(-w2, -h2, w2*2, h2*2, r);
+              g.appendChild(svgEl('path', { d:path, fill:'none', stroke:'#333', 'stroke-width':1 }));
+            }
+
+            // Faucet holes
+            if (Array.isArray(sink.faucets) && sink.faucets.length){
+              const holeOffset = holeOffsetFromSinkEdge(sink);
+              const startIndex = -4; // positions -4..+4
+              sink.faucets.forEach(idx => {
+                const x = (startIndex + idx) * HOLE_SPACING * scale;
+                const y = - (sink.h/2 + holeOffset) * scale;
+                g.appendChild(svgEl('circle', { cx:x, cy:y, r: HOLE_RADIUS*scale, fill:'none', stroke:'#333', 'stroke-width':1 }));
+              });
+            }
+
+            group.appendChild(g);
+          });
+        }
+
+        // Draw sinks and faucet holes on top of pieces
+        state.pieces.forEach(p => renderSinksForPiece({ svg, piece: p, scale: state.scale }));
 
 
           // add the drag/selection handler
@@ -1244,28 +1499,28 @@ if(btnAddLayout){
         img.src = 'data:image/svg+xml;charset=utf-8,'+encodeURIComponent(src);
       };
 
-     // ------- Init -------
+      // ------- Init -------
       inProject.value = state.projectName;
       inDate.value = state.projectDate || todayISO();
       syncToolbarFromLayout();
       renderLayouts();
-      
+
       if (!restore()) {
         // first-time load
         draw();
         renderList();
         updateInspector();
       }
-      
+
       // --- expose a minimal API for external modules (like the Sinks card) ---
       // (Always do this, regardless of restore())
       window.CADLITE = { state, svg, draw, scheduleSave, updateInspector };
-      
+
       // fire a custom event so modules can safely hook in even if scripts load out of order
       document.dispatchEvent(new CustomEvent('cad:ready', { detail: window.CADLITE }));
-      
+
       } // <-- end of init()
-      
+
       // Run after DOM is fully ready (Squarespace can defer/relocate scripts)
       if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', init);
