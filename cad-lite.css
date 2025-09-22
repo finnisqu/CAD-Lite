@@ -16,7 +16,7 @@
     .compact .lc-input,.compact .lc-select{max-width:120px}
 
     /* Color swatch with ghost input (reliable in Squarespace) */
-    .lc-color-stack{position:relative;width:100%;height:400px}
+    .lc-color-stack{position:relative;width:100%;height:40px}
     .lc-color-ghost{position:absolute;inset:0;opacity:0;cursor:pointer}
     .lc-swatch{position:absolute;inset:0;border:1px solid #d1d5db;border-radius:10px;background:var(--c,#fff)}
 
@@ -309,5 +309,6 @@
   #lc-sinks-card details.lc-sink { display:block; }
   #lc-sinks-card summary { list-style: none; cursor: pointer; }
   #lc-sinks-card summary::-webkit-details-marker { display: none; }
+
 
 
