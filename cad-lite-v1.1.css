@@ -300,15 +300,23 @@
   grid-template-columns: 1fr 1fr;
   gap: 8px;
   align-items: end;
-
 }
 
-  /* force the sinks card visible */
-  #lc-sinks-card { display:block !important; }
-  /* make sure details/summary are visible in Squarespace */
-  #lc-sinks-card details.lc-sink { display:block; }
-  #lc-sinks-card summary { list-style: none; cursor: pointer; }
-  #lc-sinks-card summary::-webkit-details-marker { display: none; }
+/* Sinks card basics */
+.sinks-card { display: grid; gap: 10px; }
+.sinks-header { display:flex; justify-content:space-between; align-items:center; }
+.sink-editor { border:1px solid #e5e7eb; border-radius:12px; padding:10px; background:#fff; }
+.sink-editor .row { display:grid; gap:8px; grid-template-columns: repeat(2, minmax(0,1fr)); }
+.sink-editor .field { display:grid; gap:4px; }
+.sink-editor .field-label { font-size:12px; color:#4b5563; }
 
+/* Buttons used by Sinks module */
+.btn{display:inline-flex;align-items:center;gap:.5rem;font-weight:600;font-size:12px;line-height:1.2;
+  padding:8px 10px;border-radius:10px;border:1px solid #d1d5db;background:#fff;cursor:pointer}
+.btn-primary{background:#0ea5e9;border-color:#0284c7;color:#fff}
+.btn-secondary{background:#fff;border-color:#d1d5db;color:#111}
+.btn:active{transform:translateY(1px)}
 
-
+/* Sinks: faucet-hole row */
+.sink-editor .holes-row{ display:flex; gap:6px; align-items:center; }
+.sink-editor .holes-row input[type="checkbox"]{ margin:0; }
