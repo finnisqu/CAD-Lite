@@ -460,10 +460,6 @@ btnExportPDF && (btnExportPDF.onclick = async ()=>{
           return card;
         }
 
-
-      // track which sink's editor is open per-piece
-      const openIndex = new Map();
-      
       render();
       return { refresh: render };
     
