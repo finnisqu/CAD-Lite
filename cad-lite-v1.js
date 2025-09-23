@@ -610,44 +610,6 @@ function restore(){
         ].join(' ');
       }
 
-          let group = svg.querySelector(`#sinks-for-${piece.id}`);
-          if (!group){
-            group = document.createElementNS('http://www.w3.org/2000/svg','g');
-            group.setAttribute('id', `sinks-for-${piece.id}`);
-            svg.appendChild(group);
-          }
-          group.innerHTML = '';
-
-          piece.sinks.forEach((sink) => {
-            const { cx, cy, angle } = sinkPoseOnPiece(piece, sink);
-            const g = document.createElementNS('http://www.w3.org/2000/svg','g');
-            g.setAttribute('transform', `translate(${(piece.x + cx)*scale}, ${(piece.y + cy)*scale}) rotate(${angle})`);
-
-            // Sink shape
-            if (sink.shape === 'oval'){
-              const e = svgEl('ellipse', { cx:0, cy:0, rx:(sink.w/2)*scale, ry:(sink.h/2)*scale, fill:'none', stroke:'#333', 'stroke-width':1 });
-              g.appendChild(e);
-            } else {
-              const w2 = (sink.w/2)*scale, h2=(sink.h/2)*scale, r = Math.min(sink.cornerR||0, 4)*scale;
-              const path = roundedRectPathSimple(-w2, -h2, w2*2, h2*2, r);
-              g.appendChild(svgEl('path', { d:path, fill:'none', stroke:'#333', 'stroke-width':1 }));
-            }
-
-            // Faucet holes
-            if (Array.isArray(sink.faucets) && sink.faucets.length){
-              const holeOffset = holeOffsetFromSinkEdge(sink);
-              const startIndex = -4; // positions -4..+4
-              sink.faucets.forEach(idx => {
-                const x = (startIndex + idx) * HOLE_SPACING * scale;
-                const y = - (sink.h/2 + holeOffset) * scale;
-                g.appendChild(svgEl('circle', { cx:x, cy:y, r: HOLE_RADIUS*scale, fill:'none', stroke:'#333', 'stroke-width':1 }));
-              });
-            }
-
-            group.appendChild(g);
-          });
-        }
-
       // ------- Drawing -------
       function draw(){
         const Wpx = i2p(state.cw), Hpx = i2p(state.ch);
