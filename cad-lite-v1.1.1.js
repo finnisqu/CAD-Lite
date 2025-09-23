@@ -377,9 +377,10 @@ btnExportPDF && (btnExportPDF.onclick = async ()=>{
               const rc = el('div','row');
               const shapeSel = select([{v:'rect',t:'Rectangle'},{v:'oval',t:'Oval'}], sink.shape||'rect');
               shapeSel.onchange = ()=>{ sink.shape=shapeSel.value; onStateChange?.(); };
-              const w = numInput(sink.w||0, 0.001, 0); w.oninput = ()=>{ sink.w=round3(w.value); onStateChange?.(); };
-              const h = numInput(sink.h||0, 0.001, 0); h.oninput = ()=>{ sink.h=round3(h.value); onStateChange?.(); };
-              const r = numInput(sink.cornerR||0, 0.001, 0, 4); r.oninput = ()=>{ sink.cornerR=clamp(round3(r.value),0,4); onStateChange?.(); };
+              // custom dims (live update, no UI rebuild)
+              w.oninput = ()=>{ sink.w = round3(w.value); draw(); scheduleSave?.(); };
+              h.oninput = ()=>{ sink.h = round3(h.value); draw(); scheduleSave?.(); };
+              r.oninput = ()=>{ sink.cornerR = clamp(round3(r.value),0,4); draw(); scheduleSave?.(); };
               rc.append(labelWrap('Shape', shapeSel), labelWrap('Width (in)', w), labelWrap('Height (in)', h), labelWrap('Corner R (0–4″)', r));
               card.appendChild(rc);
             }
@@ -388,9 +389,9 @@ btnExportPDF && (btnExportPDF.onclick = async ()=>{
             const row2 = el('div','row');
             const sideSel = select([{v:'front',t:'Front'},{v:'back',t:'Back'},{v:'left',t:'Left'},{v:'right',t:'Right'}], sink.side||'front');
             sideSel.onchange = ()=>{ sink.side=sideSel.value; onStateChange?.(); };
-            const cl = numInput(sink.centerline||0, 0.001, 0); cl.oninput = ()=>{ sink.centerline=round3(cl.value); onStateChange?.(); };
-            const setback = numInput(sink.setback ?? SINK_STANDARD_SETBACK, 0.001, 0); setback.oninput = ()=>{ sink.setback=clamp(round3(setback.value),0,999); onStateChange?.(); };
-            const rot = numInput(sink.rotation||0, 1, 0, 90); rot.oninput = ()=>{ sink.rotation=clamp(Math.round(Number(rot.value)||0),0,90); rot.value=String(sink.rotation); onStateChange?.(); };
+            const cl = numInput(sink.centerline||0, 0.001, 0); cl.oninput = ()=>{ sink.centerline = round3(cl.value); draw(); scheduleSave?.(); };
+            const setback = numInput(sink.setback ?? SINK_STANDARD_SETBACK, 0.001, 0); setback.oninput = ()=>{ sink.setback = clamp(round3(setback.value),0,999); draw(); scheduleSave?.(); };
+            const rot = numInput(sink.rotation||0, 1, 0, 90); rot.oninput = ()=>{ sink.rotation = clamp(Math.round(rot.value||0),0,90); draw(); scheduleSave?.(); };
             row2.append(labelWrap('Side', sideSel), labelWrap('Centerline (in)', cl), labelWrap('Setback (in)', setback), labelWrap('Rotation (°)', rot));
             card.appendChild(row2);
 
@@ -436,10 +437,6 @@ btnExportPDF && (btnExportPDF.onclick = async ()=>{
       getSelectedPiece: () => state.pieces.find(p => p.id === state.selectedId) || null,
       onStateChange: () => { draw(); scheduleSave?.(); sinksUI.refresh(); }
     });
-
-    // If you have events for selection or piece creation, refresh/seed:
-    document.addEventListener('click', () => sinksUI.refresh()); // or your own selection events
-
 
       // ------- Utils -------
       const snap  = (n,step) => Math.round(n/step)*step;
