@@ -351,12 +351,13 @@ btnExportPDF && (btnExportPDF.onclick = async ()=>{
           }
           migratePieceForSinks(piece);
 
-          // Add button
-          if((piece.sinks?.length||0) < MAX_SINKS_PER_PIECE){
+          // Add button (show header button only when there's already at least one sink)
+          if ((piece.sinks?.length || 0) > 0 && piece.sinks.length < MAX_SINKS_PER_PIECE) {
             const add = el('button','lc-btn alt','+ Add sink');
-            add.onclick = ()=>{ piece.sinks.push(createDefaultSink()); onStateChange?.(); };
+            add.onclick = () => { piece.sinks.push(createDefaultSink()); onStateChange?.(); };
             header.appendChild(add);
           }
+
 
           if(!piece.sinks.length){
             const row = el('div','lc-row');
