@@ -301,6 +301,8 @@ btnExportPDF && (btnExportPDF.onclick = async ()=>{
 
       function initSinksCard({ uiMountEl, getSelectedPiece, onStateChange }) {
         const root = document.createElement('div');
+        uiMountEl.innerHTML = '';
+        const openIndex = new Map();
         root.className = 'sinks-card';
         uiMountEl.appendChild(root);
 
@@ -461,6 +463,9 @@ btnExportPDF && (btnExportPDF.onclick = async ()=>{
 
       // track which sink's editor is open per-piece
       const openIndex = new Map();
+      
+      render();
+      return { refresh: render };
     
     }
 
