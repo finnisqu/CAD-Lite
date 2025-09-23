@@ -115,9 +115,7 @@
 
       // Example presets (adjust to your catalog)
       const SINK_MODELS = [
-        { id:'k3218-single', label:'Kitchen 3218 Single Bowl', shape:'rect', w:21, h:16, cornerR:0.5 },
-        { id:'k3218-50-50',  label:'Kitchen 3218 50/50 Bowl',  shape:'rect', w:32, h:18, cornerR:0.5 },
-        { id:'k3040-60-40',  label:'Kitchen 60/40 Bowl',       shape:'rect', w:32, h:18, cornerR:0.5 },
+        { id:'k3218-single', label:'Kitchen SS 3218', shape:'rect', w:32, h:18, cornerR:0.5 },
         { id:'oval-1714',    label:'Oval 1714 Vanity',         shape:'oval', w:17, h:14, cornerR:0 },
         { id:'rect-1813',    label:'Rectangle 1813 Vanity',    shape:'rect', w:18, h:13, cornerR:0.25 },
       ];
@@ -324,10 +322,18 @@ btnExportPDF && (btnExportPDF.onclick = async ()=>{
 
         function createDefaultSink(){
           const m = SINK_MODELS[0];
-          return { id:'sink_'+Math.random().toString(36).slice(2,9),
-            type:'model', modelId:m.id, shape:m.shape, w:m.w, h:m.h, cornerR:m.cornerR,
-            side:'front', centerline:0, setback:SINK_STANDARD_SETBACK, faucets:[], rotation:0 };
+          return {
+            id: 'sink_'+Math.random().toString(36).slice(2,9),
+            type: 'model',
+            modelId: m.id, shape: m.shape, w: m.w, h: m.h, cornerR: m.cornerR,
+            side: 'front',
+            centerline: 20,                   // <-- set to 20
+            setback: SINK_STANDARD_SETBACK,
+            faucets: [],
+            rotation: 0
+          };
         }
+
 
         function render(){
           root.innerHTML = '';
@@ -343,89 +349,120 @@ btnExportPDF && (btnExportPDF.onclick = async ()=>{
           }
           migratePieceForSinks(piece);
 
-          // empty state
-          if(!piece.sinks.length){
-            const row = el('div','lc-row');
-            const btn = el('button','lc-btn','Add sink');
-            btn.onclick = ()=>{ if(piece.sinks.length<MAX_SINKS_PER_PIECE){ piece.sinks.push(createDefaultSink()); onStateChange?.(); } };
-            row.appendChild(btn);
-            root.appendChild(row);
-            return;
-          }
-
-          // add button (when already have sinks)
-          if(piece.sinks.length<MAX_SINKS_PER_PIECE){
+          // Add button
+          if((piece.sinks?.length||0) < MAX_SINKS_PER_PIECE){
             const add = el('button','lc-btn alt','+ Add sink');
             add.onclick = ()=>{ piece.sinks.push(createDefaultSink()); onStateChange?.(); };
             header.appendChild(add);
           }
 
+          if(!piece.sinks.length){
+            const row = el('div','lc-row');
+            const btn = el('button','lc-btn','Add sink');
+            btn.onclick = ()=>{ piece.sinks.push(createDefaultSink()); onStateChange?.(); };
+            row.appendChild(btn);
+            root.appendChild(row);
+            return;
+          }
+
+          // --- list (like Pieces) ---
+          const list = el('div','lc-list lc-nav');
+          const open = openIndex.has(piece.id) ? openIndex.get(piece.id) : 0;
+
           piece.sinks.forEach((sink, idx)=>{
-            const card = el('div','sink-editor');
+            const row = el('div','lc-item nav' + (open===idx?' selected':''));
+            const line = el('span','lc-line');
+            const model = sink.type==='model'
+              ? (SINK_MODELS.find(m=>m.id===sink.modelId)?.label || 'Model')
+              : 'Custom';
+            line.innerHTML = `<strong>Sink #${idx+1}</strong> · ${model} · CL ${fmt3(sink.centerline||0)}"`;
+            row.appendChild(line);
 
-            // type + model
-            const row1 = el('div','row');
-            const typeSel = select([{v:'model',t:'Model'},{v:'custom',t:'Custom'}], sink.type||'model');
-            typeSel.onchange = ()=>{ sink.type=typeSel.value; if(sink.type==='model'){ const m=SINK_MODELS.find(m=>m.id=== (sink.modelId||SINK_MODELS[0].id))||SINK_MODELS[0]; applyModelToSink(sink,m); } onStateChange?.(); };
-            const modelSel = select(SINK_MODELS.map(m=>({v:m.id,t:m.label})), sink.modelId||SINK_MODELS[0].id);
-            modelSel.onchange = ()=>{ sink.modelId=modelSel.value; const m=SINK_MODELS.find(m=>m.id===sink.modelId); applyModelToSink(sink,m); onStateChange?.(); };
-            row1.append(labelWrap('Type', typeSel), labelWrap('Model', modelSel));
-            card.appendChild(row1);
+            const actions = el('div', null);
+            actions.style.display='flex'; actions.style.gap='6px';
 
-            // custom dims
-            if(sink.type==='custom'){
-              const rc = el('div','row');
-              const shapeSel = select([{v:'rect',t:'Rectangle'},{v:'oval',t:'Oval'}], sink.shape||'rect');
-              shapeSel.onchange = ()=>{ sink.shape=shapeSel.value; onStateChange?.(); };
-              // custom dims (live update, no UI rebuild)
-              w.oninput = ()=>{ sink.w = round3(w.value); draw(); scheduleSave?.(); };
-              h.oninput = ()=>{ sink.h = round3(h.value); draw(); scheduleSave?.(); };
-              r.oninput = ()=>{ sink.cornerR = clamp(round3(r.value),0,4); draw(); scheduleSave?.(); };
-              rc.append(labelWrap('Shape', shapeSel), labelWrap('Width (in)', w), labelWrap('Height (in)', h), labelWrap('Corner R (0–4″)', r));
-              card.appendChild(rc);
+            const btnDup = el('button','lc-btn ghost lc-iconbtn');
+            btnDup.title='Duplicate';
+            btnDup.innerHTML = '<svg class="lc-icon" viewBox="0 0 24 24"><path d="M9 9V5a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-4M5 9a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2z" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+            btnDup.onclick = (e)=>{ e.stopPropagation(); if(piece.sinks.length<MAX_SINKS_PER_PIECE){ piece.sinks.splice(idx+1,0, JSON.parse(JSON.stringify(sink)) ); onStateChange?.(); }};
+
+            const btnDel = el('button','lc-btn red lc-iconbtn');
+            btnDel.title='Delete';
+            btnDel.innerHTML = '<svg class="lc-icon" viewBox="0 0 24 24"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m-1 0v14a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2V6h10z" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+            btnDel.onclick = (e)=>{ e.stopPropagation(); piece.sinks.splice(idx,1); openIndex.set(piece.id, Math.max(0, Math.min(open, piece.sinks.length-1))); onStateChange?.(); };
+
+            actions.append(btnDup, btnDel);
+            row.appendChild(actions);
+
+            row.addEventListener('click', (e)=>{ if(e.target.closest('button')) return; openIndex.set(piece.id, idx); render(); });
+            list.appendChild(row);
+
+            // accordion: render editor right under the selected row
+            if(open===idx){
+              list.appendChild(buildSinkEditor(sink, idx, piece));
             }
-
-            // side + centerline + setback + rotation
-            const row2 = el('div','row');
-            const sideSel = select([{v:'front',t:'Front'},{v:'back',t:'Back'},{v:'left',t:'Left'},{v:'right',t:'Right'}], sink.side||'front');
-            sideSel.onchange = ()=>{ sink.side=sideSel.value; onStateChange?.(); };
-            const cl = numInput(sink.centerline||0, 0.001, 0); cl.oninput = ()=>{ sink.centerline = round3(cl.value); draw(); scheduleSave?.(); };
-            const setback = numInput(sink.setback ?? SINK_STANDARD_SETBACK, 0.001, 0); setback.oninput = ()=>{ sink.setback = clamp(round3(setback.value),0,999); draw(); scheduleSave?.(); };
-            const rot = numInput(sink.rotation||0, 1, 0, 90); rot.oninput = ()=>{ sink.rotation = clamp(Math.round(rot.value||0),0,90); draw(); scheduleSave?.(); };
-            row2.append(labelWrap('Side', sideSel), labelWrap('Centerline (in)', cl), labelWrap('Setback (in)', setback), labelWrap('Rotation (°)', rot));
-            card.appendChild(row2);
-
-            // faucet holes (9 checkboxes)
-            const row3 = el('div','row');
-            const rack  = el('div','lc-row');
-            for(let i=0;i<9;i++){
-              const cb=document.createElement('input'); cb.type='checkbox';
-              cb.checked = !!(sink.faucets||[]).includes(i);
-              cb.onchange = ()=>{
-                const s=new Set(sink.faucets||[]);
-                if(cb.checked) s.add(i); else s.delete(i);
-                sink.faucets = Array.from(s).sort((a,b)=>a-b);
-                onStateChange?.();
-              };
-              rack.appendChild(cb);
-            }
-            row3.appendChild(labelWrap('Faucet holes', rack));
-            card.appendChild(row3);
-
-            // remove
-            const row4 = el('div','row');
-            const del = el('button','lc-btn red','Remove sink');
-            del.onclick = ()=>{ piece.sinks.splice(idx,1); onStateChange?.(); };
-            row4.appendChild(del);
-            card.appendChild(row4);
-
-            root.appendChild(card);
           });
+
+          root.appendChild(list);
         }
 
-        render();
-        return { refresh: render, get root(){ return root; } };
-      }
+        function buildSinkEditor(sink, idx, piece){
+          const card = el('div','sink-editor');
+
+          // Row 1: type/model
+          const row1 = el('div','row');
+          const typeSel = select([{v:'model',t:'Model'},{v:'custom',t:'Custom'}], sink.type||'model');
+          typeSel.onchange = ()=>{ sink.type=typeSel.value; if(sink.type==='model'){ const m=SINK_MODELS.find(m=>m.id=== (sink.modelId||SINK_MODELS[0].id))||SINK_MODELS[0]; applyModelToSink(sink,m); } onStateChange?.(); };
+          const modelSel = select(SINK_MODELS.map(m=>({v:m.id,t:m.label})), sink.modelId||SINK_MODELS[0].id);
+          modelSel.onchange = ()=>{ sink.modelId=modelSel.value; const m=SINK_MODELS.find(m=>m.id===sink.modelId); applyModelToSink(sink,m); onStateChange?.(); };
+          row1.append(labelWrap('Type', typeSel), labelWrap('Model', modelSel));
+          card.appendChild(row1);
+
+          // Row 2: 2×2 grid → Centerline, Setback, Rotation (0–180), Corner Radius
+          const row2 = el('div','row'); // this grid is 2 cols; 4 fields flow 2×2
+          const cl = numInput(sink.centerline ?? 20, 0.125, 0);
+          cl.oninput = ()=>{ sink.centerline = round3(cl.value); draw(); scheduleSave?.(); };
+
+          const setback = numInput(sink.setback ?? SINK_STANDARD_SETBACK, 0.125, 0);
+          setback.oninput = ()=>{ sink.setback = clamp(round3(setback.value),0,999); draw(); scheduleSave?.(); };
+
+          const rot = numInput(sink.rotation||0, 1, 0, 180);
+          rot.oninput = ()=>{ sink.rotation = clamp(Math.round(rot.value||0),0,180); draw(); scheduleSave?.(); };
+
+          const rad = numInput(sink.cornerR ?? 0, 0.125, 0, 4);
+          rad.oninput = ()=>{ sink.cornerR = clamp(round3(rad.value),0,4); draw(); scheduleSave?.(); };
+
+          row2.append(
+            labelWrap('Centerline (in)', cl),
+            labelWrap('Setback (in)', setback),
+            labelWrap('Rotation (°)', rot),
+            labelWrap('Corner R (0–4″)', rad)
+          );
+          card.appendChild(row2);
+
+          // Row 3: faucet holes — single tight row
+          const row3 = el('div','row');
+          const rack = el('div', 'holes-row');
+          for(let i=0;i<9;i++){
+            const cb=document.createElement('input'); cb.type='checkbox'; cb.style.margin='0';
+            cb.checked = !!(sink.faucets||[]).includes(i);
+            cb.onchange = ()=>{ const s=new Set(sink.faucets||[]); cb.checked ? s.add(i) : s.delete(i); sink.faucets = Array.from(s).sort((a,b)=>a-b); onStateChange?.(); };
+            rack.appendChild(cb);
+          }
+          row3.appendChild(labelWrap('Faucet holes', rack));
+          card.appendChild(row3);
+
+          // when user finishes typing, rebuild once (to refresh labels)
+          [cl,setback,rot,rad].forEach(inp=> inp.onchange = ()=> onStateChange?.());
+
+          return card;
+        }
+
+
+      // track which sink's editor is open per-piece
+      const openIndex = new Map();
+    
+    }
 
 
     // Ensure sinks array exists on any existing pieces
@@ -541,14 +578,16 @@ function restore(){
 
 
       function realSize(p){
-        const deg = Math.max(0, Math.min(90, Number(p.rotation||0)));
+        // normalize 0–180, then fold to 0–90 for bbox math
+        const raw = Math.abs(Number(p.rotation||0)) % 180;
+        const deg = raw > 90 ? 180 - raw : raw;
         const t = deg * Math.PI / 180;
         const W = p.w, H = p.h;
-        // axis-aligned bounding box of a W×H rect rotated by t
         const bw = Math.abs(W * Math.cos(t)) + Math.abs(H * Math.sin(t));
         const bh = Math.abs(W * Math.sin(t)) + Math.abs(H * Math.cos(t));
         return { w: bw, h: bh };
       }
+
 
       function clampToCanvas(p){ const rs=realSize(p); p.x=clamp(p.x,0,state.cw-rs.w); p.y=clamp(p.y,0,state.ch-rs.h); }
 
@@ -652,15 +691,18 @@ function restore(){
 
           const rIn = i2p(1); // 1 inch corner radius when enabled
           const r = { tl: p.rTL? rIn:0, tr: p.rTR? rIn:0, br: p.rBR? rIn:0, bl: p.rBL? rIn:0 };
-            // --- rotation-aware drawing ---
-          const rot = Math.max(0, Math.min(90, Number(p.rotation||0)));
-          const W0 = i2p(p.w), H0 = i2p(p.h);     // the unrotated piece size in px
-          const BW = W, BH = H;                   // rotated bbox size in px (already computed above)
+          // --- rotation-aware drawing (safe order) ---
+          const W0 = i2p(p.w), H0 = i2p(p.h);     // unrotated piece size in px
+          const BW = W, BH = H;                   // rotated bbox size in px (from realSize)
           const cx = x + BW/2, cy = y + BH/2;     // center of the rotated bbox
 
-          // child group that we rotate around the piece center
-          const gg = document.createElementNS('http://www.w3.org/2000/svg','g');
+          const gg = document.createElementNS(svgNS, 'g');
+          let rotRaw = Number(p.rotation||0);
+          if (!Number.isFinite(rotRaw)) rotRaw = 0;
+          let rot = ((rotRaw % 360) + 360) % 360; // 0..359
+          rot = rot % 180;                         // 0..179 shown
           if (rot) gg.setAttribute('transform', `rotate(${rot}, ${cx}, ${cy})`);
+
 
           // draw the rectangle unrotated, centered at (cx,cy), then rotate gg
           const path = document.createElementNS('http://www.w3.org/2000/svg','path');
@@ -736,6 +778,41 @@ function restore(){
               });
             }
 
+            // Centerline dimension when global dimensions are on
+            if (state.showDims){
+              const dimStroke = '#94a3b8';
+              const tick = 6, off = 12;
+
+              // unrotated rect edges in px (we're inside gg, already rotated as a group)
+              const xL = leftPx, xR = leftPx + W0;
+              const yT = topPx,  yB = topPx + H0;
+
+              if (sink.side==='front' || sink.side==='back'){
+                const yTop2 = yT - off - 12; // place slightly above the piece width dim
+                const xCL   = xL + i2p(sxIn);
+
+                const line = svgEl('line', { x1:xL, y1:yTop2, x2:xCL, y2:yTop2, stroke:dimStroke, 'vector-effect':'non-scaling-stroke' });
+                const t1   = svgEl('line', { x1:xL, y1:yTop2 - tick, x2:xL,  y2:yTop2 + tick, stroke:dimStroke, 'vector-effect':'non-scaling-stroke' });
+                const t2   = svgEl('line', { x1:xCL, y1:yTop2 - tick, x2:xCL, y2:yTop2 + tick, stroke:dimStroke, 'vector-effect':'non-scaling-stroke' });
+                const label= svgEl('text', { x: (xL+xCL)/2, y: yTop2 - 4, 'text-anchor':'middle', 'font-size':'12', fill:'#111' });
+                label.textContent = `${fmt3(sxIn)}" CL`;
+
+                gg.append(line, t1, t2, label);
+              }else{
+                const xLeft2 = xL - off - 12;
+                const yCL    = yT + i2p(syIn);
+
+                const line = svgEl('line', { x1:xLeft2, y1:yT, x2:xLeft2, y2:yCL, stroke:dimStroke, 'vector-effect':'non-scaling-stroke' });
+                const t1   = svgEl('line', { x1:xLeft2 - tick, y1:yT,  x2:xLeft2 + tick, y2:yT,  stroke:dimStroke, 'vector-effect':'non-scaling-stroke' });
+                const t2   = svgEl('line', { x1:xLeft2 - tick, y1:yCL, x2:xLeft2 + tick, y2:yCL, stroke:dimStroke, 'vector-effect':'non-scaling-stroke' });
+                const label= svgEl('text', { x: xLeft2 - 4, y: (yT+yCL)/2, 'text-anchor':'end', 'dominant-baseline':'middle', 'font-size':'12', fill:'#111' });
+                label.textContent = `${fmt3(syIn)}" CL`;
+
+                gg.append(line, t1, t2, label);
+              }
+            }
+
+
             sinksG.appendChild(gSink);
           });
 
@@ -743,10 +820,7 @@ function restore(){
           gg.appendChild(sinksG);
         }
 
-        // (keep this line after the sinks block)
-        g.appendChild(gg);
-
-
+          // (keep this line after the sinks block)
           g.appendChild(gg); // append rotated geometry to the piece group
 
 
@@ -1205,13 +1279,14 @@ if(btnAddLayout){
         row4.className = 'lc-row2';
         row4.style.marginTop = '8px';
 
-        // Left column: Rotation slider
+        // Left column: Rotation number input (0–180)
         const rotCol = document.createElement('label');
         rotCol.className = 'lc-label';
         rotCol.innerHTML = `
           Rotation (°)
-          <input id="insp-rot" type="range" min="0" max="90" step="1" class="lc-input" value="${p.rotation||0}">
+          <input id="insp-rot" type="number" min="0" max="180" step="1" class="lc-input" value="${p.rotation||0}">
         `;
+
         row4.appendChild(rotCol);
 
         // Right column: Corner radius buttons (existing UI)
@@ -1247,11 +1322,11 @@ if(btnAddLayout){
 
         // Bind rotation input
         const rotInput = wrap.querySelector('#insp-rot');
-        rotInput.oninput = (e)=>{
-          p.rotation = Math.max(0, Math.min(90, Number(e.target.value)||0));
-          clampToCanvas(p);
-          draw();
-        };
+          rotInput.oninput = (e)=>{
+            p.rotation = clamp(Math.round(Number(e.target.value)||0), 0, 180);
+            clampToCanvas(p);
+            draw();
+          };
 
         const inW = wrap.querySelector('#insp-w');
         const inH = wrap.querySelector('#insp-h');
@@ -1554,4 +1629,3 @@ if(btnAddLayout){
     } // <-- end of init()
     document.addEventListener('DOMContentLoaded', init);
     })();
-
