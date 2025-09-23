@@ -1554,5 +1554,7 @@ if(btnAddLayout){
       // fire a custom event so modules can safely hook in even if scripts load out of order
       document.dispatchEvent(new CustomEvent('cad:ready', { detail: window.CADLITE }));
 
-      } // <-- end of init()
-      )();
+    } // <-- end of init()
+    document.addEventListener('DOMContentLoaded', init);
+    })();
+
