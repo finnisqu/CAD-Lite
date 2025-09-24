@@ -105,6 +105,9 @@
           };
         }
 
+     // ----------------------------------------   
+     // ------- Helpers ------------------------
+     // ----------------------------------------   
 
      // ===== General helpers (also used for rounding/inputs) =====
       const clamp = (n,a,b)=>Math.max(a,Math.min(b,n));
@@ -113,6 +116,34 @@
         const v = round3(n);
         return (Math.abs(v % 1) < 1e-9) ? String(Math.round(v)) : v.toFixed(3).replace(/\.?0+$/,'');
       };
+
+      // ===== Layering helpers =====
+
+      function normalizeLayers(){
+        const byLayer = [...state.pieces].sort((a,b)=>(a.layer||0)-(b.layer||0));
+        byLayer.forEach((p,i)=> p.layer = i);
+      }
+      function bringForward(piece){
+        normalizeLayers();
+        const byLayer = [...state.pieces].sort((a,b)=>a.layer-b.layer);
+        const i = byLayer.indexOf(piece);
+        if(i < byLayer.length-1){
+          const other = byLayer[i+1];
+          const tmp = piece.layer; piece.layer = other.layer; other.layer = tmp;
+        }
+        normalizeLayers();
+      }
+      function sendBackward(piece){
+        normalizeLayers();
+        const byLayer = [...state.pieces].sort((a,b)=>a.layer-b.layer);
+        const i = byLayer.indexOf(piece);
+        if(i > 0){
+          const other = byLayer[i-1];
+          const tmp = piece.layer; piece.layer = other.layer; other.layer = tmp;
+        }
+        normalizeLayers();
+      }
+
 
       let sinksUI; // Sinks card handle
 
@@ -1720,17 +1751,31 @@ if(btnAddLayout){
         row3.className = 'lc-row2';
         row3.style.marginTop = '8px';
 
+
         const bBack = mkBtn('Backward','ghost sm', ()=> {
-          p.layer = (p.layer||0) - 1;
-          renderList(); updateInspector(); sinksUI?.refresh(); draw();
+          sendBackward(p);
+          renderList(); updateInspector(); sinksUI?.refresh(); draw(); scheduleSave();
         });
         const bFwd  = mkBtn('Forward','ghost sm', ()=> {
-          p.layer = (p.layer||0) + 1;
-          renderList(); updateInspector(); sinksUI?.refresh(); draw();
+          bringForward(p);
+          renderList(); updateInspector(); sinksUI?.refresh(); draw(); scheduleSave();
         });
+
 
         row3.append(bBack, bFwd);
         wrap.appendChild(row3);
+
+        // after row3 (Forward/Backward), add:
+        const layerRow = document.createElement('div');
+        layerRow.className = 'lc-row2';
+        layerRow.style.marginTop = '6px';
+        layerRow.innerHTML = `
+          <label class="lc-label">Layer (0 = back)
+            <input type="number" class="lc-input" value="${p.layer||0}" disabled>
+          </label>
+          <div></div>
+        `;
+        wrap.appendChild(layerRow);        
 
        // ==== Rotation + Corner Radius row (2-up) ====
         const row4 = document.createElement('div');
