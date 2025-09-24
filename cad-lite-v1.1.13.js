@@ -1867,18 +1867,46 @@ if(btnAddLayout){
         if(parsed.grid){ state.grid = Number(parsed.grid)||state.grid; inGrid.value = state.grid; }
         if(parsed.scale){ state.scale = Number(parsed.scale)||state.scale; inScale.value=state.scale; lblScale.textContent=String(state.scale); }
         if(typeof parsed.showGrid==='boolean'){ state.showGrid = parsed.showGrid; inShowGrid.checked = state.showGrid; }
-        if(Array.isArray(parsed.pieces)){
-          state.pieces = parsed.pieces.map(q=>({
-            id: uid(),
-            name: q.name || 'Piece',
-            w: Number(q.w)||1, h: Number(q.h)||1,
-            x: Number(q.x)||0, y: Number(q.y)||0,
-            rotation: (q.rotation===90?90:0),
-            color: q.color || '#ffffff',
-            layer: Number(q.layer)||0,
-            rTL: !!q.rTL, rTR: !!q.rTR, rBL: !!q.rBL, rBR: !!q.rBR
-          }));
+        if (Array.isArray(parsed.pieces)) {
+          state.pieces = parsed.pieces.map(q => {
+            const p = {
+              id: uid(),
+              name: q.name || 'Piece',
+              w: Number(q.w) || 1, h: Number(q.h) || 1,
+              x: Number(q.x) || 0, y: Number(q.y) || 0,
+              rotation: (q.rotation === 90 ? 90 : Number(q.rotation) || 0),
+              color: q.color || '#ffffff',
+              layer: Number(q.layer) || 0,
+              rTL: !!q.rTL, rTR: !!q.rTR, rBL: !!q.rBL, rBR: !!q.rBR,
+              // NEW: bring sinks back in
+              sinks: Array.isArray(q.sinks) ? q.sinks.map(s => ({
+                id: s.id || ('sink_' + Math.random().toString(36).slice(2,9)),
+                type: s.type || (s.modelId ? 'model' : 'custom'),
+                modelId: s.modelId ?? null,
+                shape: s.shape || 'rect',
+                w: Number(s.w) || 16,
+                h: Number(s.h) || 16,
+                cornerR: clamp(Number(s.cornerR) || 0, 0, 4),
+                side: s.side || 'front',
+                centerline: Number(s.centerline) || 20,
+                setback: Number(s.setback) || SINK_STANDARD_SETBACK,
+                rotation: clamp(Number(s.rotation) || 0, 0, 180),
+                faucets: Array.isArray(s.faucets) ? s.faucets.filter(n => Number.isFinite(n)).slice(0, 9) : []
+              })) : []
+            };
+
+            // Optional: if it’s a model sink, re-apply model dims to be safe
+            (p.sinks || []).forEach(sink => {
+              if (sink.type === 'model' && sink.modelId) {
+                const model = SINK_MODELS.find(m => m.id === sink.modelId);
+                if (model) applyModelToSink(sink, model);
+              }
+            });
+
+            return p;
+          });
         }
+
         state.selectedId = null;
         renderList(); updateInspector(); sinksUI?.refresh(); draw();
       }
