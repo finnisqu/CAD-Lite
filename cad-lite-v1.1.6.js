@@ -331,7 +331,7 @@ btnExportPDF && (btnExportPDF.onclick = async ()=>{
             side: 'front',
             centerline: 20,                   // <-- set to 20
             setback: SINK_STANDARD_SETBACK,
-            faucets: [],
+            faucets: [4],
             rotation: 0
           };
         }
@@ -412,14 +412,60 @@ btnExportPDF && (btnExportPDF.onclick = async ()=>{
         function buildSinkEditor(sink, idx, piece){
           const card = el('div','sink-editor');
 
-          // Row 1: type/model
+          // Row 1: type/model/side
           const row1 = el('div','row');
-          const typeSel = select([{v:'model',t:'Model'},{v:'custom',t:'Custom'}], sink.type||'model');
-          typeSel.onchange = ()=>{ sink.type=typeSel.value; if(sink.type==='model'){ const m=SINK_MODELS.find(m=>m.id=== (sink.modelId||SINK_MODELS[0].id))||SINK_MODELS[0]; applyModelToSink(sink,m); } onStateChange?.(); };
-          const modelSel = select(SINK_MODELS.map(m=>({v:m.id,t:m.label})), sink.modelId||SINK_MODELS[0].id);
-          modelSel.onchange = ()=>{ sink.modelId=modelSel.value; const m=SINK_MODELS.find(m=>m.id===sink.modelId); applyModelToSink(sink,m); onStateChange?.(); };
-          row1.append(labelWrap('Type', typeSel), labelWrap('Model', modelSel));
+
+          const typeSel = select(
+            [{v:'model',t:'Model'},{v:'custom',t:'Custom'}],
+            sink.type || 'model'
+          );
+          typeSel.onchange = ()=>{
+            sink.type = typeSel.value;
+            if (sink.type === 'model') {
+              const m = SINK_MODELS.find(m=>m.id=== (sink.modelId || SINK_MODELS[0].id)) || SINK_MODELS[0];
+              applyModelToSink(sink, m);
+            }
+            onStateChange?.(); // rebuild once
+          };
+
+          const modelSel = select(
+            SINK_MODELS.map(m=>({v:m.id,t:m.label})),
+            sink.modelId || SINK_MODELS[0].id
+          );
+          modelSel.onchange = ()=>{
+            sink.modelId = modelSel.value;
+            const m = SINK_MODELS.find(m=>m.id===sink.modelId);
+            applyModelToSink(sink, m);
+            onStateChange?.();
+          };
+
+          // NEW: Reference Side selector
+          const sideSel = select(
+            [
+              { v:'front', t:'Front' },
+              { v:'back',  t:'Back'  },
+              { v:'left',  t:'Left'  },
+              { v:'right', t:'Right' }
+            ],
+            sink.side || 'front'
+          );
+          sideSel.onchange = ()=>{
+            sink.side = sideSel.value;
+            // clamp centerline against the axis length for the chosen side
+            const axisMax = (sink.side === 'left' || sink.side === 'right') ? (piece.h || 0) : (piece.w || 0);
+            sink.centerline = clamp(round3(sink.centerline ?? 0), 0, axisMax);
+            draw();                       // live update
+            scheduleSave?.();
+            onStateChange?.();            // refresh labels once
+          };
+
+          row1.append(
+            labelWrap('Type',  typeSel),
+            labelWrap('Model', modelSel),
+            labelWrap('Reference side', sideSel)
+          );
           card.appendChild(row1);
+
 
           // Row 2: 2×2 grid → Centerline, Setback, Rotation (0–180), Corner Radius
           const row2 = el('div','row'); // this grid is 2 cols; 4 fields flow 2×2
