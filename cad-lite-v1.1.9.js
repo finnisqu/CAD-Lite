@@ -847,39 +847,45 @@ function restore(){
               const xL = leftPx, xR = leftPx + W0;
               const yT = topPx,  yB = topPx + H0;
 
-              if (sink.side==='front' || sink.side==='back'){
+              if (sink.side === 'front' || sink.side === 'back') {
                 const yTop2 = yT - off - 12; // place slightly above the piece width dim
                 const xCL   = xL + i2p(sxIn);
 
                 const line = svgEl('line', { x1:xL, y1:yTop2, x2:xCL, y2:yTop2, stroke:dimStroke, 'vector-effect':'non-scaling-stroke' });
                 const t1   = svgEl('line', { x1:xL, y1:yTop2 - tick, x2:xL,  y2:yTop2 + tick, stroke:dimStroke, 'vector-effect':'non-scaling-stroke' });
                 const t2   = svgEl('line', { x1:xCL, y1:yTop2 - tick, x2:xCL, y2:yTop2 + tick, stroke:dimStroke, 'vector-effect':'non-scaling-stroke' });
-                if (state.showLabels) {
-                  const label= svgEl('text', { 
-                    x: (xL+xCL)/2, 
-                    y: yTop2 - 4, 
-                    'text-anchor':'middle', 
-                    'font-size':'12', 
-                    fill:'#111' 
-                  });
-                  label.textContent = p.name || `Piece ${idx+1}`;
-                  gg.appendChild(label);
-                }
-                label.textContent = `${fmt3(sxIn)}" CL`;
 
-                gg.append(line, t1, t2, label);
-              }else{
+                const clLabel = svgEl('text', {
+                  x: (xL + xCL) / 2,
+                  y: yTop2 - 4,
+                  'text-anchor': 'middle',
+                  'font-size': '12',
+                  fill: '#111'
+                });
+                clLabel.textContent = `${fmt3(sxIn)}" CL`;
+
+                gg.append(line, t1, t2, clLabel);
+              } else {
                 const xLeft2 = xL - off - 12;
                 const yCL    = yT + i2p(syIn);
 
                 const line = svgEl('line', { x1:xLeft2, y1:yT, x2:xLeft2, y2:yCL, stroke:dimStroke, 'vector-effect':'non-scaling-stroke' });
                 const t1   = svgEl('line', { x1:xLeft2 - tick, y1:yT,  x2:xLeft2 + tick, y2:yT,  stroke:dimStroke, 'vector-effect':'non-scaling-stroke' });
                 const t2   = svgEl('line', { x1:xLeft2 - tick, y1:yCL, x2:xLeft2 + tick, y2:yCL, stroke:dimStroke, 'vector-effect':'non-scaling-stroke' });
-                const label= svgEl('text', { x: xLeft2 - 4, y: (yT+yCL)/2, 'text-anchor':'end', 'dominant-baseline':'middle', 'font-size':'12', fill:'#111' });
-                label.textContent = `${fmt3(syIn)}" CL`;
 
-                gg.append(line, t1, t2, label);
+                const clLabel = svgEl('text', {
+                  x: xLeft2 - 4,
+                  y: (yT + yCL) / 2,
+                  'text-anchor': 'end',
+                  'dominant-baseline': 'middle',
+                  'font-size': '12',
+                  fill: '#111'
+                });
+                clLabel.textContent = `${fmt3(syIn)}" CL`;
+
+                gg.append(line, t1, t2, clLabel);
               }
+
             }
 
 
@@ -895,13 +901,16 @@ function restore(){
 
 
 
-
-          const text = document.createElementNS('http://www.w3.org/2000/svg','text');
-          text.setAttribute('x', x + W/2); 
-          text.setAttribute('y', y + H/2 - 6);
-          text.setAttribute('text-anchor','middle'); 
-          text.setAttribute('font-size','12'); 
-          text.setAttribute('fill',fg);
+          if (state.showLabels) {
+            const text = document.createElementNS('http://www.w3.org/2000/svg','text');
+            text.setAttribute('x', x + W/2); 
+            text.setAttribute('y', y + H/2 - 6);
+            text.setAttribute('text-anchor','middle'); 
+            text.setAttribute('font-size','12'); 
+            text.setAttribute('fill',fg);
+            text.textContent = p.name || `Piece ${idx+1}`;
+            g.appendChild(text);
+          }     
           const t1 = document.createElementNS('http://www.w3.org/2000/svg','tspan'); 
             t1.setAttribute('x', x + W/2); 
             t1.setAttribute('dy', 0); 
@@ -912,7 +921,6 @@ function restore(){
             t2.textContent = `${p.w}" × ${p.h}"${(p.rotation?` · ${p.rotation}°`:``)}`;
          text.appendChild(t1);
          text.appendChild(t2);
-          g.appendChild(text);
           if (state.showDims) {
             const dimStroke = '#94a3b8';
             const off = 12;  // px away from the edge
