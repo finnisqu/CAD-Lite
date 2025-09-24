@@ -320,3 +320,8 @@
 /* Sinks: faucet-hole row */
 .sink-editor .holes-row{ display:flex; gap:6px; align-items:center; }
 .sink-editor .holes-row input[type="checkbox"]{ margin:0; }
+
+@media (max-width: 899px){
+  /* let JS-controlled width/height take effect; just cap it */
+  #lc-svg{ max-width: 100% !important; height: auto; }
+}
