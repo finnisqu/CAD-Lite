@@ -558,32 +558,33 @@ function cloneSvgForPdf(srcSvg, opts = {}){
 
 
   // ---------- CRISP VECTOR EXPORT (preferred) ----------
-  if (window.svg2pdf) {
+if (window.svg2pdf) {
   try {
     // build a safe clone of the SVG for vector export
-    const safe = cloneSvgForPdf(svgEl, { defaultFont: 'Helvetica', defaultFontSize: 12, defaultFill: '#111' });
-    const svg2pdfOpts = {
+    const safe = cloneSvgForPdf(svgEl, {
+      defaultFont: 'Helvetica',
+      defaultFontSize: 12,
+      defaultFill: '#111'
+    });
+
+    // svg2pdf (vector). If this succeeds, we’re done.
+    window.svg2pdf(safe, doc, {
       x: imgX,
       y: imgY,
       width: imgW,
       height: imgH,
       useCSS: true,
-      // make sure every text run resolves to a built-in jsPDF font
-      fontCallback: () => 'helvetica',
-      // some builds of svg2pdf read `options.fonts` and expect a `default` key
-      fonts: { default: { normal: 'helvetica', bold: 'helvetica', italic: 'helvetica', bolditalic: 'helvetica' } }
-    };
-    window.svg2pdf(safe, doc, svg2pdfOpts);
+      fontCallback: () => 'helvetica'
+    });
   } catch (e) {
-    console.warn('svg2pdf failed, falling back to high-res PNG:', e);
-    if (!confirm('Vector export failed. Use a high-res PNG fallback (larger file)?')) return;
-    await addRasterPNG();
+    console.warn('[export] svg2pdf failed — falling back to raster PNG:', e);
+    await addRasterPNG(); // no popup, just fallback
   }
-  } else {
-    // If svg2pdf is missing, encourage enabling it for crisp text
-    if (!confirm('Vector export not enabled. Add svg2pdf.js to your Site Header for crisp text.\nContinue with a high-res PNG fallback?')) return;
-    await addRasterPNG();
-  }
+} else {
+  console.info('[export] svg2pdf not found — using raster PNG fallback');
+  await addRasterPNG();   // no popup, just fallback
+}
+  // ---------- END VECTOR EXPORT ----------
 
   // Notes under the image
   const notes = (state.notes || '').trim();
