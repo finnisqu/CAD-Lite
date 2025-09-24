@@ -517,7 +517,7 @@ btnExportPDF && (btnExportPDF.onclick = async () => {
   const imgY  = margin + headerH;
 
 // Clone + sanitize SVG for svg2pdf (removes problem attrs, sets explicit text styles)
-function cloneSvgForPdf(srcSvg, opts = {}) {
+function cloneSvgForPdf(srcSvg, opts = {}){
   const { defaultFont = 'Helvetica', defaultFontSize = 12, defaultFill = '#111' } = opts;
   const svgNS = 'http://www.w3.org/2000/svg';
   const XLNS  = 'http://www.w3.org/1999/xlink';
@@ -528,14 +528,14 @@ function cloneSvgForPdf(srcSvg, opts = {}) {
   // namespaces + explicit size
   cl.setAttribute('xmlns', svgNS);
   cl.setAttribute('xmlns:xlink', XLNS);
-  const W = Number(srcSvg.getAttribute('width'))  || (srcSvg.viewBox && srcSvg.viewBox.baseVal.width)  || 800;
-  const H = Number(srcSvg.getAttribute('height')) || (srcSvg.viewBox && srcSvg.viewBox.baseVal.height) || 400;
+  const W = Number(srcSvg.getAttribute('width'))  || srcSvg.viewBox?.baseVal?.width  || 800;
+  const H = Number(srcSvg.getAttribute('height')) || srcSvg.viewBox?.baseVal?.height || 400;
   cl.setAttribute('width',  String(W));
   cl.setAttribute('height', String(H));
 
   // remove attributes/elements that often break svg2pdf
   cl.querySelectorAll('[vector-effect]').forEach(n => n.removeAttribute('vector-effect'));
-  // (optional) strip defs/masks/filters if you don't use them
+  // (optional) if you never use filters/masks/clipPaths, strip them:
   cl.querySelectorAll('defs, clipPath, mask, filter, pattern, marker').forEach(n => n.remove());
 
   // ensure text has explicit font + size + fill (svg2pdf relies on these)
@@ -543,6 +543,8 @@ function cloneSvgForPdf(srcSvg, opts = {}) {
     if (!t.getAttribute('font-family')) t.setAttribute('font-family', defaultFont);
     if (!t.getAttribute('font-size'))   t.setAttribute('font-size',   String(defaultFontSize));
     if (!t.getAttribute('fill'))        t.setAttribute('fill',        defaultFill);
+    // normalize anchors/baselines to things svg2pdf handles well
+    // (keep your existing ones if present)
   });
 
   // normalize dash arrays to numeric strings (avoid "none"/undefined)
@@ -555,76 +557,74 @@ function cloneSvgForPdf(srcSvg, opts = {}) {
 }
 
 
-// ---------- CRISP VECTOR EXPORT (preferred) ----------
-if (window.svg2pdf) {
+  // ---------- CRISP VECTOR EXPORT (preferred) ----------
+  if (window.svg2pdf) {
   try {
     // build a safe clone of the SVG for vector export
-    const safe = cloneSvgForPdf(svgEl, {
-      defaultFont: 'Helvetica',
-      defaultFontSize: 12,
-      defaultFill: '#111'
-    });
-
-    // svg2pdf v1.4.4 — simple options, no fonts map required
-    window.svg2pdf(safe, doc, {
+    const safe = cloneSvgForPdf(svgEl, { defaultFont: 'Helvetica', defaultFontSize: 12, defaultFill: '#111' });
+    const svg2pdfOpts = {
       x: imgX,
       y: imgY,
       width: imgW,
       height: imgH,
       useCSS: true,
-      fontCallback: () => 'helvetica' // map any family to a built-in jsPDF font
-    });
+      // make sure every text run resolves to a built-in jsPDF font
+      fontCallback: () => 'helvetica',
+      // some builds of svg2pdf read `options.fonts` and expect a `default` key
+      fonts: { default: { normal: 'helvetica', bold: 'helvetica', italic: 'helvetica', bolditalic: 'helvetica' } }
+    };
+    window.svg2pdf(safe, doc, svg2pdfOpts);
   } catch (e) {
     console.warn('svg2pdf failed, falling back to high-res PNG:', e);
     if (!confirm('Vector export failed. Use a high-res PNG fallback (larger file)?')) return;
     await addRasterPNG();
   }
-} else {
-  // If svg2pdf is missing, encourage enabling it for crisp text
-  if (!confirm('Vector export not enabled. Add svg2pdf.js v1.4.4 to your Site Header for crisp text.\nContinue with a high-res PNG fallback?')) return;
-  await addRasterPNG();
-}
+  } else {
+    // If svg2pdf is missing, encourage enabling it for crisp text
+    if (!confirm('Vector export not enabled. Add svg2pdf.js to your Site Header for crisp text.\nContinue with a high-res PNG fallback?')) return;
+    await addRasterPNG();
+  }
 
-// Notes under the image
-const notes = (state.notes || '').trim();
-if (notes) {
-  const yStart = imgY + imgH + 16;
-  const lines = doc.splitTextToSize(`Notes: ${notes}`, pageW - margin * 2);
-  doc.text(lines, margin, yStart);
-}
+  // Notes under the image
+  const notes = (state.notes || '').trim();
+  if (notes) {
+    const yStart = imgY + imgH + 16;
+    const lines = doc.splitTextToSize(`Notes: ${notes}`, pageW - margin * 2);
+    doc.text(lines, margin, yStart);
+  }
 
-doc.save(`${fileBase()}.pdf`);
+  doc.save(`${fileBase()}.pdf`);
 
 
-// ---------- High-Res PNG fallback (crisper than JPEG; larger files) ----------
-async function addRasterPNG() {
-  const EXPORT_SCALE = 2.0;  // bump to 2x for legible text when rasterized
-  const serializer = new XMLSerializer();
-  const src = serializer.serializeToString(svgEl);
-  const blob = new Blob([src], { type: 'image/svg+xml;charset=utf-8' });
-  const url  = URL.createObjectURL(blob);
+  // ---------- High-Res PNG fallback (crisper than JPEG; larger files) ----------
+  async function addRasterPNG() {
+    const EXPORT_SCALE = 2.0;  // bump to 2x for legible text when rasterized
+    const serializer = new XMLSerializer();
+    const src = serializer.serializeToString(svgEl);
+    const blob = new Blob([src], { type: 'image/svg+xml;charset=utf-8' });
+    const url  = URL.createObjectURL(blob);
 
-  const img = await new Promise((res, rej) => {
-    const i = new Image();
-    i.onload = () => res(i);
-    i.onerror = rej;
-    i.src = url;
-  });
+    const img = await new Promise((res, rej) => {
+      const i = new Image();
+      i.onload = () => res(i);
+      i.onerror = rej;
+      i.src = url;
+    });
 
-  const canvas = document.createElement('canvas');
-  canvas.width  = Math.max(1, Math.floor(imgW * EXPORT_SCALE));
-  canvas.height = Math.max(1, Math.floor(imgH * EXPORT_SCALE));
+    const canvas = document.createElement('canvas');
+    canvas.width  = Math.max(1, Math.floor(imgW * EXPORT_SCALE));
+    canvas.height = Math.max(1, Math.floor(imgH * EXPORT_SCALE));
 
-  const ctx = canvas.getContext('2d', { alpha: true });
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
-  ctx.imageSmoothingQuality = 'high';
-  ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+    const ctx = canvas.getContext('2d', { alpha: true });
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.imageSmoothingQuality = 'high';
+    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
 
-  URL.revokeObjectURL(url);
+    URL.revokeObjectURL(url);
 
-  const dataURL = canvas.toDataURL('image/png'); // PNG keeps text sharper than JPEG
-  doc.addImage(dataURL, 'PNG', imgX, imgY, imgW, imgH, undefined, 'FAST');
-}
+    const dataURL = canvas.toDataURL('image/png'); // PNG keeps text sharper than JPEG
+    doc.addImage(dataURL, 'PNG', imgX, imgY, imgW, imgH, undefined, 'FAST');
+  }
 });
 
 
