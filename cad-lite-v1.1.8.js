@@ -12,7 +12,8 @@
         selectedIds: [],    // NEW: multi-selection
         lastSelIndex: -1,   // NEW: for Shift-range in the list
         drag: null,
-        showDims: false
+        showDims: false,
+        showLabels: true,
       };
 
       function isSelected(id){ return state.selectedIds.includes(id); }
@@ -93,6 +94,17 @@
       const btnClearSel = document.getElementById('lc-clear-sel');
 
       const inspectorCard = document.getElementById('lc-inspector');
+
+      const chkLabels = document.getElementById('lc-showlabels');
+        if (chkLabels) {
+          chkLabels.checked = !!state.showLabels;
+          chkLabels.onchange = (e) => {
+            state.showLabels = e.target.checked;
+            draw();
+            scheduleSave?.();
+          };
+        }
+
 
      // ===== General helpers (also used for rounding/inputs) =====
       const clamp = (n,a,b)=>Math.max(a,Math.min(b,n));
@@ -842,7 +854,17 @@ function restore(){
                 const line = svgEl('line', { x1:xL, y1:yTop2, x2:xCL, y2:yTop2, stroke:dimStroke, 'vector-effect':'non-scaling-stroke' });
                 const t1   = svgEl('line', { x1:xL, y1:yTop2 - tick, x2:xL,  y2:yTop2 + tick, stroke:dimStroke, 'vector-effect':'non-scaling-stroke' });
                 const t2   = svgEl('line', { x1:xCL, y1:yTop2 - tick, x2:xCL, y2:yTop2 + tick, stroke:dimStroke, 'vector-effect':'non-scaling-stroke' });
-                const label= svgEl('text', { x: (xL+xCL)/2, y: yTop2 - 4, 'text-anchor':'middle', 'font-size':'12', fill:'#111' });
+                if (state.showLabels) {
+                  const label= svgEl('text', { 
+                    x: (xL+xCL)/2, 
+                    y: yTop2 - 4, 
+                    'text-anchor':'middle', 
+                    'font-size':'12', 
+                    fill:'#111' 
+                  });
+                  label.textContent = p.name || `Piece ${idx+1}`;
+                  gg.appendChild(label);
+                }
                 label.textContent = `${fmt3(sxIn)}" CL`;
 
                 gg.append(line, t1, t2, label);
