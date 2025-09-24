@@ -115,7 +115,7 @@
 
       // Example presets (adjust to your catalog)
       const SINK_MODELS = [
-        { id:'k3218-single', label:'Kitchen SS 3218', shape:'rect', w:32, h:18, cornerR:0.5 },
+        { id:'k3218-single', label:'Kitchen SS 3218', shape:'rect', w:31, h:17, cornerR:0.5 },
         { id:'oval-1714',    label:'Oval 1714 Vanity',         shape:'oval', w:17, h:14, cornerR:0 },
         { id:'rect-1813',    label:'Rectangle 1813 Vanity',    shape:'rect', w:18, h:13, cornerR:0.25 },
       ];
