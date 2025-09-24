@@ -20,6 +20,7 @@
       <div class="lc-card">
         <div class="lc-card-head">
           <h3>Layouts</h3>
+          <!-- was id="btnAddLayout" -->
           <button class="lc-btn alt" id="lc-add-layout" type="button">Add Layout</button>
         </div>
         <div id="lc-layouts" class="lc-list"></div>
@@ -41,10 +42,8 @@
         <div id="lc-inspector" class="lc-small">Select a piece from the canvas or list.</div>
       </div>
       <div class="lc-card">
-        <h3>Sinks</h3>
-        <div id="lc-sinks-card" class="lc-small">Select a piece from the canvas or list.</div>
+        <div id="lc-sinks-card" class="lc-small"></div>
       </div>
-      
       <div class="lc-card">
         <h3>Import / Export</h3>
 
@@ -83,6 +82,9 @@
           <label class="lc-label" style="display:flex;align-items:center;gap:6px"><input id="lc-showgrid" type="checkbox" checked> Show grid</label>
           <label class="lc-label" style="display:flex;align-items:center;gap:6px">
             <input id="lc-showdims" type="checkbox"> Show dimensions
+          </label>
+          <label class="lc-label" style="display:flex;align-items:center;gap:6px">
+            <input id="lc-showlabels" type="checkbox" checked> Show labels
           </label>
           <button class="lc-btn alt" id="lc-snapall">Snap All</button>
           <button class="lc-btn ghost" id="lc-clear-sel" type="button">Deselect All</button>
