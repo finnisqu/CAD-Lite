@@ -178,22 +178,255 @@
 
 
       const STARTER_LAYOUT = {
-        project: { name: "Test", date: "2025-09-19" },
-        canvas: { w: 180, h: 120 },
-        grid: 1,
-        scale: 6,
-        showGrid: true,
-        pieces: [
-          { id:"pw7skui", name:"Kitchen Island", w:96, h:42, x:10, y:45, rotation:0, color:"#e0aeae", layer:1,  rTL:true,  rTR:true,  rBL:true,  rBR:true },
-          { id:"lijhc17", name:"Range Left",     w:36, h:25.5, x:6,  y:9,  rotation:0, color:"#e0aeae", layer:3,  rTL:false, rTR:false, rBL:false, rBR:false },
-          { id:"qk3rabq", name:"Range Right",    w:36, h:25.5, x:72, y:9,  rotation:0, color:"#e0aeae", layer:4,  rTL:false, rTR:false, rBL:false, rBR:false },
-          { id:"umps9pz", name:"Backsplash",     w:36, h:4,    x:6,  y:4,  rotation:0, color:"#efd8d8", layer:5,  rTL:false, rTR:false, rBL:false, rBR:false },
-          { id:"vgph990", name:"Backsplash",     w:36, h:4,    x:72, y:4,  rotation:0, color:"#efd8d8", layer:6,  rTL:false, rTR:false, rBL:false, rBR:false },
-          { id:"hwtj1ol", name:"RANGE",          w:30, h:25.5, x:42, y:9,  rotation:0, color:"#ffffff", layer:7,  rTL:false, rTR:false, rBL:false, rBR:false },
-          { id:"4kmg4v9", name:"Vanity",         w:31, h:22.5, x:127,y:10, rotation:0, color:"#d5f0f0", layer:8,  rTL:false, rTR:false, rBL:true,  rBR:false },
-          { id:"rlc7ihx", name:"Backsplash",     w:31, h:4,    x:127,y:5,  rotation:0, color:"#d5f0f0", layer:9,  rTL:false, rTR:false, rBL:false, rBR:false },
-          { id:"vz8r7lh", name:"Backsplash",     w:4,  h:22.5, x:159,y:10, rotation:0, color:"#d5f0f0", layer:10, rTL:false, rTR:false, rBL:false, rBR:false }
-        ]
+        "project": {
+    "name": "World Stone",
+    "date": "0001-01-01",
+    "notes": ""
+  },
+  "layoutName": "Layout 1",
+  "canvas": {
+    "w": 180,
+    "h": 120
+  },
+  "grid": 1,
+  "scale": 6,
+  "showGrid": true,
+  "pieces": [
+    {
+      "id": "xnradsk",
+      "name": "Kitchen Island",
+      "w": 96,
+      "h": 42,
+      "x": 9,
+      "y": 62,
+      "rotation": 0,
+      "color": "#e0aeae",
+      "layer": 0,
+      "rTL": true,
+      "rTR": true,
+      "rBL": true,
+      "rBR": true,
+      "sinks": [
+        {
+          "id": "sink_aen7dew",
+          "type": "model",
+          "modelId": "k3218-single",
+          "shape": "rect",
+          "w": 31,
+          "h": 17,
+          "cornerR": 4,
+          "side": "front",
+          "centerline": 20,
+          "setback": 3.125,
+          "faucets": [
+            4
+          ],
+          "rotation": 180
+        }
+      ]
+    },
+    {
+      "id": "9qkwkcx",
+      "name": "Range Right",
+      "w": 36,
+      "h": 25.5,
+      "x": 72,
+      "y": 9,
+      "rotation": 0,
+      "color": "#e0aeae",
+      "layer": 1,
+      "rTL": false,
+      "rTR": false,
+      "rBL": false,
+      "rBR": true,
+      "sinks": []
+    },
+    {
+      "id": "57i56pm",
+      "name": "Range Left",
+      "w": 36,
+      "h": 25.5,
+      "x": 6,
+      "y": 9,
+      "rotation": 0,
+      "color": "#e0aeae",
+      "layer": 2,
+      "rTL": false,
+      "rTR": false,
+      "rBL": true,
+      "rBR": false,
+      "sinks": []
+    },
+    {
+      "id": "o21iodt",
+      "name": "Backsplash",
+      "w": 36,
+      "h": 4,
+      "x": 6,
+      "y": 4,
+      "rotation": 0,
+      "color": "#efd8d8",
+      "layer": 3,
+      "rTL": false,
+      "rTR": false,
+      "rBL": false,
+      "rBR": false,
+      "sinks": []
+    },
+    {
+      "id": "da40080",
+      "name": "Backsplash",
+      "w": 36,
+      "h": 4,
+      "x": 72,
+      "y": 4,
+      "rotation": 0,
+      "color": "#efd8d8",
+      "layer": 4,
+      "rTL": false,
+      "rTR": false,
+      "rBL": false,
+      "rBR": false
+    },
+    {
+      "id": "fez0c6s",
+      "name": "RANGE",
+      "w": 30,
+      "h": 25.5,
+      "x": 42,
+      "y": 9,
+      "rotation": 0,
+      "color": "#ffffff",
+      "layer": 5,
+      "rTL": false,
+      "rTR": false,
+      "rBL": false,
+      "rBR": false,
+      "sinks": [
+        {
+          "id": "sink_8smx1py",
+          "type": "custom",
+          "modelId": "oval-1714",
+          "shape": "oval",
+          "w": 8,
+          "h": 8,
+          "cornerR": 0,
+          "side": "back",
+          "centerline": 22,
+          "setback": 3.125,
+          "faucets": [],
+          "rotation": 0
+        },
+        {
+          "id": "sink_8smx1py",
+          "type": "custom",
+          "modelId": "oval-1714",
+          "shape": "oval",
+          "w": 8,
+          "h": 8,
+          "cornerR": 0,
+          "side": "front",
+          "centerline": 22,
+          "setback": 3.125,
+          "faucets": [],
+          "rotation": 0
+        },
+        {
+          "id": "sink_towtzn4",
+          "type": "custom",
+          "modelId": "oval-1714",
+          "shape": "oval",
+          "w": 8,
+          "h": 8,
+          "cornerR": 0,
+          "side": "front",
+          "centerline": 8,
+          "setback": 3.125,
+          "faucets": [],
+          "rotation": 0
+        },
+        {
+          "id": "sink_towtzn4",
+          "type": "custom",
+          "modelId": "oval-1714",
+          "shape": "oval",
+          "w": 8,
+          "h": 8,
+          "cornerR": 0,
+          "side": "back",
+          "centerline": 8,
+          "setback": 3.125,
+          "faucets": [],
+          "rotation": 0
+        }
+      ]
+    },
+    {
+      "id": "bazjesv",
+      "name": "Vanity",
+      "w": 31,
+      "h": 22.5,
+      "x": 127,
+      "y": 10,
+      "rotation": 0,
+      "color": "#d5f0f0",
+      "layer": 6,
+      "rTL": false,
+      "rTR": false,
+      "rBL": true,
+      "rBR": false,
+      "sinks": [
+        {
+          "id": "sink_e2sdnn9",
+          "type": "model",
+          "modelId": "oval-1714",
+          "shape": "oval",
+          "w": 17,
+          "h": 14,
+          "cornerR": 0,
+          "side": "back",
+          "centerline": 15,
+          "setback": 3.125,
+          "faucets": [
+            4
+          ],
+          "rotation": 0
+        }
+      ]
+    },
+    {
+      "id": "dx3dpcm",
+      "name": "Backsplash",
+      "w": 31,
+      "h": 4,
+      "x": 127,
+      "y": 5,
+      "rotation": 0,
+      "color": "#d5f0f0",
+      "layer": 7,
+      "rTL": false,
+      "rTR": false,
+      "rBL": false,
+      "rBR": false,
+      "sinks": []
+    },
+    {
+      "id": "ycid73l",
+      "name": "Backsplash",
+      "w": 4,
+      "h": 22.5,
+      "x": 159,
+      "y": 10,
+      "rotation": 0,
+      "color": "#d5f0f0",
+      "layer": 8,
+      "rTL": false,
+      "rTR": false,
+      "rBL": false,
+      "rBR": false,
+      "sinks": []
+    }
+  ]
       };
 
       const list = document.getElementById('lc-list');
