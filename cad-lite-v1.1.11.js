@@ -451,6 +451,34 @@ btnExportPDF && (btnExportPDF.onclick = async ()=>{
             onStateChange?.();
           };
 
+          // --- Row: Custom dimensions (only visible when sink.type === 'custom') ---
+          const rowCustom = el('div','row'); // same layout class as your other rows
+          // Length
+          const len = numInput(sink.w ?? 32, 0.125, 0);
+          len.oninput = ()=>{
+            sink.w = clamp(round3(len.value), 0, 999);
+            draw();        // live update, no UI rebuild
+            scheduleSave?.();
+          };
+          // Width
+          const wid = numInput(sink.h ?? 18, 0.125, 0);
+          wid.oninput = ()=>{
+            sink.h = clamp(round3(wid.value), 0, 999);
+            draw();
+            scheduleSave?.();
+          };
+
+          rowCustom.append(
+            labelWrap('Length (in)', len),
+            labelWrap('Width (in)',  wid)
+          );
+
+          // Show only for custom sinks
+          rowCustom.style.display = (sink.type === 'custom') ? '' : 'none';
+
+          card.appendChild(rowCustom);
+
+
           // NEW: Reference Side selector
           const sideSel = select(
             [
@@ -478,6 +506,7 @@ btnExportPDF && (btnExportPDF.onclick = async ()=>{
           );
           card.appendChild(row1);
 
+          
 
           // Row 2: 2×2 grid → Centerline, Setback, Rotation (0–180), Corner Radius
           const row2 = el('div','row'); // this grid is 2 cols; 4 fields flow 2×2
