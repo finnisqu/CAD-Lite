@@ -467,54 +467,118 @@ function ensureJsPDF(){
   });
 }
 
-btnExportPDF && (btnExportPDF.onclick = async ()=>{
-      if(!requireProjectName()) return;
-      const serializer = new XMLSerializer();
-      const src = serializer.serializeToString(svg);
-      const img = new Image();
-      const W = Number(svg.getAttribute('width')), H = Number(svg.getAttribute('height'));
-      const canvas = document.createElement('canvas'); canvas.width=W; canvas.height=H;
-      const ctx = canvas.getContext('2d');
-      img.onload = async ()=>{
-        ctx.drawImage(img,0,0);
-        const dataURL = canvas.toDataURL('image/png');
-        try{
-          const jsPDF = await ensureJsPDF();
-          const isLandscape = W>H;
-          const doc = new jsPDF({ orientation: isLandscape?'landscape':'portrait', unit:'pt', format:'letter' });
-          const pageW = doc.internal.pageSize.getWidth(), pageH = doc.internal.pageSize.getHeight();
-          const margin = 36; // 0.5"
-          const maxW = pageW - margin*2;
-          // Header: Project / Date / Layout
-          const title = (state.projectName||'Untitled Project');
-          const date  = (state.projectDate||todayISO());
-          const lname = (state.layouts[state.active]?.name)||'Layout 1';
-          doc.setFont('helvetica','bold'); doc.setFontSize(14);
-          doc.text(title, margin, margin);
-          doc.setFont('helvetica','normal'); doc.setFontSize(11);
-          doc.text(`Date: ${date}`, margin, margin+16);
-          doc.text(`Layout: ${lname}`, margin, margin+32);
-          // Image under the header
-          const headerH = 32 + 8; // header lines + a little spacing
-          const availH = pageH - margin*2 - headerH;
-          const scale = Math.min(1, maxW / W, availH / H);
-          const imgW = W*scale, imgH = H*scale;
-          const imgY = margin + headerH;
-          doc.addImage(dataURL, 'PNG', margin, imgY, imgW, imgH);
+btnExportPDF && (btnExportPDF.onclick = async () => {
+  if (!requireProjectName()) return;
 
-          const notes = (state.notes||'').trim();
-          if(notes){
-            const yStart = margin + imgH + 16;
-            const lines = doc.splitTextToSize(`Notes: ${notes}`, pageW - margin*2);
-            doc.text(lines, margin, yStart);
-          }
-          doc.save(`${fileBase()}.pdf`);
-        }catch(err){
-          alert('Could not export PDF (jsPDF failed to load). Try PNG/SVG instead.');
-        }
-      };
-      img.src = 'data:image/svg+xml;charset=utf-8,'+encodeURIComponent(src);
+  // Grab jsPDF (your existing lazy loader)
+  let jsPDF;
+  try {
+    jsPDF = await ensureJsPDF();
+  } catch (err) {
+    alert('Could not load jsPDF. Try PNG/SVG instead.');
+    return;
+  }
+
+  const svgEl = document.getElementById('lc-svg') || svg;
+  if (!svgEl) return;
+
+  // Canvas size in points (from actual SVG width/height attrs)
+  const W = Number(svgEl.getAttribute('width'))  || 800;
+  const H = Number(svgEl.getAttribute('height')) || 400;
+
+  // Page: letter with auto orientation
+  const isLandscape = W > H;
+  const doc = new jsPDF({
+    orientation: isLandscape ? 'landscape' : 'portrait',
+    unit: 'pt',
+    format: 'letter',
+    compress: true,
+    putOnlyUsedFonts: true
+  });
+
+  const pageW = doc.internal.pageSize.getWidth();
+  const pageH = doc.internal.pageSize.getHeight();
+  const margin = 36; // 0.5"
+  const headerH = 40; // title/date/layout block height
+
+  // Header text (same as your current behavior)
+  const title = (state.projectName || 'Untitled Project');
+  const date  = (state.projectDate || todayISO());
+  const lname = (state.layouts[state.active]?.name) || 'Layout 1';
+
+  doc.setFont('helvetica', 'bold'); doc.setFontSize(14);
+  doc.text(title, margin, margin);
+  doc.setFont('helvetica', 'normal'); doc.setFontSize(11);
+  doc.text(`Date: ${date}`,   margin, margin + 16);
+  doc.text(`Layout: ${lname}`, margin, margin + 32);
+
+  // Fit SVG into the remaining content area
+  const maxW  = pageW - margin * 2;
+  const maxH  = pageH - margin * 2 - headerH;
+  const scale = Math.min(1, maxW / W, maxH / H);
+  const imgW  = W * scale;
+  const imgH  = H * scale;
+  const imgX  = margin;
+  const imgY  = margin + headerH;
+
+  // --- Option A: Vector export if svg2pdf is available (smallest files)
+  if (window.svg2pdf) {
+    try {
+      window.svg2pdf(svgEl, doc, { x: imgX, y: imgY, width: imgW, height: imgH });
+    } catch (e) {
+      console.warn('svg2pdf failed, falling back to JPEG:', e);
+      await addRasterJPEG();
+    }
+  } else {
+    // --- Option B: Raster JPEG fallback (smaller than PNG)
+    await addRasterJPEG();
+  }
+
+  // Notes under the image
+  const notes = (state.notes || '').trim();
+  if (notes) {
+    const yStart = imgY + imgH + 16;
+    const lines = doc.splitTextToSize(`Notes: ${notes}`, pageW - margin * 2);
+    doc.text(lines, margin, yStart);
+  }
+
+  doc.save(`${fileBase()}.pdf`);
+
+
+  // Helper: render SVG → JPEG (tunable scale/quality) and place on the page
+  async function addRasterJPEG() {
+    // Tune these two for size/quality:
+    const EXPORT_SCALE = 1.0;   // try 0.75 for even smaller PDFs
+    const JPEG_QUALITY = 0.68;  // 0.5–0.8 is typical
+
+    const serializer = new XMLSerializer();
+    const src = serializer.serializeToString(svgEl);
+    const blob = new Blob([src], { type: 'image/svg+xml;charset=utf-8' });
+    const url  = URL.createObjectURL(blob);
+
+    const img = await new Promise((res, rej) => {
+      const i = new Image();
+      i.onload = () => res(i);
+      i.onerror = rej;
+      i.src = url;
     });
+
+    const canvas = document.createElement('canvas');
+    canvas.width  = Math.max(1, Math.floor(imgW * EXPORT_SCALE));
+    canvas.height = Math.max(1, Math.floor(imgH * EXPORT_SCALE));
+
+    const ctx = canvas.getContext('2d', { alpha: true });
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    // Draw the SVG scaled to the target fit box
+    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+    URL.revokeObjectURL(url);
+
+    const dataURL = canvas.toDataURL('image/jpeg', JPEG_QUALITY);
+    doc.addImage(dataURL, 'JPEG', imgX, imgY, imgW, imgH, undefined, 'FAST');
+  }
+});
+
 
 
       function placeForMobile(isMobile){
