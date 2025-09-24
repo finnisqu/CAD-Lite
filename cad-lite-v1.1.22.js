@@ -1725,170 +1725,182 @@ if(btnAddLayout){
       return b;
       }
 
-      function updateInspector(){
-        const p = state.pieces.find(x=>x.id===state.selectedId);
-        if(!p){ inspector.className='lc-small'; inspector.textContent='Select a piece from the canvas or list.'; return; }
-        inspector.className=''; inspector.innerHTML='';
-        const wrap = document.createElement('div'); wrap.className='lc-item selected';
+function updateInspector(){
+  const p = state.pieces.find(x=>x.id===state.selectedId);
+  if(!p){ inspector.className='lc-small'; inspector.textContent='Select a piece from the canvas or list.'; return; }
+  inspector.className=''; inspector.innerHTML='';
+  const wrap = document.createElement('div'); wrap.className='lc-item selected';
 
-        const row1 = document.createElement('div'); row1.className='lc-row';
-        const nameL = document.createElement('label'); nameL.className='lc-label'; nameL.textContent='Name';
-        const nameI = document.createElement('input'); nameI.className='lc-input'; nameI.value=p.name||''; nameI.oninput=()=>{ p.name=nameI.value; renderList(); draw(); };
-        nameL.appendChild(nameI);
-        const colorL = document.createElement('label'); colorL.className='lc-label'; colorL.textContent='Color';
-        const cs = colorStack(p.color, (val)=>{ p.color=val; renderList(); draw(); });
-        colorL.appendChild(cs.wrap);
-        row1.appendChild(nameL); row1.appendChild(colorL); wrap.appendChild(row1);
+  const row1 = document.createElement('div'); row1.className='lc-row';
+  const nameL = document.createElement('label'); nameL.className='lc-label'; nameL.textContent='Name';
+  const nameI = document.createElement('input'); nameI.className='lc-input'; nameI.value=p.name||''; nameI.oninput=()=>{ p.name=nameI.value; renderList(); draw(); };
+  nameL.appendChild(nameI);
+  const colorL = document.createElement('label'); colorL.className='lc-label'; colorL.textContent='Color';
+  const cs = colorStack(p.color, (val)=>{ p.color=val; renderList(); draw(); });
+  colorL.appendChild(cs.wrap);
+  row1.appendChild(nameL); row1.appendChild(colorL); wrap.appendChild(row1);
 
-        const row2 = document.createElement('div'); row2.className='lc-row'; row2.style.marginTop='8px';
-        row2.innerHTML = `
-          <label class="lc-label">Width (in)<input id="insp-w" type="number" class="lc-input" step="0.25" value="${p.w}"></label>
-          <label class="lc-label">Height (in)<input id="insp-h" type="number" class="lc-input" step="0.25" value="${p.h}"></label>`;
-        wrap.appendChild(row2);
+  const row2 = document.createElement('div'); row2.className='lc-row'; row2.style.marginTop='8px';
+  row2.innerHTML = `
+    <label class="lc-label">Width (in)<input id="insp-w" type="number" class="lc-input" step="0.25" value="${p.w}"></label>
+    <label class="lc-label">Height (in)<input id="insp-h" type="number" class="lc-input" step="0.25" value="${p.h}"></label>`;
+  wrap.appendChild(row2);
 
-        // ==== Actions row: Backward / Forward (2-up) ====
-        const row3 = document.createElement('div');
-        row3.className = 'lc-row2';
-        row3.style.marginTop = '8px';
+  // ==== Actions row: Backward / Forward (2-up) ====
+  const row3 = document.createElement('div');
+  row3.className = 'lc-row2';
+  row3.style.marginTop = '8px';
 
+  const bBack = mkBtn('Backward','ghost sm', ()=> {
+    sendBackward(p);
+    renderList(); updateInspector(); sinksUI?.refresh(); draw(); scheduleSave();
+  });
+  const bFwd  = mkBtn('Forward','ghost sm', ()=> {
+    bringForward(p);
+    renderList(); updateInspector(); sinksUI?.refresh(); draw(); scheduleSave();
+  });
 
-        const bBack = mkBtn('Backward','ghost sm', ()=> {
-          sendBackward(p);
-          renderList(); updateInspector(); sinksUI?.refresh(); draw(); scheduleSave();
-        });
-        const bFwd  = mkBtn('Forward','ghost sm', ()=> {
-          bringForward(p);
-          renderList(); updateInspector(); sinksUI?.refresh(); draw(); scheduleSave();
-        });
+  row3.append(bBack, bFwd);
+  wrap.appendChild(row3);
 
+  // (Removed the old "Layer (0 = back)" row — now shown as a small badge by Duplicate)
 
-        row3.append(bBack, bFwd);
-        wrap.appendChild(row3);
+  // ==== Rotation + Corner Radius row (2-up) ====
+  const row4 = document.createElement('div');
+  row4.className = 'lc-row2';
+  row4.style.marginTop = '8px';
 
-        // after row3 (Forward/Backward), add:
-        const layerRow = document.createElement('div');
-        layerRow.className = 'lc-row2';
-        layerRow.style.marginTop = '6px';
-        layerRow.innerHTML = `
-          <label class="lc-label">Layer (0 = back)
-            <input type="number" class="lc-input" value="${p.layer||0}" disabled>
-          </label>
-          <div></div>
-        `;
-        wrap.appendChild(layerRow);        
+  // Left column: Rotation number input (0–180)
+  const rotCol = document.createElement('label');
+  rotCol.className = 'lc-label';
+  rotCol.innerHTML = `
+    Rotation (°)
+    <input id="insp-rot" type="number" min="0" max="180" step="1" class="lc-input" value="${p.rotation||0}">
+  `;
+  row4.appendChild(rotCol);
 
-       // ==== Rotation + Corner Radius row (2-up) ====
-        const row4 = document.createElement('div');
-        row4.className = 'lc-row2';
-        row4.style.marginTop = '8px';
+  // Right column: Corner radius buttons
+  const cornersCol = document.createElement('div');
+  const cornersTitle = document.createElement('div');
+  cornersTitle.className='lc-label';
+  cornersTitle.textContent='Corner Radius (toggle corners)';
 
-        // Left column: Rotation number input (0–180)
-        const rotCol = document.createElement('label');
-        rotCol.className = 'lc-label';
-        rotCol.innerHTML = `
-          Rotation (°)
-          <input id="insp-rot" type="number" min="0" max="180" step="1" class="lc-input" value="${p.rotation||0}">
-        `;
+  const grid = document.createElement('div');
+  grid.className='lc-corner-grid';
 
-        row4.appendChild(rotCol);
+  var bTL = cornerButton('tl', p.rTL);
+  var bTR = cornerButton('tr', p.rTR);
+  var bBL = cornerButton('bl', p.rBL);
+  var bBR = cornerButton('br', p.rBR);
+  function toggle(btn, key){
+    return ()=>{ p[key]=!p[key]; btn.classList.toggle('active', p[key]); draw(); };
+  }
+  bTL.onclick = toggle(bTL,'rTL');
+  bTR.onclick = toggle(bTR,'rTR');
+  bBL.onclick = toggle(bBL,'rBL');
+  bBR.onclick = toggle(bBR,'rBR');
 
-        // Right column: Corner radius buttons (existing UI)
-        const cornersCol = document.createElement('div');
+  grid.appendChild(bTL); grid.appendChild(bTR);
+  grid.appendChild(bBL); grid.appendChild(bBR);
 
-        const cornersTitle = document.createElement('div');
-        cornersTitle.className='lc-label';
-        cornersTitle.textContent='Corner Radius (toggle corners)';
+  cornersCol.appendChild(cornersTitle);
+  cornersCol.appendChild(grid);
 
-        const grid = document.createElement('div');
-        grid.className='lc-corner-grid';
+  row4.appendChild(cornersCol);
+  wrap.appendChild(row4);
 
-        var bTL = cornerButton('tl', p.rTL);
-        var bTR = cornerButton('tr', p.rTR);
-        var bBL = cornerButton('bl', p.rBL);
-        var bBR = cornerButton('br', p.rBR);
-        function toggle(btn, key){
-          return ()=>{ p[key]=!p[key]; btn.classList.toggle('active', p[key]); draw(); };
-        }
-        bTL.onclick = toggle(bTL,'rTL');
-        bTR.onclick = toggle(bTR,'rTR');
-        bBL.onclick = toggle(bBL,'rBL');
-        bBR.onclick = toggle(bBR,'rBR');
+  // Bind rotation input
+  const rotInput = wrap.querySelector('#insp-rot');
+  rotInput.oninput = (e)=>{
+    p.rotation = clamp(Math.round(Number(e.target.value)||0), 0, 180);
+    clampToCanvas(p);
+    draw();
+  };
 
-        grid.appendChild(bTL); grid.appendChild(bTR);
-        grid.appendChild(bBL); grid.appendChild(bBR);
+  const inW = wrap.querySelector('#insp-w');
+  const inH = wrap.querySelector('#insp-h');
+  inW.onchange = e => { p.w = Math.max(0.25, Number(e.target.value||0)); clampToCanvas(p); renderList(); draw(); };
+  inH.onchange = e => { p.h = Math.max(0.25, Number(e.target.value||0)); clampToCanvas(p); renderList(); draw(); };
 
-        cornersCol.appendChild(cornersTitle);
-        cornersCol.appendChild(grid);
+  // Actions row (tiny icon buttons)
+  const actions = document.createElement('div');
+  actions.style.display='flex';
+  actions.style.gap='6px';
+  actions.style.alignItems='center';
 
-        row4.appendChild(cornersCol);
-        wrap.appendChild(row4);
+  // --- Layer badge (tiny circle, same footprint as icon buttons) ---
+  const layerBadge = document.createElement('button');
+  layerBadge.type = 'button';
+  layerBadge.title = `Layer ${p.layer ?? 0} (0 = back)`;
+  layerBadge.textContent = (p.layer ?? 0);
+  layerBadge.disabled = true; // purely informational
 
-        // Bind rotation input
-        const rotInput = wrap.querySelector('#insp-rot');
-          rotInput.oninput = (e)=>{
-            p.rotation = clamp(Math.round(Number(e.target.value)||0), 0, 180);
-            clampToCanvas(p);
-            draw();
-          };
+  // Minimal inline styling so it works even without extra CSS
+  Object.assign(layerBadge.style, {
+    width: '28px',
+    height: '28px',
+    borderRadius: '9999px',
+    display: 'inline-flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    fontSize: '11px',
+    fontWeight: '600',
+    lineHeight: '1',
+    border: '1px solid var(--border, #ddd)',
+    background: 'var(--muted, #f3f4f6)',
+    color: 'var(--text, #111)',
+    userSelect: 'none',
+    pointerEvents: 'none',
+  });
 
-        const inW = wrap.querySelector('#insp-w');
-        const inH = wrap.querySelector('#insp-h');
-        inW.onchange = e => { p.w = Math.max(0.25, Number(e.target.value||0)); clampToCanvas(p); renderList(); draw(); };
-        inH.onchange = e => { p.h = Math.max(0.25, Number(e.target.value||0)); clampToCanvas(p); renderList(); draw(); };
+  const btnDupI = document.createElement('button');
+  btnDupI.className = 'lc-btn ghost lc-iconbtn';
+  btnDupI.title = 'Duplicate';
+  btnDupI.innerHTML = '<svg class="lc-icon" viewBox="0 0 24 24"><path d="M9 9V5a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-4M5 9a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2z" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+  btnDupI.onclick = (e)=>{
+    e.preventDefault();
+    const rs = realSize(p);
+    const np = JSON.parse(JSON.stringify(p));
+    np.id = uid(); np.name = (p.name||'Piece')+' Copy';
+    np.x = clamp(snap(p.x + state.grid, state.grid), 0, state.cw - rs.w);
+    np.y = clamp(snap(p.y + state.grid, state.grid), 0, state.ch - rs.h);
+    state.pieces.push(np);
+    state.selectedId = np.id;
+    renderList(); updateInspector(); sinksUI?.refresh(); draw(); scheduleSave();
+  };
 
-        // Actions row (tiny icon buttons)
-        const actions = document.createElement('div');
-        actions.style.display='flex'; actions.style.gap='6px';
+  const btnDelI = document.createElement('button');
+  btnDelI.className = 'lc-btn red lc-iconbtn';
+  btnDelI.title = 'Delete';
+  btnDelI.innerHTML = '<svg class="lc-icon" viewBox="0 0 24 24"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m-1 0v14a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2V6h10z" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+  btnDelI.onclick = (e)=>{
+    e.preventDefault();
+    const idx = state.pieces.findIndex(x=>x.id===p.id);
+    if(idx>-1){
+      state.pieces.splice(idx,1);
+      setSelection([]);
+      state.selectedId = null;
+      renderList(); 
+      updateInspector(); 
+      sinksUI?.refresh(); 
+      draw(); 
+      scheduleSave();
+    }
+  };
 
-        const btnDupI = document.createElement('button');
-        btnDupI.className = 'lc-btn ghost lc-iconbtn';
-        btnDupI.title = 'Duplicate';
-        btnDupI.innerHTML = '<svg class="lc-icon" viewBox="0 0 24 24"><path d="M9 9V5a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-4M5 9a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2z" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
-        btnDupI.onclick = (e)=>{
-          e.preventDefault();
-          const rs = realSize(p);
-          const np = JSON.parse(JSON.stringify(p));
-          np.id = uid(); np.name = (p.name||'Piece')+' Copy';
-          np.x = clamp(snap(p.x + state.grid, state.grid), 0, state.cw - rs.w);
-          np.y = clamp(snap(p.y + state.grid, state.grid), 0, state.ch - rs.h);
-          state.pieces.push(np);
-          state.selectedId = np.id;
-          renderList(); updateInspector(); sinksUI?.refresh(); draw(); scheduleSave();
-        };
+  // Order: [Layer badge] [Duplicate] [Delete]
+  actions.append(layerBadge, btnDupI, btnDelI);
+  wrap.appendChild(actions);
 
-        const btnDelI = document.createElement('button');
-        btnDelI.className = 'lc-btn red lc-iconbtn';
-        btnDelI.title = 'Delete';
-        btnDelI.innerHTML = '<svg class="lc-icon" viewBox="0 0 24 24"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m-1 0v14a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2V6h10z" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
-        btnDelI.onclick = (e)=>{
-          e.preventDefault();
-          const idx = state.pieces.findIndex(x=>x.id===p.id);
-          if(idx>-1){
-            state.pieces.splice(idx,1);
-            setSelection([]);
-            state.selectedId = null;
-            renderList(); 
-            updateInspector(); 
-            sinksUI?.refresh(); 
-            draw(); 
-            scheduleSave();
-          }
-        };
+  inspector.appendChild(wrap);
 
-        actions.append(btnDupI, btnDelI);
-        wrap.appendChild(actions);
-
-        inspector.appendChild(wrap);
-
-        // lock the inspector height based on the populated content (only when there is a selection)
-        if (p){
-          // wait a tick so the DOM lays out, then measure
-          requestAnimationFrame(()=>{
-            lockInspectorHeight(inspector.scrollHeight);
-          });
-        }
-
-
+  // lock the inspector height based on the populated content (only when there is a selection)
+  if (p){
+    // wait a tick so the DOM lays out, then measure
+    requestAnimationFrame(()=>{
+      lockInspectorHeight(inspector.scrollHeight);
+    });
+  }
       
       }
 
