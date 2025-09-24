@@ -562,7 +562,18 @@ function cloneSvgForPdf(srcSvg, opts = {}){
   try {
     // build a safe clone of the SVG for vector export
     const safe = cloneSvgForPdf(svgEl, { defaultFont: 'Helvetica', defaultFontSize: 12, defaultFill: '#111' });
-    window.svg2pdf(safe, doc, { x: imgX, y: imgY, width: imgW, height: imgH });
+    const svg2pdfOpts = {
+      x: imgX,
+      y: imgY,
+      width: imgW,
+      height: imgH,
+      useCSS: true,
+      // make sure every text run resolves to a built-in jsPDF font
+      fontCallback: () => 'helvetica',
+      // some builds of svg2pdf read `options.fonts` and expect a `default` key
+      fonts: { default: { normal: 'helvetica', bold: 'helvetica', italic: 'helvetica', bolditalic: 'helvetica' } }
+    };
+    window.svg2pdf(safe, doc, svg2pdfOpts);
   } catch (e) {
     console.warn('svg2pdf failed, falling back to high-res PNG:', e);
     if (!confirm('Vector export failed. Use a high-res PNG fallback (larger file)?')) return;
