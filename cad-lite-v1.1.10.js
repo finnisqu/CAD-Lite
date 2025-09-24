@@ -901,26 +901,30 @@ function restore(){
 
 
 
+          // piece label (only when Show labels is ON)
           if (state.showLabels) {
-            const text = document.createElementNS('http://www.w3.org/2000/svg','text');
-            text.setAttribute('x', x + W/2); 
+            const text = document.createElementNS(svgNS, 'text');
+            text.setAttribute('x', x + W/2);
             text.setAttribute('y', y + H/2 - 6);
-            text.setAttribute('text-anchor','middle'); 
-            text.setAttribute('font-size','12'); 
-            text.setAttribute('fill',fg);
-            text.textContent = p.name || `Piece ${idx+1}`;
-            g.appendChild(text);
-          }     
-          const t1 = document.createElementNS('http://www.w3.org/2000/svg','tspan'); 
-            t1.setAttribute('x', x + W/2); 
-            t1.setAttribute('dy', 0); 
+            text.setAttribute('text-anchor', 'middle');
+            text.setAttribute('font-size', '12');
+            text.setAttribute('fill', fg);
+
+            const t1 = document.createElementNS(svgNS, 'tspan');
+            t1.setAttribute('x', x + W/2);
+            t1.setAttribute('dy', 0);
             t1.textContent = p.name || 'Piece';
-          const t2 = document.createElementNS('http://www.w3.org/2000/svg','tspan'); 
-            t2.setAttribute('x', x + W/2); 
-            t2.setAttribute('dy', 14); 
-            t2.textContent = `${p.w}" × ${p.h}"${(p.rotation?` · ${p.rotation}°`:``)}`;
-         text.appendChild(t1);
-         text.appendChild(t2);
+
+            const t2 = document.createElementNS(svgNS, 'tspan');
+            t2.setAttribute('x', x + W/2);
+            t2.setAttribute('dy', 14);
+            t2.textContent = `${p.w}" × ${p.h}"${(p.rotation ? ` · ${p.rotation}°` : ``)}`;
+
+            text.appendChild(t1);
+            text.appendChild(t2);
+            g.appendChild(text);
+          }
+
           if (state.showDims) {
             const dimStroke = '#94a3b8';
             const off = 12;  // px away from the edge
