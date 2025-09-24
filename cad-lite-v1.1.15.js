@@ -470,24 +470,19 @@ function ensureJsPDF(){
 btnExportPDF && (btnExportPDF.onclick = async () => {
   if (!requireProjectName()) return;
 
-  // Grab jsPDF (your existing lazy loader)
+  // 1) Load jsPDF
   let jsPDF;
-  try {
-    jsPDF = await ensureJsPDF();
-  } catch (err) {
-    alert('Could not load jsPDF. Try PNG/SVG instead.');
-    return;
-  }
+  try { jsPDF = await ensureJsPDF(); }
+  catch (err) { alert('Could not load jsPDF. Try SVG/PNG instead.'); return; }
 
   const svgEl = document.getElementById('lc-svg') || svg;
   if (!svgEl) return;
 
-  // Canvas size in points (from actual SVG width/height attrs)
+  // Canvas size from the SVG element (in points for PDF placement)
   const W = Number(svgEl.getAttribute('width'))  || 800;
   const H = Number(svgEl.getAttribute('height')) || 400;
-
-  // Page: letter with auto orientation
   const isLandscape = W > H;
+
   const doc = new jsPDF({
     orientation: isLandscape ? 'landscape' : 'portrait',
     unit: 'pt',
@@ -498,10 +493,10 @@ btnExportPDF && (btnExportPDF.onclick = async () => {
 
   const pageW = doc.internal.pageSize.getWidth();
   const pageH = doc.internal.pageSize.getHeight();
-  const margin = 36; // 0.5"
-  const headerH = 40; // title/date/layout block height
+  const margin  = 36;   // 0.5"
+  const headerH = 40;   // header block height
 
-  // Header text (same as your current behavior)
+  // Header text (keeps your existing look)
   const title = (state.projectName || 'Untitled Project');
   const date  = (state.projectDate || todayISO());
   const lname = (state.layouts[state.active]?.name) || 'Layout 1';
@@ -512,26 +507,29 @@ btnExportPDF && (btnExportPDF.onclick = async () => {
   doc.text(`Date: ${date}`,   margin, margin + 16);
   doc.text(`Layout: ${lname}`, margin, margin + 32);
 
-  // Fit SVG into the remaining content area
-  const maxW  = pageW - margin * 2;
-  const maxH  = pageH - margin * 2 - headerH;
+  // Fit the SVG into the available content area
+  const maxW = pageW - margin * 2;
+  const maxH = pageH - margin * 2 - headerH;
   const scale = Math.min(1, maxW / W, maxH / H);
   const imgW  = W * scale;
   const imgH  = H * scale;
   const imgX  = margin;
   const imgY  = margin + headerH;
 
-  // --- Option A: Vector export if svg2pdf is available (smallest files)
+  // ---------- CRISP VECTOR EXPORT (preferred) ----------
   if (window.svg2pdf) {
     try {
+      // Vectorise the actual SVG (no rasterization, crisp text/lines)
       window.svg2pdf(svgEl, doc, { x: imgX, y: imgY, width: imgW, height: imgH });
     } catch (e) {
-      console.warn('svg2pdf failed, falling back to JPEG:', e);
-      await addRasterJPEG();
+      console.warn('svg2pdf failed; you can proceed with a high-res PNG fallback.', e);
+      if (!confirm('Vector export failed. Use a high-res PNG fallback (larger file)?')) return;
+      await addRasterPNG();
     }
   } else {
-    // --- Option B: Raster JPEG fallback (smaller than PNG)
-    await addRasterJPEG();
+    // If svg2pdf is missing, encourage enabling it for crisp text
+    if (!confirm('Vector export not enabled. Add svg2pdf.js to your Site Header for crisp text.\nContinue with a high-res PNG fallback?')) return;
+    await addRasterPNG();
   }
 
   // Notes under the image
@@ -545,12 +543,9 @@ btnExportPDF && (btnExportPDF.onclick = async () => {
   doc.save(`${fileBase()}.pdf`);
 
 
-  // Helper: render SVG → JPEG (tunable scale/quality) and place on the page
-  async function addRasterJPEG() {
-    // Tune these two for size/quality:
-    const EXPORT_SCALE = 1.0;   // try 0.75 for even smaller PDFs
-    const JPEG_QUALITY = 0.68;  // 0.5–0.8 is typical
-
+  // ---------- High-Res PNG fallback (crisper than JPEG; larger files) ----------
+  async function addRasterPNG() {
+    const EXPORT_SCALE = 2.0;  // bump to 2x for legible text when rasterized
     const serializer = new XMLSerializer();
     const src = serializer.serializeToString(svgEl);
     const blob = new Blob([src], { type: 'image/svg+xml;charset=utf-8' });
@@ -569,15 +564,16 @@ btnExportPDF && (btnExportPDF.onclick = async () => {
 
     const ctx = canvas.getContext('2d', { alpha: true });
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-    // Draw the SVG scaled to the target fit box
+    ctx.imageSmoothingQuality = 'high';
     ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
 
     URL.revokeObjectURL(url);
 
-    const dataURL = canvas.toDataURL('image/jpeg', JPEG_QUALITY);
-    doc.addImage(dataURL, 'JPEG', imgX, imgY, imgW, imgH, undefined, 'FAST');
+    const dataURL = canvas.toDataURL('image/png'); // PNG keeps text sharper than JPEG
+    doc.addImage(dataURL, 'PNG', imgX, imgY, imgW, imgH, undefined, 'FAST');
   }
 });
+
 
 
 
