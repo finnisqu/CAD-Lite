@@ -516,16 +516,58 @@ btnExportPDF && (btnExportPDF.onclick = async () => {
   const imgX  = margin;
   const imgY  = margin + headerH;
 
+// Clone + sanitize SVG for svg2pdf (removes problem attrs, sets explicit text styles)
+function cloneSvgForPdf(srcSvg, opts = {}){
+  const { defaultFont = 'Helvetica', defaultFontSize = 12, defaultFill = '#111' } = opts;
+  const svgNS = 'http://www.w3.org/2000/svg';
+  const XLNS  = 'http://www.w3.org/1999/xlink';
+
+  // deep clone
+  const cl = srcSvg.cloneNode(true);
+
+  // namespaces + explicit size
+  cl.setAttribute('xmlns', svgNS);
+  cl.setAttribute('xmlns:xlink', XLNS);
+  const W = Number(srcSvg.getAttribute('width'))  || srcSvg.viewBox?.baseVal?.width  || 800;
+  const H = Number(srcSvg.getAttribute('height')) || srcSvg.viewBox?.baseVal?.height || 400;
+  cl.setAttribute('width',  String(W));
+  cl.setAttribute('height', String(H));
+
+  // remove attributes/elements that often break svg2pdf
+  cl.querySelectorAll('[vector-effect]').forEach(n => n.removeAttribute('vector-effect'));
+  // (optional) if you never use filters/masks/clipPaths, strip them:
+  cl.querySelectorAll('defs, clipPath, mask, filter, pattern, marker').forEach(n => n.remove());
+
+  // ensure text has explicit font + size + fill (svg2pdf relies on these)
+  cl.querySelectorAll('text, tspan').forEach(t => {
+    if (!t.getAttribute('font-family')) t.setAttribute('font-family', defaultFont);
+    if (!t.getAttribute('font-size'))   t.setAttribute('font-size',   String(defaultFontSize));
+    if (!t.getAttribute('fill'))        t.setAttribute('fill',        defaultFill);
+    // normalize anchors/baselines to things svg2pdf handles well
+    // (keep your existing ones if present)
+  });
+
+  // normalize dash arrays to numeric strings (avoid "none"/undefined)
+  cl.querySelectorAll('[stroke-dasharray]').forEach(el => {
+    const v = el.getAttribute('stroke-dasharray');
+    if (!v || v === 'none') el.removeAttribute('stroke-dasharray');
+  });
+
+  return cl;
+}
+
+
   // ---------- CRISP VECTOR EXPORT (preferred) ----------
   if (window.svg2pdf) {
-    try {
-      // Vectorise the actual SVG (no rasterization, crisp text/lines)
-      window.svg2pdf(svgEl, doc, { x: imgX, y: imgY, width: imgW, height: imgH });
-    } catch (e) {
-      console.warn('svg2pdf failed; you can proceed with a high-res PNG fallback.', e);
-      if (!confirm('Vector export failed. Use a high-res PNG fallback (larger file)?')) return;
-      await addRasterPNG();
-    }
+  try {
+    // build a safe clone of the SVG for vector export
+    const safe = cloneSvgForPdf(svgEl, { defaultFont: 'Helvetica', defaultFontSize: 12, defaultFill: '#111' });
+    window.svg2pdf(safe, doc, { x: imgX, y: imgY, width: imgW, height: imgH });
+  } catch (e) {
+    console.warn('svg2pdf failed, falling back to high-res PNG:', e);
+    if (!confirm('Vector export failed. Use a high-res PNG fallback (larger file)?')) return;
+    await addRasterPNG();
+  }
   } else {
     // If svg2pdf is missing, encourage enabling it for crisp text
     if (!confirm('Vector export not enabled. Add svg2pdf.js to your Site Header for crisp text.\nContinue with a high-res PNG fallback?')) return;
