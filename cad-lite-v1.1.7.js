@@ -115,7 +115,7 @@
 
       // Example presets (adjust to your catalog)
       const SINK_MODELS = [
-        { id:'k3218-single', label:'Kitchen SS 3218', shape:'rect', w:31, h:17, cornerR:0.5 },
+        { id:'k3218-single', label:'Kitchen SS 3218', shape:'rect', w:31, h:17, cornerR:4 },
         { id:'oval-1714',    label:'Oval 1714 Vanity',         shape:'oval', w:17, h:14, cornerR:0 },
         { id:'rect-1813',    label:'Rectangle 1813 Vanity',    shape:'rect', w:18, h:13, cornerR:0.25 },
       ];
@@ -328,8 +328,8 @@ btnExportPDF && (btnExportPDF.onclick = async ()=>{
             id: 'sink_'+Math.random().toString(36).slice(2,9),
             type: 'model',
             modelId: m.id, shape: m.shape, w: m.w, h: m.h, cornerR: m.cornerR,
-            side: 'front',
-            centerline: 20,                   // <-- set to 20
+            side: 'back',
+            centerline: 20,                   
             setback: SINK_STANDARD_SETBACK,
             faucets: [4],
             rotation: 0
