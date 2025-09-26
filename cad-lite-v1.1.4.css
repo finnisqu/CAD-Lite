@@ -409,3 +409,33 @@
   display: block;
 }
 
+/* Vertical separators between the three 2×2 blocks in the top toolbar */
+.lc-toolbar.compact > .lc-2x2 {
+  position: relative;
+  padding-left: 12px;
+}
+.lc-toolbar.compact > .lc-2x2:first-child {
+  padding-left: 0;
+}
+.lc-toolbar.compact > .lc-2x2:not(:first-child)::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background: var(--border, #e5e7eb);
+}
+
+/* On mobile, stack and remove the lines/padding for a clean look */
+@media (max-width: 899px){
+  .lc-toolbar.compact{
+    grid-template-columns: 1fr;      /* the three blocks stack */
+  }
+  .lc-toolbar.compact > .lc-2x2{
+    padding-left: 0;
+  }
+  .lc-toolbar.compact > .lc-2x2::before{
+    display: none;
+  }
+}
