@@ -325,3 +325,48 @@
   /* let JS-controlled width/height take effect; just cap it */
   #lc-svg{ max-width: 100% !important; height: auto; }
 }
+
+/* tiny circular layer chip, same footprint as .lc-btn.sm */
+.lc-layer-badge {
+  width: 28px;              /* match your .lc-btn.sm size */
+  height: 28px;
+  border-radius: 9999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1;
+  border: 1px solid var(--border, #ddd);
+  background: var(--muted, #f3f4f6);
+  color: var(--text, #111);
+  user-select: none;
+  pointer-events: none;     /* purely informational */
+  margin-right: 6px;        /* space before Duplicate */
+}
+.lc-layer-badge.sm {        /* keep naming parity with your button sizes */
+  width: 28px;
+  height: 28px;
+}
+
+/* Top bar as three even columns with internal 2×2 grids */
+.lc-toolbar.compact{
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0,1fr));
+  gap: 12px;
+  align-items: start;
+}
+
+/* Reusable 2×2 grid */
+.lc-2x2{
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+/* Bigger buttons for top row */
+.lc-btn.big{
+  height: 44px;
+  min-width: auto;
+  border-radius: 12px;
+}
