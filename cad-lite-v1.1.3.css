@@ -370,3 +370,42 @@
   min-width: auto;
   border-radius: 12px;
 }
+
+/* ===== Middle 2×2 grid: labels above inputs, consistent layout ===== */
+.lc-toolbar.compact .lc-2x2 .lc-ctl .lc-label{
+  /* put label text + (optional) value on row 1, input on row 2 */
+  display: grid;
+  grid-template-columns: 1fr auto;  /* label text | optional value (e.g., Zoom number) */
+  grid-template-rows: auto auto;    /* row 1: text/value, row 2: input */
+  align-items: center;
+  gap: 2px 8px;
+}
+
+/* Inputs span full width on row 2 */
+.lc-toolbar.compact .lc-2x2 .lc-ctl .lc-label > input,
+.lc-toolbar.compact .lc-2x2 .lc-ctl .lc-label > select {
+  grid-column: 1 / -1;
+  grid-row: 2;
+  width: 100%;
+  margin: 0;
+}
+
+/* Make range sliders truly full-width and centered visually */
+.lc-toolbar.compact .lc-2x2 .lc-ctl .lc-label > input[type="range"]{
+  width: 100%;
+}
+
+/* Zoom number sits to the right of the label text on row 1 */
+#lc-scale-label{
+  grid-column: 2;         /* right column, same row as label text */
+  grid-row: 1;
+  justify-self: end;
+  font-variant-numeric: tabular-nums;
+  opacity: 0.8;
+}
+
+/* Optional: tighten vertical rhythm of each control cell */
+.lc-toolbar.compact .lc-2x2 .lc-ctl{
+  display: block;
+}
+
