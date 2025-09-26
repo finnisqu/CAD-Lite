@@ -105,6 +105,55 @@
           };
         }
 
+        // ---- Undo/Redo History ----
+        const HISTORY_MAX = 50;
+        const history = { stack: [], index: -1, quiet: false };
+
+        function snapshotState(){
+          try{
+            return JSON.stringify({
+              // keep it plain-data only
+              cw: state.cw, ch: state.ch, scale: state.scale, grid: state.grid,
+              selectedId: state.selectedId ?? null,
+              pieces: state.pieces.map(p=>({...p})),
+              project: state.project ?? null,
+              settings: state.settings ?? null,
+              layouts: state.layouts ?? null
+            });
+          }catch(e){ console.warn('history snapshot failed:', e); return null; }
+        }
+
+        function pushHistory(){
+          if (history.quiet) return;
+          const snap = snapshotState(); if (!snap) return;
+          if (history.stack[history.index] === snap) return; // dedupe
+          history.stack = history.stack.slice(0, history.index+1);
+          history.stack.push(snap);
+          if (history.stack.length > HISTORY_MAX) history.stack.shift();
+          history.index = history.stack.length - 1;
+        }
+
+        function applySnapshot(snap){
+          if (!snap) return;
+          const data = JSON.parse(snap);
+          history.quiet = true;
+          try{
+            state.cw = data.cw; state.ch = data.ch; state.scale = data.scale; state.grid = data.grid;
+            state.selectedId = data.selectedId;
+            state.pieces = (data.pieces||[]).map(p=>({...p}));
+            if ('project' in data) state.project = data.project;
+            if ('settings' in data) state.settings = data.settings;
+            if ('layouts' in data) state.layouts = data.layouts;
+          } finally { history.quiet = false; }
+          renderList(); updateInspector(); sinksUI?.refresh?.(); draw();
+        }
+
+        function undo(){ if (history.index > 0){ history.index--; applySnapshot(history.stack[history.index]); } }
+        function redo(){ if (history.index < history.stack.length-1){ history.index++; applySnapshot(history.stack[history.index]); } }
+        function canUndo(){ return history.index > 0; }
+        function canRedo(){ return history.index < history.stack.length - 1; }
+
+
      // ----------------------------------------   
      // ------- Helpers ------------------------
      // ----------------------------------------   
@@ -197,7 +246,7 @@
           piece.y = snap(piece.y, state.grid);
         });
         state.drag = null;
-        draw(); scheduleSave();
+        draw(); scheduleSave(); pushHistory(); 
       }
       svg.addEventListener('pointerup', endDrag);
       svg.addEventListener('pointerleave', endDrag);
@@ -223,240 +272,27 @@
   "scale": 6,
   "showGrid": true,
   "pieces": [
-    {
-      "id": "xnradsk",
-      "name": "Kitchen Island",
-      "w": 96,
-      "h": 42,
-      "x": 9,
-      "y": 62,
-      "rotation": 0,
-      "color": "#e0aeae",
-      "layer": 0,
-      "rTL": true,
-      "rTR": true,
-      "rBL": true,
-      "rBR": true,
-      "sinks": [
-        {
-          "id": "sink_aen7dew",
-          "type": "model",
-          "modelId": "k3218-single",
-          "shape": "rect",
-          "w": 31,
-          "h": 17,
-          "cornerR": 4,
-          "side": "front",
-          "centerline": 20,
-          "setback": 3.125,
-          "faucets": [
-            4
-          ],
-          "rotation": 180
-        }
+    { "id": "xnradsk", "name": "Kitchen Island", "w": 96, "h": 42, "x": 9, "y": 62, "rotation": 0, "color": "#e0aeae", "layer": 0, "rTL": true, "rTR": true, "rBL": true, "rBR": true, "sinks": [
+        { "id": "sink_aen7dew", "type": "model", "modelId": "k3218-single", "shape": "rect", "w": 31, "h": 17, "cornerR": 4, "side": "front", "centerline": 20, "setback": 3.125, "faucets": [ 4 ], "rotation": 180 }
       ]
     },
-    {
-      "id": "9qkwkcx",
-      "name": "Range Right",
-      "w": 36,
-      "h": 25.5,
-      "x": 72,
-      "y": 9,
-      "rotation": 0,
-      "color": "#e0aeae",
-      "layer": 1,
-      "rTL": false,
-      "rTR": false,
-      "rBL": false,
-      "rBR": true,
-      "sinks": []
-    },
-    {
-      "id": "57i56pm",
-      "name": "Range Left",
-      "w": 36,
-      "h": 25.5,
-      "x": 6,
-      "y": 9,
-      "rotation": 0,
-      "color": "#e0aeae",
-      "layer": 2,
-      "rTL": false,
-      "rTR": false,
-      "rBL": true,
-      "rBR": false,
-      "sinks": []
-    },
-    {
-      "id": "o21iodt",
-      "name": "Backsplash",
-      "w": 36,
-      "h": 4,
-      "x": 6,
-      "y": 4,
-      "rotation": 0,
-      "color": "#efd8d8",
-      "layer": 3,
-      "rTL": false,
-      "rTR": false,
-      "rBL": false,
-      "rBR": false,
-      "sinks": []
-    },
-    {
-      "id": "da40080",
-      "name": "Backsplash",
-      "w": 36,
-      "h": 4,
-      "x": 72,
-      "y": 4,
-      "rotation": 0,
-      "color": "#efd8d8",
-      "layer": 4,
-      "rTL": false,
-      "rTR": false,
-      "rBL": false,
-      "rBR": false
-    },
-    {
-      "id": "fez0c6s",
-      "name": "RANGE",
-      "w": 30,
-      "h": 25.5,
-      "x": 42,
-      "y": 9,
-      "rotation": 0,
-      "color": "#ffffff",
-      "layer": 5,
-      "rTL": false,
-      "rTR": false,
-      "rBL": false,
-      "rBR": false,
-      "sinks": [
-        {
-          "id": "sink_8smx1py",
-          "type": "custom",
-          "modelId": "oval-1714",
-          "shape": "oval",
-          "w": 8,
-          "h": 8,
-          "cornerR": 0,
-          "side": "back",
-          "centerline": 22,
-          "setback": 3.125,
-          "faucets": [],
-          "rotation": 0
-        },
-        {
-          "id": "sink_8smx1py",
-          "type": "custom",
-          "modelId": "oval-1714",
-          "shape": "oval",
-          "w": 8,
-          "h": 8,
-          "cornerR": 0,
-          "side": "front",
-          "centerline": 22,
-          "setback": 3.125,
-          "faucets": [],
-          "rotation": 0
-        },
-        {
-          "id": "sink_towtzn4",
-          "type": "custom",
-          "modelId": "oval-1714",
-          "shape": "oval",
-          "w": 8,
-          "h": 8,
-          "cornerR": 0,
-          "side": "front",
-          "centerline": 8,
-          "setback": 3.125,
-          "faucets": [],
-          "rotation": 0
-        },
-        {
-          "id": "sink_towtzn4",
-          "type": "custom",
-          "modelId": "oval-1714",
-          "shape": "oval",
-          "w": 8,
-          "h": 8,
-          "cornerR": 0,
-          "side": "back",
-          "centerline": 8,
-          "setback": 3.125,
-          "faucets": [],
-          "rotation": 0
-        }
+    { "id": "9qkwkcx", "name": "Range Right", "w": 36, "h": 25.5, "x": 72, "y": 9, "rotation": 0, "color": "#e0aeae", "layer": 1, "rTL": false, "rTR": false, "rBL": false, "rBR": true, "sinks": [] },
+    { "id": "57i56pm", "name": "Range Left", "w": 36, "h": 25.5, "x": 6, "y": 9, "rotation": 0, "color": "#e0aeae", "layer": 2, "rTL": false, "rTR": false, "rBL": true, "rBR": false, "sinks": [] },
+    { "id": "o21iodt", "name": "Backsplash", "w": 36, "h": 4, "x": 6, "y": 4, "rotation": 0, "color": "#efd8d8", "layer": 3, "rTL": false, "rTR": false, "rBL": false, "rBR": false, "sinks": [] },
+    { "id": "da40080", "name": "Backsplash", "w": 36, "h": 4, "x": 72, "y": 4, "rotation": 0, "color": "#efd8d8", "layer": 4, "rTL": false, "rTR": false, "rBL": false, "rBR": false },
+    { "id": "fez0c6s", "name": "RANGE", "w": 30, "h": 25.5, "x": 42, "y": 9, "rotation": 0, "color": "#ffffff", "layer": 5, "rTL": false, "rTR": false, "rBL": false, "rBR": false, "sinks": [
+        { "id": "sink_8smx1py", "type": "custom", "modelId": "oval-1714", "shape": "oval", "w": 8, "h": 8, "cornerR": 0, "side": "back", "centerline": 22, "setback": 3.125, "faucets": [], "rotation": 0 },
+        { "id": "sink_8smx1py", "type": "custom", "modelId": "oval-1714", "shape": "oval", "w": 8, "h": 8, "cornerR": 0, "side": "front", "centerline": 22, "setback": 3.125, "faucets": [], "rotation": 0 },
+        { "id": "sink_towtzn4", "type": "custom", "modelId": "oval-1714", "shape": "oval", "w": 8, "h": 8, "cornerR": 0, "side": "front", "centerline": 8, "setback": 3.125, "faucets": [], "rotation": 0 },
+        { "id": "sink_towtzn4", "type": "custom", "modelId": "oval-1714", "shape": "oval", "w": 8, "h": 8, "cornerR": 0, "side": "back", "centerline": 8, "setback": 3.125, "faucets": [], "rotation": 0 }
       ]
     },
-    {
-      "id": "bazjesv",
-      "name": "Vanity",
-      "w": 31,
-      "h": 22.5,
-      "x": 127,
-      "y": 10,
-      "rotation": 0,
-      "color": "#d5f0f0",
-      "layer": 6,
-      "rTL": false,
-      "rTR": false,
-      "rBL": true,
-      "rBR": false,
-      "sinks": [
-        {
-          "id": "sink_e2sdnn9",
-          "type": "model",
-          "modelId": "oval-1714",
-          "shape": "oval",
-          "w": 17,
-          "h": 14,
-          "cornerR": 0,
-          "side": "back",
-          "centerline": 15,
-          "setback": 3.125,
-          "faucets": [
-            4
-          ],
-          "rotation": 0
-        }
+    { "id": "bazjesv", "name": "Vanity", "w": 31, "h": 22.5, "x": 127, "y": 10, "rotation": 0, "color": "#d5f0f0", "layer": 6, "rTL": false, "rTR": false, "rBL": true, "rBR": false, "sinks": [
+        { "id": "sink_e2sdnn9", "type": "model", "modelId": "oval-1714", "shape": "oval", "w": 17, "h": 14, "cornerR": 0, "side": "back", "centerline": 15, "setback": 3.125, "faucets": [ 4 ], "rotation": 0 }
       ]
     },
-    {
-      "id": "dx3dpcm",
-      "name": "Backsplash",
-      "w": 31,
-      "h": 4,
-      "x": 127,
-      "y": 5,
-      "rotation": 0,
-      "color": "#d5f0f0",
-      "layer": 7,
-      "rTL": false,
-      "rTR": false,
-      "rBL": false,
-      "rBR": false,
-      "sinks": []
-    },
-    {
-      "id": "ycid73l",
-      "name": "Backsplash",
-      "w": 4,
-      "h": 22.5,
-      "x": 159,
-      "y": 10,
-      "rotation": 0,
-      "color": "#d5f0f0",
-      "layer": 8,
-      "rTL": false,
-      "rTR": false,
-      "rBL": false,
-      "rBR": false,
-      "sinks": []
-    }
+    { "id": "dx3dpcm", "name": "Backsplash", "w": 31, "h": 4, "x": 127, "y": 5, "rotation": 0, "color": "#d5f0f0", "layer": 7, "rTL": false, "rTR": false, "rBL": false, "rBR": false, "sinks": [] },
+    { "id": "ycid73l", "name": "Backsplash", "w": 4, "h": 22.5, "x": 159, "y": 10, "rotation": 0, "color": "#d5f0f0", "layer": 8, "rTL": false, "rTR": false, "rBL": false, "rBR": false, "sinks": [] }
   ]
       };
 
@@ -1633,7 +1469,7 @@ function installPieceReorder(){
     // keep z-order matching list order (optional)
     state.pieces.forEach((p,i)=> p.layer = i);
 
-    renderList(); updateInspector(); sinksUI?.refresh(); draw(); scheduleSave();
+    renderList(); updateInspector(); sinksUI?.refresh(); draw(); scheduleSave(); pushHistory();
   });
 
   list.addEventListener('pointercancel', ()=>{
@@ -1719,180 +1555,190 @@ if(btnAddLayout){
 }
 
       function cornerButton(pos, active){
-      var b=document.createElement('button');
-      b.className='lc-corner-btn pos-'+pos+(active?' active':'');
-      b.innerHTML='<svg width="18" height="18" viewBox="0 0 18 18" xmlns="http://www.w3.org/2000/svg"><path d="M3 15V6a3 3 0 0 1 3-3h9" fill="none" stroke="#111" stroke-width="2"/></svg>';
-      return b;
+        var b=document.createElement('button');
+        b.className='lc-corner-btn pos-'+pos+(active?' active':'');
+        b.innerHTML='<svg width="18" height="18" viewBox="0 0 18 18" xmlns="http://www.w3.org/2000/svg"><path d="M3 15V6a3 3 0 0 1 3-3h9" fill="none" stroke="#111" stroke-width="2"/></svg>';
+        return b;
+        }
+
+      function updateInspector(){
+        const p = state.pieces.find(x=>x.id===state.selectedId);
+        if(!p){ inspector.className='lc-small'; inspector.textContent='Select a piece from the canvas or list.'; return; }
+        inspector.className=''; inspector.innerHTML='';
+        const wrap = document.createElement('div'); wrap.className='lc-item selected';
+
+        const row1 = document.createElement('div'); row1.className='lc-row';
+        const nameL = document.createElement('label'); nameL.className='lc-label'; nameL.textContent='Name';
+        const nameI = document.createElement('input'); nameI.className='lc-input'; nameI.value=p.name||'';
+        nameI.oninput = ()=>{ p.name=nameI.value; renderList(); draw(); };
+        nameI.onblur  = ()=>{ scheduleSave(); pushHistory(); }; // record on commit
+        nameL.appendChild(nameI);
+
+        const colorL = document.createElement('label'); colorL.className='lc-label'; colorL.textContent='Color';
+        const cs = colorStack(p.color, (val)=>{
+          p.color=val; renderList(); draw(); scheduleSave(); pushHistory();
+        });
+        colorL.appendChild(cs.wrap);
+        row1.appendChild(nameL); row1.appendChild(colorL); wrap.appendChild(row1);
+
+        const row2 = document.createElement('div'); row2.className='lc-row'; row2.style.marginTop='8px';
+        row2.innerHTML = `
+          <label class="lc-label">Width (in)<input id="insp-w" type="number" class="lc-input" step="0.25" value="${p.w}"></label>
+          <label class="lc-label">Height (in)<input id="insp-h" type="number" class="lc-input" step="0.25" value="${p.h}"></label>`;
+        wrap.appendChild(row2);
+
+        // ==== Actions row: Backward / Forward (2-up) ====
+        const row3 = document.createElement('div');
+        row3.className = 'lc-row2';
+        row3.style.marginTop = '8px';
+
+        const bBack = mkBtn('Backward','ghost sm', ()=> {
+          sendBackward(p);
+          renderList(); updateInspector(); sinksUI?.refresh(); draw(); scheduleSave(); pushHistory();
+        });
+        const bFwd  = mkBtn('Forward','ghost sm', ()=> {
+          bringForward(p);
+          renderList(); updateInspector(); sinksUI?.refresh(); draw(); scheduleSave(); pushHistory();
+        });
+
+        row3.append(bBack, bFwd);
+        wrap.appendChild(row3);
+
+        // ==== Rotation + Corner Radius row (2-up) ====
+        const row4 = document.createElement('div');
+        row4.className = 'lc-row2';
+        row4.style.marginTop = '8px';
+
+        // Left column: Rotation number input (0–180)
+        const rotCol = document.createElement('label');
+        rotCol.className = 'lc-label';
+        rotCol.innerHTML = `
+          Rotation (°)
+          <input id="insp-rot" type="number" min="0" max="180" step="1" class="lc-input" value="${p.rotation||0}">
+        `;
+        row4.appendChild(rotCol);
+
+        // Right column: Corner radius buttons
+        const cornersCol = document.createElement('div');
+        const cornersTitle = document.createElement('div');
+        cornersTitle.className='lc-label';
+        cornersTitle.textContent='Corner Radius (toggle corners)';
+
+        const grid = document.createElement('div');
+        grid.className='lc-corner-grid';
+
+        var bTL = cornerButton('tl', p.rTL);
+        var bTR = cornerButton('tr', p.rTR);
+        var bBL = cornerButton('bl', p.rBL);
+        var bBR = cornerButton('br', p.rBR);
+        function toggle(btn, key){
+          return ()=>{ p[key]=!p[key]; btn.classList.toggle('active', p[key]); draw(); scheduleSave(); pushHistory(); };
+        }
+        bTL.onclick = toggle(bTL,'rTL');
+        bTR.onclick = toggle(bTR,'rTR');
+        bBL.onclick = toggle(bBL,'rBL');
+        bBR.onclick = toggle(bBR,'rBR');
+
+        grid.appendChild(bTL); grid.appendChild(bTR);
+        grid.appendChild(bBL); grid.appendChild(bBR);
+
+        cornersCol.appendChild(cornersTitle);
+        cornersCol.appendChild(grid);
+
+        row4.appendChild(cornersCol);
+        wrap.appendChild(row4);
+
+        // Bind rotation input
+        const rotInput = wrap.querySelector('#insp-rot');
+        rotInput.oninput = (e)=>{
+          p.rotation = clamp(Math.round(Number(e.target.value)||0), 0, 180);
+          clampToCanvas(p);
+          draw();
+        };
+        rotInput.onchange = ()=>{ scheduleSave(); pushHistory(); };
+
+        const inW = wrap.querySelector('#insp-w');
+        const inH = wrap.querySelector('#insp-h');
+        inW.onchange = e => { p.w = Math.max(0.25, Number(e.target.value||0)); clampToCanvas(p); renderList(); draw(); scheduleSave(); pushHistory(); };
+        inH.onchange = e => { p.h = Math.max(0.25, Number(e.target.value||0)); clampToCanvas(p); renderList(); draw(); scheduleSave(); pushHistory(); };
+
+        // ===== Actions row (icon buttons): Undo, Redo, Layer badge, Duplicate, Delete =====
+        const actions = document.createElement('div');
+        actions.style.display='flex';
+        actions.style.gap='6px';
+        actions.style.alignItems='center';
+
+        // Undo
+        const btnUndoI = document.createElement('button');
+        btnUndoI.className = 'lc-btn ghost lc-iconbtn';
+        btnUndoI.title = 'Undo (Ctrl+Z)';
+        btnUndoI.innerHTML = '<svg class="lc-icon" viewBox="0 0 24 24"><path d="M9 14H6a4 4 0 1 1 0-8h11a4 4 0 1 1 0 8h-1" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M9 14l-3-3l3-3" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+        btnUndoI.disabled = !canUndo();
+        btnUndoI.onclick = (e)=>{ e.preventDefault(); undo(); };
+
+        // Redo
+        const btnRedoI = document.createElement('button');
+        btnRedoI.className = 'lc-btn ghost lc-iconbtn';
+        btnRedoI.title = 'Redo (Ctrl+Y or Ctrl+Shift+Z)';
+        btnRedoI.innerHTML = '<svg class="lc-icon" viewBox="0 0 24 24"><path d="M15 14h3a4 4 0 1 0 0-8H7a4 4 0 1 0 0 8h1" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M15 14l3-3l-3-3" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+        btnRedoI.disabled = !canRedo();
+        btnRedoI.onclick = (e)=>{ e.preventDefault(); redo(); };
+
+        // Layer badge (tiny circle)
+        const layerBadge = document.createElement('button');
+        layerBadge.type = 'button';
+        layerBadge.title = `Layer ${p.layer ?? 0} (0 = back)`;
+        layerBadge.textContent = (p.layer ?? 0);
+        layerBadge.disabled = true;
+        Object.assign(layerBadge.style, {
+          width: '28px', height: '28px', borderRadius: '9999px',
+          display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+          fontSize: '11px', fontWeight: '600', lineHeight: '1',
+          border: '1px solid var(--border, #ddd)',
+          background: 'var(--muted, #f3f4f6)', color: 'var(--text, #111)',
+          userSelect: 'none', pointerEvents: 'none',
+        });
+
+        const btnDupI = document.createElement('button');
+        btnDupI.className = 'lc-btn ghost lc-iconbtn';
+        btnDupI.title = 'Duplicate';
+        btnDupI.innerHTML = '<svg class="lc-icon" viewBox="0 0 24 24"><path d="M9 9V5a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-4M5 9a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2z" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+        btnDupI.onclick = (e)=>{
+          e.preventDefault();
+          const rs = realSize(p);
+          const np = JSON.parse(JSON.stringify(p));
+          np.id = uid(); np.name = (p.name||'Piece')+' Copy';
+          np.x = clamp(snap(p.x + state.grid, state.grid), 0, state.cw - rs.w);
+          np.y = clamp(snap(p.y + state.grid, state.grid), 0, state.ch - rs.h);
+          state.pieces.push(np);
+          state.selectedId = np.id;
+          renderList(); updateInspector(); sinksUI?.refresh(); draw(); scheduleSave(); pushHistory();
+        };
+
+        const btnDelI = document.createElement('button');
+        btnDelI.className = 'lc-btn red lc-iconbtn';
+        btnDelI.title = 'Delete';
+        btnDelI.innerHTML = '<svg class="lc-icon" viewBox="0 0 24 24"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m-1 0v14a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2V6h10z" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+        btnDelI.onclick = (e)=>{
+          e.preventDefault();
+          const idx = state.pieces.findIndex(x=>x.id===p.id);
+          if(idx>-1){
+            state.pieces.splice(idx,1);
+            setSelection([]);
+            state.selectedId = null;
+            renderList(); updateInspector(); sinksUI?.refresh(); draw(); scheduleSave(); pushHistory();
+          }
+        };
+
+        // Order: [Undo] [Redo] [Layer badge] [Duplicate] [Delete]
+        actions.append(btnUndoI, btnRedoI, layerBadge, btnDupI, btnDelI);
+        wrap.appendChild(actions);
+
+        inspector.appendChild(wrap);
+
+        // lock the inspector height based on the populated content (only when there is a selection)
+        requestAnimationFrame(()=>{ lockInspectorHeight(inspector.scrollHeight); });
       }
-
-function updateInspector(){
-  const p = state.pieces.find(x=>x.id===state.selectedId);
-  if(!p){ inspector.className='lc-small'; inspector.textContent='Select a piece from the canvas or list.'; return; }
-  inspector.className=''; inspector.innerHTML='';
-  const wrap = document.createElement('div'); wrap.className='lc-item selected';
-
-  const row1 = document.createElement('div'); row1.className='lc-row';
-  const nameL = document.createElement('label'); nameL.className='lc-label'; nameL.textContent='Name';
-  const nameI = document.createElement('input'); nameI.className='lc-input'; nameI.value=p.name||''; nameI.oninput=()=>{ p.name=nameI.value; renderList(); draw(); };
-  nameL.appendChild(nameI);
-  const colorL = document.createElement('label'); colorL.className='lc-label'; colorL.textContent='Color';
-  const cs = colorStack(p.color, (val)=>{ p.color=val; renderList(); draw(); });
-  colorL.appendChild(cs.wrap);
-  row1.appendChild(nameL); row1.appendChild(colorL); wrap.appendChild(row1);
-
-  const row2 = document.createElement('div'); row2.className='lc-row'; row2.style.marginTop='8px';
-  row2.innerHTML = `
-    <label class="lc-label">Width (in)<input id="insp-w" type="number" class="lc-input" step="0.25" value="${p.w}"></label>
-    <label class="lc-label">Height (in)<input id="insp-h" type="number" class="lc-input" step="0.25" value="${p.h}"></label>`;
-  wrap.appendChild(row2);
-
-  // ==== Actions row: Backward / Forward (2-up) ====
-  const row3 = document.createElement('div');
-  row3.className = 'lc-row2';
-  row3.style.marginTop = '8px';
-
-  const bBack = mkBtn('Backward','ghost sm', ()=> {
-    sendBackward(p);
-    renderList(); updateInspector(); sinksUI?.refresh(); draw(); scheduleSave();
-  });
-  const bFwd  = mkBtn('Forward','ghost sm', ()=> {
-    bringForward(p);
-    renderList(); updateInspector(); sinksUI?.refresh(); draw(); scheduleSave();
-  });
-
-  row3.append(bBack, bFwd);
-  wrap.appendChild(row3);
-
-  // (Removed the old "Layer (0 = back)" row — now shown as a small badge by Duplicate)
-
-  // ==== Rotation + Corner Radius row (2-up) ====
-  const row4 = document.createElement('div');
-  row4.className = 'lc-row2';
-  row4.style.marginTop = '8px';
-
-  // Left column: Rotation number input (0–180)
-  const rotCol = document.createElement('label');
-  rotCol.className = 'lc-label';
-  rotCol.innerHTML = `
-    Rotation (°)
-    <input id="insp-rot" type="number" min="0" max="180" step="1" class="lc-input" value="${p.rotation||0}">
-  `;
-  row4.appendChild(rotCol);
-
-  // Right column: Corner radius buttons
-  const cornersCol = document.createElement('div');
-  const cornersTitle = document.createElement('div');
-  cornersTitle.className='lc-label';
-  cornersTitle.textContent='Corner Radius (toggle corners)';
-
-  const grid = document.createElement('div');
-  grid.className='lc-corner-grid';
-
-  var bTL = cornerButton('tl', p.rTL);
-  var bTR = cornerButton('tr', p.rTR);
-  var bBL = cornerButton('bl', p.rBL);
-  var bBR = cornerButton('br', p.rBR);
-  function toggle(btn, key){
-    return ()=>{ p[key]=!p[key]; btn.classList.toggle('active', p[key]); draw(); };
-  }
-  bTL.onclick = toggle(bTL,'rTL');
-  bTR.onclick = toggle(bTR,'rTR');
-  bBL.onclick = toggle(bBL,'rBL');
-  bBR.onclick = toggle(bBR,'rBR');
-
-  grid.appendChild(bTL); grid.appendChild(bTR);
-  grid.appendChild(bBL); grid.appendChild(bBR);
-
-  cornersCol.appendChild(cornersTitle);
-  cornersCol.appendChild(grid);
-
-  row4.appendChild(cornersCol);
-  wrap.appendChild(row4);
-
-  // Bind rotation input
-  const rotInput = wrap.querySelector('#insp-rot');
-  rotInput.oninput = (e)=>{
-    p.rotation = clamp(Math.round(Number(e.target.value)||0), 0, 180);
-    clampToCanvas(p);
-    draw();
-  };
-
-  const inW = wrap.querySelector('#insp-w');
-  const inH = wrap.querySelector('#insp-h');
-  inW.onchange = e => { p.w = Math.max(0.25, Number(e.target.value||0)); clampToCanvas(p); renderList(); draw(); };
-  inH.onchange = e => { p.h = Math.max(0.25, Number(e.target.value||0)); clampToCanvas(p); renderList(); draw(); };
-
-  // Actions row (tiny icon buttons)
-  const actions = document.createElement('div');
-  actions.style.display='flex';
-  actions.style.gap='6px';
-  actions.style.alignItems='center';
-
-  // --- Layer badge (tiny circle, same footprint as icon buttons) ---
-  const layerBadge = document.createElement('button');
-  layerBadge.type = 'button';
-  layerBadge.title = `Layer ${p.layer ?? 0} (0 = back)`;
-  layerBadge.textContent = (p.layer ?? 0);
-  layerBadge.disabled = true; // purely informational
-
-  // Minimal inline styling so it works even without extra CSS
-  Object.assign(layerBadge.style, {
-    width: '28px',
-    height: '28px',
-    borderRadius: '9999px',
-    display: 'inline-flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    fontSize: '11px',
-    fontWeight: '600',
-    lineHeight: '1',
-    border: '1px solid var(--border, #ddd)',
-    background: 'var(--muted, #f3f4f6)',
-    color: 'var(--text, #111)',
-    userSelect: 'none',
-    pointerEvents: 'none',
-  });
-
-  const btnDupI = document.createElement('button');
-  btnDupI.className = 'lc-btn ghost lc-iconbtn';
-  btnDupI.title = 'Duplicate';
-  btnDupI.innerHTML = '<svg class="lc-icon" viewBox="0 0 24 24"><path d="M9 9V5a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-4M5 9a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2z" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
-  btnDupI.onclick = (e)=>{
-    e.preventDefault();
-    const rs = realSize(p);
-    const np = JSON.parse(JSON.stringify(p));
-    np.id = uid(); np.name = (p.name||'Piece')+' Copy';
-    np.x = clamp(snap(p.x + state.grid, state.grid), 0, state.cw - rs.w);
-    np.y = clamp(snap(p.y + state.grid, state.grid), 0, state.ch - rs.h);
-    state.pieces.push(np);
-    state.selectedId = np.id;
-    renderList(); updateInspector(); sinksUI?.refresh(); draw(); scheduleSave();
-  };
-
-  const btnDelI = document.createElement('button');
-  btnDelI.className = 'lc-btn red lc-iconbtn';
-  btnDelI.title = 'Delete';
-  btnDelI.innerHTML = '<svg class="lc-icon" viewBox="0 0 24 24"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m-1 0v14a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2V6h10z" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
-  btnDelI.onclick = (e)=>{
-    e.preventDefault();
-    const idx = state.pieces.findIndex(x=>x.id===p.id);
-    if(idx>-1){
-      state.pieces.splice(idx,1);
-      setSelection([]);
-      state.selectedId = null;
-      renderList(); 
-      updateInspector(); 
-      sinksUI?.refresh(); 
-      draw(); 
-      scheduleSave();
-    }
-  };
-
-  // Order: [Layer badge] [Duplicate] [Delete]
-  actions.append(layerBadge, btnDupI, btnDelI);
-  wrap.appendChild(actions);
-
-  inspector.appendChild(wrap);
 
   // lock the inspector height based on the populated content (only when there is a selection)
   if (p){
@@ -1902,7 +1748,6 @@ function updateInspector(){
     });
   }
       
-      }
 
       // ------- Canvas interactions -------
       svg.addEventListener('pointermove', (e) => {
@@ -2095,6 +1940,7 @@ function updateInspector(){
             const parsed = JSON.parse(String(reader.result||''));
             loadLayout(parsed);                // your existing loader
             scheduleSave();                    // keep autosave state fresh
+            pushHistory(); 
           }catch(err){
             alert('Failed to parse JSON');
           }
@@ -2119,6 +1965,7 @@ function updateInspector(){
 
         try{ localStorage.removeItem(SAVE_KEY); }catch(_){}
         scheduleSave();
+        pushHistory(); 
       });
 
 
@@ -2161,6 +2008,8 @@ function updateInspector(){
         updateInspector();
         sinksUI?.refresh();
       }
+
+      pushHistory(); // <-- baseline snapshot after initial/restore load
 
       // --- expose a minimal API for external modules (like the Sinks card) ---
       // (Always do this, regardless of restore())
