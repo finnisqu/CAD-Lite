@@ -1738,16 +1738,7 @@ if(btnAddLayout){
 
         // lock the inspector height based on the populated content (only when there is a selection)
         requestAnimationFrame(()=>{ lockInspectorHeight(inspector.scrollHeight); });
-      }
-
-  // lock the inspector height based on the populated content (only when there is a selection)
-  if (p){
-    // wait a tick so the DOM lays out, then measure
-    requestAnimationFrame(()=>{
-      lockInspectorHeight(inspector.scrollHeight);
-    });
-  }
-      
+      }   
 
       // ------- Canvas interactions -------
       svg.addEventListener('pointermove', (e) => {
