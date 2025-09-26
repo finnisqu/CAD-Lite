@@ -72,23 +72,48 @@
     <div class="lc-col">
       <div class="lc-card">
         <div class="lc-toolbar compact">
-          <div class="lc-ctl"><label class="lc-label">Canvas width (in)<input id="lc-cw" type="number" class="lc-input" min="12" step="1" value="180"></label></div>
-          <div class="lc-ctl"><label class="lc-label">Canvas height (in)<input id="lc-ch" type="number" class="lc-input" min="12" step="1" value="120"></label></div>
-          <div class="lc-ctl"><label class="lc-label">Grid (in)<input id="lc-grid" type="number" class="lc-input" min="0.25" step="0.25" value="1"></label></div>
-          <div class="lc-ctl"><label class="lc-label">Zoom (px/in)
-            <input id="lc-scale" type="range" class="lc-input" min="4" max="24" step="1" value="6">
-            <span id="lc-scale-label" class="lc-small">6</span>
-          </label></div>
-          <label class="lc-label" style="display:flex;align-items:center;gap:6px"><input id="lc-showgrid" type="checkbox" checked> Show grid</label>
-          <label class="lc-label" style="display:flex;align-items:center;gap:6px">
-            <input id="lc-showdims" type="checkbox"> Show dimensions
-          </label>
-          <label class="lc-label" style="display:flex;align-items:center;gap:6px">
-            <input id="lc-showlabels" type="checkbox" checked> Show labels
-          </label>
-          <button class="lc-btn alt" id="lc-snapall">Snap All</button>
-          <button class="lc-btn ghost" id="lc-clear-sel" type="button">Deselect All</button>
+          <!-- 2×2: Undo/Redo + Snap/Deselect -->
+          <div class="lc-2x2">
+            <button class="lc-btn alt big"   id="lc-undo"       type="button">Undo</button>
+            <button class="lc-btn alt big"   id="lc-redo"       type="button">Redo</button>
+            <button class="lc-btn alt big"   id="lc-snapall"    type="button">Snap All</button>
+            <button class="lc-btn ghost big" id="lc-clear-sel"  type="button">Deselect All</button>
+          </div>
+
+          <!-- 2×2: Canvas W/H + Grid + Zoom -->
+          <div class="lc-2x2">
+            <div class="lc-ctl">
+              <label class="lc-label">Canvas width (in)
+                <input id="lc-cw"   type="number" class="lc-input" min="12" step="1" value="180">
+              </label>
+            </div>
+            <div class="lc-ctl">
+              <label class="lc-label">Canvas height (in)
+                <input id="lc-ch"   type="number" class="lc-input" min="12" step="1" value="120">
+              </label>
+            </div>
+            <div class="lc-ctl">
+              <label class="lc-label">Grid (in)
+                <input id="lc-grid" type="number" class="lc-input" min="0.25" step="0.25" value="1">
+              </label>
+            </div>
+            <div class="lc-ctl">
+              <label class="lc-label">Zoom (px/in)
+                <input id="lc-scale" type="range" class="lc-input" min="4" max="24" step="1" value="6">
+                <span id="lc-scale-label" class="lc-small">6</span>
+              </label>
+            </div>
+          </div>
+
+          <!-- 2×2: Show/Hide toggles -->
+          <div class="lc-2x2">
+            <button class="lc-btn ghost big" id="lc-toggle-labels" type="button">Show Labels</button>
+            <button class="lc-btn ghost big" id="lc-toggle-dims"   type="button">Show Dimensions</button>
+            <button class="lc-btn ghost big" id="lc-toggle-grid"   type="button">Show Grid</button>
+            <div class="lc-ctl"><!-- spacer --></div>
+          </div>
         </div>
+
         <div class="lc-top"><div id="lc-meta">Canvas: —</div></div>
         <div class="lc-canvas-wrap">
           <svg id="lc-svg" width="800" height="400" style="touch-action:none"></svg>
