@@ -83,27 +83,22 @@
       const inGrid = document.getElementById('lc-grid');
       const inScale = document.getElementById('lc-scale');
       const lblScale = document.getElementById('lc-scale-label');
-      const inShowDims = document.getElementById('lc-showdims');
       const layoutsEl  = document.getElementById('lc-layouts');
       const btnAddLayout = document.getElementById('lc-add-layout');
       const inNotes = document.getElementById('lc-notes');
       const btnExportPDF = document.getElementById('lc-export-pdf');
-      const inShowGrid = document.getElementById('lc-showgrid');
       const btnSnapAll = document.getElementById('lc-snapall');
       const btnReset  = document.getElementById('lc-reset');
       const btnClearSel = document.getElementById('lc-clear-sel');
 
       const inspectorCard = document.getElementById('lc-inspector');
 
-      const chkLabels = document.getElementById('lc-showlabels');
-        if (chkLabels) {
-          chkLabels.checked = !!state.showLabels;
-          chkLabels.onchange = (e) => {
-            state.showLabels = e.target.checked;
-            draw();
-            scheduleSave?.();
-          };
-        }
+      const btnUndoTop  = document.getElementById('lc-undo');
+      const btnRedoTop  = document.getElementById('lc-redo');
+
+      const togLabels   = document.getElementById('lc-toggle-labels');
+      const togDims     = document.getElementById('lc-toggle-dims');
+      const togGrid     = document.getElementById('lc-toggle-grid');
 
         // ---- Undo/Redo History ----
         const HISTORY_MAX = 50;
@@ -146,6 +141,8 @@
             if ('layouts' in data) state.layouts = data.layouts;
           } finally { history.quiet = false; }
           renderList(); updateInspector(); sinksUI?.refresh?.(); draw();
+          if (typeof syncTopBar === 'function') requestAnimationFrame(syncTopBar);
+
         }
 
         function undo(){ if (history.index > 0){ history.index--; applySnapshot(history.stack[history.index]); } }
@@ -165,6 +162,24 @@
         const v = round3(n);
         return (Math.abs(v % 1) < 1e-9) ? String(Math.round(v)) : v.toFixed(3).replace(/\.?0+$/,'');
       };
+
+      // ===== Canvas Toggle Buttons =====
+      function setToggle(btn, on, label){
+        if (!btn) return;
+        btn.classList.toggle('alt',   on);    // ON = filled (selected)
+        btn.classList.toggle('ghost', !on);   // OFF = outline
+        btn.textContent = (on ? `Hide ${label}` : `Show ${label}`);
+      }
+
+      function syncTopBar(){
+        if (btnUndoTop) btnUndoTop.disabled = !canUndo();
+        if (btnRedoTop) btnRedoTop.disabled = !canRedo();
+        setToggle(togGrid,   !!state.showGrid,   'Grid');
+        setToggle(togDims,   !!state.showDims,   'Dimensions');
+        setToggle(togLabels, !!state.showLabels, 'Labels');
+        if (lblScale) lblScale.textContent = String(state.scale);
+      }
+
 
       // ===== Layering helpers =====
 
@@ -796,9 +811,13 @@ if (window.svg2pdf) {
       const fileBase = ()=> `${cleanName(state.projectName||'Untitled').replace(/\s+/g,'_')}_${(state.projectDate||todayISO())}`;
 
       function syncToolbarFromLayout(){
-        inCW.value = state.cw; inCH.value = state.ch; inGrid.value = state.grid;
-        inScale.value = state.scale; lblScale.textContent = String(state.scale);
-        inShowGrid.checked = state.showGrid;
+        inCW.value = state.cw; 
+        inCH.value = state.ch; 
+        inGrid.value = state.grid;
+        inScale.value = state.scale; 
+        lblScale.textContent = String(state.scale);
+        syncTopBar();                            // ✅ reflect to the new toggle buttons
+
       }
 
       function exportJSON(){
@@ -856,6 +875,8 @@ function restore(){
     }
   } catch(err){ return false; }
 }
+
+      syncTopBar();
 
 
       window.addEventListener('beforeunload', ()=>{ try{ localStorage.setItem(SAVE_KEY, JSON.stringify(exportApp())); }catch(_){} });
@@ -1808,7 +1829,7 @@ if(btnAddLayout){
       const applyScale = (val) => {
         state.scale = Number(val);
         lblScale.textContent = String(state.scale);
-        draw();
+        draw(); scheduleSave(); pushHistory(); syncTopBar();
       };
       ['input','change'].forEach(evt =>
         inScale.addEventListener(evt, e => applyScale(e.target.value), { passive: true })
@@ -1816,8 +1837,6 @@ if(btnAddLayout){
       inCW.onchange = e => { state.cw = Math.max(12, Number(e.target.value||0)); state.pieces.forEach(clampToCanvas); draw(); };
       inCH.onchange = e => { state.ch = Math.max(12, Number(e.target.value||0)); state.pieces.forEach(clampToCanvas); draw(); };
       inGrid.onchange = e => { state.grid = Math.max(0.25, Number(e.target.value||0)); draw(); };
-      inShowGrid.onchange = e => { state.showGrid = !!e.target.checked; draw(); };
-      inShowDims.onchange = e => { state.showDims = !!e.target.checked; draw(); scheduleSave(); };
       btnSnapAll.onclick = () => {
         state.pieces = state.pieces.map(p=>{
           const rs = realSize(p);
@@ -1826,13 +1845,32 @@ if(btnAddLayout){
             y: clamp(snap(p.y,state.grid),0,state.ch-rs.h)
           };
         });
-        draw();
+        draw(); scheduleSave(); pushHistory(); syncTopBar();
       };
 
       btnClearSel && (btnClearSel.onclick = ()=>{
         clearSelection();
         renderList(); updateInspector(); sinksUI?.refresh(); draw();
       });
+
+      // Undo / Redo
+      btnUndoTop && (btnUndoTop.onclick = (e)=>{ e.preventDefault(); undo();  syncTopBar(); });
+      btnRedoTop && (btnRedoTop.onclick = (e)=>{ e.preventDefault(); redo();  syncTopBar(); });
+
+      // Show/Hide toggles
+      togGrid && (togGrid.onclick = ()=>{
+        state.showGrid = !state.showGrid;
+        draw(); scheduleSave(); syncTopBar();
+      });
+      togDims && (togDims.onclick = ()=>{
+        state.showDims = !state.showDims;
+        draw(); scheduleSave(); syncTopBar();
+      });
+      togLabels && (togLabels.onclick = ()=>{
+        state.showLabels = !state.showLabels;
+        draw(); scheduleSave(); syncTopBar();
+      });
+
 
       // ------- Project fields -------
       inDate.value = todayISO(); state.projectDate = inDate.value;
@@ -1873,7 +1911,7 @@ if(btnAddLayout){
         if(parsed.canvas){ state.cw = Number(parsed.canvas.w)||state.cw; state.ch = Number(parsed.canvas.h)||state.ch; inCW.value=state.cw; inCH.value=state.ch; }
         if(parsed.grid){ state.grid = Number(parsed.grid)||state.grid; inGrid.value = state.grid; }
         if(parsed.scale){ state.scale = Number(parsed.scale)||state.scale; inScale.value=state.scale; lblScale.textContent=String(state.scale); }
-        if(typeof parsed.showGrid==='boolean'){ state.showGrid = parsed.showGrid; inShowGrid.checked = state.showGrid; }
+        if(typeof parsed.showGrid==='boolean'){ state.showGrid = parsed.showGrid;}
         if (Array.isArray(parsed.pieces)) {
           state.pieces = parsed.pieces.map(q => {
             const p = {
@@ -1915,7 +1953,7 @@ if(btnAddLayout){
         }
 
         state.selectedId = null;
-        renderList(); updateInspector(); sinksUI?.refresh(); draw();
+        renderList(); updateInspector(); sinksUI?.refresh(); draw(); syncTopBar();
       }
       
       inImport.onchange = (e)=>{
@@ -1952,7 +1990,11 @@ if(btnAddLayout){
         state.active = 0; state.selectedId = null;
 
         syncToolbarFromLayout();
-        renderLayouts(); renderList(); updateInspector(); sinksUI?.refresh(); draw();
+        renderLayouts(); 
+        renderList(); 
+        updateInspector(); 
+        sinksUI?.refresh(); 
+        draw(); 
 
         try{ localStorage.removeItem(SAVE_KEY); }catch(_){}
         scheduleSave();
