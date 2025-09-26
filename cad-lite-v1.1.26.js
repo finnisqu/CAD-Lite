@@ -1883,14 +1883,28 @@ if(btnAddLayout){
       btnAdd.onclick = () => {
         const idx = state.pieces.length; const top = Math.max(0,...state.pieces.map(x=>x.layer||0))+1;
         const p = { id: uid(), name: `Piece ${idx+1}`, w:24, h:12, x:0, y:0, rotation:0, color:'#ffffff', layer: top, rTL:false, rTR:false, rBL:false, rBR:false };
-        clampToCanvas(p); state.pieces.push(p); state.selectedId=p.id; renderList(); updateInspector(); sinksUI?.refresh(); draw(); scheduleSave();
+        clampToCanvas(p); 
+        state.pieces.push(p); 
+        state.selectedId=p.id; 
+        renderList(); 
+        updateInspector(); 
+        sinksUI?.refresh(); 
+        draw(); 
+        scheduleSave();
+        pushHistory();
+        typeof syncTopBar==='function' && syncTopBar()
       };
 
       function duplicatePiece(p){
         const top=Math.max(0,...state.pieces.map(x=>x.layer||0))+1; 
         const rs = realSize(p);
         const d={...p, id: uid(), name: p.name+' Copy', x:clamp(p.x+state.grid,0,state.cw-rs.w), y:clamp(p.y+state.grid,0,state.ch-rs.h), layer:top};
-        state.pieces.push(d); state.selectedId=d.id; renderList(); updateInspector(); sinksUI?.refresh(); draw();
+        state.pieces.push(d); 
+        state.selectedId=d.id; 
+        renderList(); updateInspector(); sinksUI?.refresh(); draw();
+        scheduleSave();
+        pushHistory();
+        typeof syncTopBar==='function' && syncTopBar();
       }
 
       // ------- Import / Export -------
