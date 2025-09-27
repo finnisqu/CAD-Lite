@@ -14,6 +14,42 @@
           <label class="lc-label full">Notes
             <textarea id="lc-notes" class="lc-input" rows="4" placeholder="Any details to print on the PDF (room names, edge profiles, overhangs, etc.)"></textarea>
           </label>
+          <div class="lc-overlay-panel">
+            <div class="lc-row-title">Slab Overlay</div>
+            <div class="lc-overlay-grid">
+              <label class="lc-label">Slab width (in)
+                <input id="ovw" type="number" class="lc-input" min="12" step="0.5" value="126">
+              </label>
+              <label class="lc-label">Slab height (in)
+                <input id="ovh" type="number" class="lc-input" min="12" step="0.5" value="63">
+              </label>
+              <label class="lc-label">Offset X (in)
+                <input id="ovx" type="number" class="lc-input" step="0.5" value="0">
+              </label>
+              <label class="lc-label">Offset Y (in)
+                <input id="ovy" type="number" class="lc-input" step="0.5" value="0">
+              </label>
+
+              <div class="lc-ctl">
+                <label class="lc-label">Photo
+                  <input id="ovfile" type="file" accept="image/*">
+                </label>
+              </div>
+              <div class="lc-ctl lc-preset-row">
+                <button class="lc-btn ghost sm" id="ov-white" type="button">White</button>
+                <button class="lc-btn ghost sm" id="ov-gray"  type="button">Gray</button>
+                <button class="lc-btn ghost sm" id="ov-black" type="button">Black</button>
+              </div>
+
+              <label class="lc-label">Opacity
+                <input id="ovop" type="range" min="0.1" max="1" step="0.05" value="0.75">
+              </label>
+              <div class="lc-ctl">
+                <button class="lc-btn alt sm" id="ov-toggle"  type="button">Show Overlay</button>
+                <button class="lc-btn red sm" id="ov-clear"   type="button">Clear</button>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
