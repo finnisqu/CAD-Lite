@@ -16,6 +16,19 @@
         showLabels: true,
       };
 
+      // ---- Slab Overlay (photo underlay scaled to real inches) ----
+      state.overlay = state.overlay || {
+        visible: false,
+        name: '',
+        dataURL: '',          // the image to draw
+        natW: 0, natH: 0,     // natural pixel size (from Image)
+        slabW: 126,           // inches; user-entered slab width
+        slabH: 63,            // inches; user-entered slab height
+        x: 0, y: 0,           // top-left, inches (position on canvas)
+        opacity: 0.75
+      };
+
+
       function isSelected(id){ return state.selectedIds.includes(id); }
       function setSelection(ids){
         state.selectedIds = Array.from(new Set(ids));
@@ -100,6 +113,405 @@
       const togDims     = document.getElementById('lc-toggle-dims');
       const togGrid     = document.getElementById('lc-toggle-grid');
 
+      // ---- LZString (URI-safe subset) ----
+      const LZString = (function () {
+        const keyStrUriSafe = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+-$";
+        const baseReverseDic = {};
+
+        function getBaseValue(alphabet, character) {
+          if (!baseReverseDic[alphabet]) {
+            baseReverseDic[alphabet] = {};
+            for (let i = 0; i < alphabet.length; i++) {
+              baseReverseDic[alphabet][alphabet.charAt(i)] = i;
+            }
+          }
+          return baseReverseDic[alphabet][character];
+        }
+
+        function _compress(uncompressed, bitsPerChar, getCharFromInt) {
+          if (uncompressed == null) return "";
+          let i, value;
+          const context_dictionary = {};
+          const context_dictionaryToCreate = {};
+          let context_c = "";
+          let context_wc = "";
+          let context_w = "";
+          let context_enlargeIn = 2;
+          let context_dictSize = 3;
+          let context_numBits = 2;
+          const context_data = [];
+          let context_data_val = 0;
+          let context_data_position = 0;
+
+          for (let ii = 0; ii < uncompressed.length; ii += 1) {
+            context_c = uncompressed.charAt(ii);
+            if (!Object.prototype.hasOwnProperty.call(context_dictionary, context_c)) {
+              context_dictionary[context_c] = context_dictSize++;
+              context_dictionaryToCreate[context_c] = true;
+            }
+            context_wc = context_w + context_c;
+            if (Object.prototype.hasOwnProperty.call(context_dictionary, context_wc)) {
+              context_w = context_wc;
+            } else {
+              if (Object.prototype.hasOwnProperty.call(context_dictionaryToCreate, context_w)) {
+                if (context_w.charCodeAt(0) < 256) {
+                  for (i = 0; i < context_numBits; i++) {
+                    context_data_val = (context_data_val << 1);
+                    if (context_data_position === bitsPerChar - 1) {
+                      context_data_position = 0;
+                      context_data.push(getCharFromInt(context_data_val));
+                      context_data_val = 0;
+                    } else {
+                      context_data_position++;
+                    }
+                  }
+                  value = context_w.charCodeAt(0);
+                  for (i = 0; i < 8; i++) {
+                    context_data_val = (context_data_val << 1) | (value & 1);
+                    if (context_data_position === bitsPerChar - 1) {
+                      context_data_position = 0;
+                      context_data.push(getCharFromInt(context_data_val));
+                      context_data_val = 0;
+                    } else {
+                      context_data_position++;
+                    }
+                    value >>= 1;
+                  }
+                } else {
+                  value = 1;
+                  for (i = 0; i < context_numBits; i++) {
+                    context_data_val = (context_data_val << 1) | value;
+                    if (context_data_position === bitsPerChar - 1) {
+                      context_data_position = 0;
+                      context_data.push(getCharFromInt(context_data_val));
+                      context_data_val = 0;
+                    } else {
+                      context_data_position++;
+                    }
+                    value = 0;
+                  }
+                  value = context_w.charCodeAt(0);
+                  for (i = 0; i < 16; i++) {
+                    context_data_val = (context_data_val << 1) | (value & 1);
+                    if (context_data_position === bitsPerChar - 1) {
+                      context_data_position = 0;
+                      context_data.push(getCharFromInt(context_data_val));
+                      context_data_val = 0;
+                    } else {
+                      context_data_position++;
+                    }
+                    value >>= 1;
+                  }
+                }
+                context_enlargeIn--;
+                if (context_enlargeIn === 0) {
+                  context_enlargeIn = Math.pow(2, context_numBits);
+                  context_numBits++;
+                }
+                delete context_dictionaryToCreate[context_w];
+              } else {
+                value = context_dictionary[context_w];
+                for (i = 0; i < context_numBits; i++) {
+                  context_data_val = (context_data_val << 1) | (value & 1);
+                  if (context_data_position === bitsPerChar - 1) {
+                    context_data_position = 0;
+                    context_data.push(getCharFromInt(context_data_val));
+                    context_data_val = 0;
+                  } else {
+                    context_data_position++;
+                  }
+                  value >>= 1;
+                }
+              }
+              context_enlargeIn--;
+              if (context_enlargeIn === 0) {
+                context_enlargeIn = Math.pow(2, context_numBits);
+                context_numBits++;
+              }
+              context_dictionary[context_wc] = context_dictSize++;
+              context_w = String(context_c);
+            }
+          }
+
+          if (context_w !== "") {
+            if (Object.prototype.hasOwnProperty.call(context_dictionaryToCreate, context_w)) {
+              if (context_w.charCodeAt(0) < 256) {
+                for (i = 0; i < context_numBits; i++) {
+                  context_data_val = (context_data_val << 1);
+                  if (context_data_position === bitsPerChar - 1) {
+                    context_data_position = 0;
+                    context_data.push(getCharFromInt(context_data_val));
+                    context_data_val = 0;
+                  } else {
+                    context_data_position++;
+                  }
+                }
+                value = context_w.charCodeAt(0);
+                for (i = 0; i < 8; i++) {
+                  context_data_val = (context_data_val << 1) | (value & 1);
+                  if (context_data_position === bitsPerChar - 1) {
+                    context_data_position = 0;
+                    context_data.push(getCharFromInt(context_data_val));
+                    context_data_val = 0;
+                  } else {
+                    context_data_position++;
+                  }
+                  value >>= 1;
+                }
+              } else {
+                value = 1;
+                for (i = 0; i < context_numBits; i++) {
+                  context_data_val = (context_data_val << 1) | value;
+                  if (context_data_position === bitsPerChar - 1) {
+                    context_data_position = 0;
+                    context_data.push(getCharFromInt(context_data_val));
+                    context_data_val = 0;
+                  } else {
+                    context_data_position++;
+                  }
+                  value = 0;
+                }
+                value = context_w.charCodeAt(0);
+                for (i = 0; i < 16; i++) {
+                  context_data_val = (context_data_val << 1) | (value & 1);
+                  if (context_data_position === bitsPerChar - 1) {
+                    context_data_position = 0;
+                    context_data.push(getCharFromInt(context_data_val));
+                    context_data_val = 0;
+                  } else {
+                    context_data_position++;
+                  }
+                  value >>= 1;
+                }
+              }
+              context_enlargeIn--;
+              if (context_enlargeIn === 0) {
+                context_enlargeIn = Math.pow(2, context_numBits);
+                context_numBits++;
+              }
+              delete context_dictionaryToCreate[context_w];
+            } else {
+              value = context_dictionary[context_w];
+              for (i = 0; i < context_numBits; i++) {
+                context_data_val = (context_data_val << 1) | (value & 1);
+                if (context_data_position === bitsPerChar - 1) {
+                  context_data_position = 0;
+                  context_data.push(getCharFromInt(context_data_val));
+                  context_data_val = 0;
+                } else {
+                  context_data_position++;
+                }
+                value >>= 1;
+              }
+            }
+            context_enlargeIn--;
+            if (context_enlargeIn === 0) {
+              context_enlargeIn = Math.pow(2, context_numBits);
+              context_numBits++;
+            }
+          }
+
+          value = 2;
+          for (i = 0; i < context_numBits; i++) {
+            context_data_val = (context_data_val << 1) | (value & 1);
+            if (context_data_position === bitsPerChar - 1) {
+              context_data_position = 0;
+              context_data.push(getCharFromInt(context_data_val));
+              context_data_val = 0;
+            } else {
+              context_data_position++;
+            }
+            value >>= 1;
+          }
+
+          while (true) {
+            context_data_val = (context_data_val << 1);
+            if (context_data_position === bitsPerChar - 1) {
+              context_data.push(getCharFromInt(context_data_val));
+              break;
+            } else {
+              context_data_position++;
+            }
+          }
+          return context_data.join("");
+        }
+
+        function _decompress(length, resetValue, getNextValue) {
+          const dictionary = [];
+          let next, enlargeIn = 4, dictSize = 4, numBits = 3, entry = "", result = [];
+          let i, w, bits, resb, maxpower, power, c;
+          const data = { val: getNextValue(0), position: resetValue, index: 1 };
+
+          for (i = 0; i < 3; i += 1) dictionary[i] = i;
+
+          bits = 0; maxpower = Math.pow(2, 2); power = 1;
+          while (power !== maxpower) {
+            resb = data.val & data.position;
+            data.position >>= 1;
+            if (data.position === 0) { data.position = resetValue; data.val = getNextValue(data.index++); }
+            bits |= (resb > 0 ? 1 : 0) * power;
+            power <<= 1;
+          }
+
+          switch (next = bits) {
+            case 0:
+              bits = 0; maxpower = Math.pow(2, 8); power = 1;
+              while (power !== maxpower) {
+                resb = data.val & data.position;
+                data.position >>= 1;
+                if (data.position === 0) { data.position = resetValue; data.val = getNextValue(data.index++); }
+                bits |= (resb > 0 ? 1 : 0) * power;
+                power <<= 1;
+              }
+              c = String.fromCharCode(bits);
+              break;
+            case 1:
+              bits = 0; maxpower = Math.pow(2, 16); power = 1;
+              while (power !== maxpower) {
+                resb = data.val & data.position;
+                data.position >>= 1;
+                if (data.position === 0) { data.position = resetValue; data.val = getNextValue(data.index++); }
+                bits |= (resb > 0 ? 1 : 0) * power;
+                power <<= 1;
+              }
+              c = String.fromCharCode(bits);
+              break;
+            case 2:
+              return "";
+          }
+
+          dictionary[3] = c;
+          w = c;
+          result.push(c);
+
+          while (true) {
+            if (data.index > length) return "";
+            bits = 0; maxpower = Math.pow(2, numBits); power = 1;
+            while (power !== maxpower) {
+              resb = data.val & data.position;
+              data.position >>= 1;
+              if (data.position === 0) { data.position = resetValue; data.val = getNextValue(data.index++); }
+              bits |= (resb > 0 ? 1 : 0) * power;
+              power <<= 1;
+            }
+
+            switch (c = bits) {
+              case 0:
+                bits = 0; maxpower = Math.pow(2, 8); power = 1;
+                while (power !== maxpower) {
+                  resb = data.val & data.position;
+                  data.position >>= 1;
+                  if (data.position === 0) { data.position = resetValue; data.val = getNextValue(data.index++); }
+                  bits |= (resb > 0 ? 1 : 0) * power;
+                  power <<= 1;
+                }
+                dictionary[dictSize++] = String.fromCharCode(bits);
+                c = dictSize - 1;
+                enlargeIn--;
+                break;
+              case 1:
+                bits = 0; maxpower = Math.pow(2, 16); power = 1;
+                while (power !== maxpower) {
+                  resb = data.val & data.position;
+                  data.position >>= 1;
+                  if (data.position === 0) { data.position = resetValue; data.val = getNextValue(data.index++); }
+                  bits |= (resb > 0 ? 1 : 0) * power;
+                  power <<= 1;
+                }
+                dictionary[dictSize++] = String.fromCharCode(bits);
+                c = dictSize - 1;
+                enlargeIn--;
+                break;
+              case 2:
+                return result.join("");
+            }
+
+            if (enlargeIn === 0) { enlargeIn = Math.pow(2, numBits); numBits++; }
+
+            if (dictionary[c]) {
+              entry = dictionary[c];
+            } else {
+              if (c === dictSize) {
+                entry = w + w.charAt(0);
+              } else {
+                return null;
+              }
+            }
+            result.push(entry);
+
+            dictionary[dictSize++] = w + entry.charAt(0);
+            enlargeIn--;
+            w = entry;
+
+            if (enlargeIn === 0) { enlargeIn = Math.pow(2, numBits); numBits++; }
+          }
+        }
+
+        function compressToEncodedURIComponent(input) {
+          if (input == null) return "";
+          return _compress(input, 6, function (a) { return keyStrUriSafe.charAt(a); });
+        }
+
+        function decompressFromEncodedURIComponent(input) {
+          if (input == null || input === "") return "";
+          return _decompress(input.length, 32, function (index) {
+            return getBaseValue(keyStrUriSafe, input.charAt(index));
+          });
+        }
+
+        return {
+          compressToEncodedURIComponent,
+          decompressFromEncodedURIComponent
+        };
+      })();
+
+
+      // --- Overlay controls ---
+      const inOVW   = document.getElementById('ovw');
+      const inOVH   = document.getElementById('ovh');
+      const inOVX   = document.getElementById('ovx');
+      const inOVY   = document.getElementById('ovy');
+      const inOVF   = document.getElementById('ovfile');
+      const inOVOP  = document.getElementById('ovop');
+      const btnOvT  = document.getElementById('ov-toggle');
+      const btnOvClr= document.getElementById('ov-clear');
+      const btnOvW  = document.getElementById('ov-white');
+      const btnOvG  = document.getElementById('ov-gray');
+      const btnOvB  = document.getElementById('ov-black');
+
+      function syncOverlayUI(){
+        const o = state.overlay;
+        if (inOVW) inOVW.value = o.slabW ?? 126;
+        if (inOVH) inOVH.value = o.slabH ?? 63;
+        if (inOVX) inOVX.value = o.x ?? 0;
+        if (inOVY) inOVY.value = o.y ?? 0;
+        if (inOVOP) inOVOP.value = o.opacity ?? 0.75;
+        if (btnOvT){
+          const on = !!o.visible;
+          btnOvT.textContent = on ? 'Hide Overlay' : 'Show Overlay';
+          btnOvT.classList.toggle('alt', on);
+          btnOvT.classList.toggle('ghost', !on);
+        }
+      }
+
+      inOVW && (inOVW.onchange = e => { state.overlay.slabW = Math.max(1, Number(e.target.value||0)); draw(); scheduleSave(); pushHistory(); });
+      inOVH && (inOVH.onchange = e => { state.overlay.slabH = Math.max(1, Number(e.target.value||0)); draw(); scheduleSave(); pushHistory(); });
+      inOVX && (inOVX.onchange = e => { state.overlay.x     = Number(e.target.value||0); draw(); scheduleSave(); pushHistory(); });
+      inOVY && (inOVY.onchange = e => { state.overlay.y     = Number(e.target.value||0); draw(); scheduleSave(); pushHistory(); });
+      inOVF && (inOVF.onchange = e => { const f = e.target.files?.[0]; if(f) loadOverlayFromFile(f); e.target.value=''; });
+
+      inOVOP && (inOVOP.oninput = e => { state.overlay.opacity = Math.max(0.1, Number(e.target.value||0.75)); draw(); });
+      inOVOP && (inOVOP.onchange = ()=>{ scheduleSave(); pushHistory(); });
+
+      btnOvT && (btnOvT.onclick = ()=>{ state.overlay.visible = !state.overlay.visible; draw(); scheduleSave(); pushHistory(); syncOverlayUI(); });
+      btnOvClr && (btnOvClr.onclick = ()=>{
+        state.overlay = { visible:false, name:'', dataURL:'', natW:0, natH:0, slabW:126, slabH:63, x:0, y:0, opacity:0.75 };
+        draw(); scheduleSave(); pushHistory(); syncOverlayUI();
+      });
+      btnOvW && (btnOvW.onclick = ()=> overlayPreset('white'));
+      btnOvG && (btnOvG.onclick = ()=> overlayPreset('gray'));
+      btnOvB && (btnOvB.onclick = ()=> overlayPreset('black'));
+
         // ---- Undo/Redo History ----
         const HISTORY_MAX = 50;
         const history = { stack: [], index: -1, quiet: false };
@@ -108,6 +520,7 @@
           try{
             return JSON.stringify({
               // keep it plain-data only
+              active: state.active,
               cw: state.cw, ch: state.ch, scale: state.scale, grid: state.grid,
               selectedId: state.selectedId ?? null,
               pieces: state.pieces.map(p=>({...p})),
@@ -133,14 +546,21 @@
           const data = JSON.parse(snap);
           history.quiet = true;
           try{
-            state.cw = data.cw; state.ch = data.ch; state.scale = data.scale; state.grid = data.grid;
+            if (Array.isArray(data.layouts)) {
+              state.layouts = data.layouts;
+              state.active  = Number.isInteger(data.active) ? data.active : 0;
+            } else {
+              // fallback for older snapshots
+              state.cw = data.cw; state.ch = data.ch; state.scale = data.scale; state.grid = data.grid;
+              state.pieces = (data.pieces||[]).map(p=>({...p}));
+            }
             state.selectedId = data.selectedId;
-            state.pieces = (data.pieces||[]).map(p=>({...p}));
-            if ('project' in data) state.project = data.project;
+            if ('project' in data)  state.project  = data.project;
             if ('settings' in data) state.settings = data.settings;
-            if ('layouts' in data) state.layouts = data.layouts;
           } finally { history.quiet = false; }
           renderList(); updateInspector(); sinksUI?.refresh?.(); draw();
+          renderLayouts?.();
+          syncToolbarFromLayout?.();
           if (typeof syncTopBar === 'function') requestAnimationFrame(syncTopBar);
 
         }
@@ -820,6 +1240,97 @@ if (window.svg2pdf) {
 
       }
 
+      function ensureOverlayGroup(){
+        let g = svg.querySelector('#lc-overlay');
+        if (!g){
+          g = document.createElementNS('http://www.w3.org/2000/svg','g');
+          g.id = 'lc-overlay';
+          g.setAttribute('pointer-events','none'); // always behind & non-interactive
+          svg.appendChild(g);                   // sits above the white rect
+        }
+        return g;
+      }
+
+      function drawOverlay(){
+        const o = state.overlay;
+        const g = ensureOverlayGroup();
+        g.innerHTML = ''; // reset
+
+        if (!o.visible || !o.dataURL) return;
+
+        // compute pixel size from inches using current px/in scale
+        const pxPerIn = state.scale;
+        let dispWpx = Math.max(1, Math.round((o.slabW || 1) * pxPerIn));
+        let dispHpx = Math.max(1, Math.round((o.slabH || (o.slabW && o.natW ? (o.slabW * (o.natH/o.natW)) : 1)) * pxPerIn));
+
+        // position in px
+        const xpx = Math.round((o.x||0) * pxPerIn);
+        const ypx = Math.round((o.y||0) * pxPerIn);
+
+        // rect backdrop (optional, subtle)
+        const r = document.createElementNS('http://www.w3.org/2000/svg','rect');
+        r.setAttribute('x', xpx); r.setAttribute('y', ypx);
+        r.setAttribute('width', dispWpx); r.setAttribute('height', dispHpx);
+        r.setAttribute('fill', '#000'); r.setAttribute('opacity', 0.04);
+        g.appendChild(r);
+
+        // image
+        const im = document.createElementNS('http://www.w3.org/2000/svg','image');
+        im.setAttributeNS('http://www.w3.org/1999/xlink','href', o.dataURL);
+        im.setAttribute('x', xpx); im.setAttribute('y', ypx);
+        im.setAttribute('width', dispWpx); im.setAttribute('height', dispHpx);
+        im.setAttribute('preserveAspectRatio','none'); // honor slabW/H exactly
+        im.setAttribute('opacity', o.opacity == null ? 0.75 : o.opacity);
+        g.appendChild(im);
+      }
+
+      function loadOverlayFromFile(file){
+        const reader = new FileReader();
+        reader.onload = () => {
+          const img = new Image();
+          img.onload = ()=>{
+            state.overlay.dataURL = reader.result;
+            state.overlay.natW = img.naturalWidth;
+            state.overlay.natH = img.naturalHeight;
+            state.overlay.visible = true;
+            draw(); scheduleSave(); pushHistory();
+            typeof syncTopBar === 'function' && syncTopBar();
+          };
+          img.src = reader.result;
+        };
+        reader.readAsDataURL(file);
+      }
+
+      // tiny generated “defaults” (three simple slabs)
+      function overlayPreset(kind='white'){
+        const canvas = document.createElement('canvas');
+        canvas.width = 800; canvas.height = 400;
+        const ctx = canvas.getContext('2d');
+
+        // background base color
+        const base = {white:'#f7f7f7', gray:'#d9dde2', black:'#121315'}[kind] || '#f7f7f7';
+        ctx.fillStyle = base; ctx.fillRect(0,0,canvas.width,canvas.height);
+
+        // subtle speckle noise
+        const dots = kind==='black' ? '#2a2b2e' : (kind==='gray' ? '#b7bdc6' : '#dcdcdc');
+        for (let i=0;i<8000;i++){
+          ctx.fillStyle = dots;
+          const x = Math.random()*canvas.width, y = Math.random()*canvas.height;
+          const s = Math.random()*1.2; ctx.fillRect(x,y,s,s);
+        }
+
+        const url = canvas.toDataURL('image/png');
+        state.overlay = {
+          ...state.overlay,
+          name: `Preset: ${kind}`,
+          dataURL: url,
+          natW: canvas.width, natH: canvas.height,
+          visible: true
+        };
+        draw(); scheduleSave(); pushHistory();
+      }
+
+
       function exportJSON(){
         return {
           project: { name: state.projectName.trim(), date: state.projectDate || todayISO(), notes: state.notes || '' },
@@ -829,6 +1340,41 @@ if (window.svg2pdf) {
           pieces: state.pieces
         };
       }
+
+      function makeSharePayload(){
+        // re-use your existing exporter so we only store what we need
+        const data = exportJSON();
+        return JSON.stringify(data);
+      }
+
+      function applySharePayload(json){
+        const parsed = JSON.parse(json);
+        loadLayout(parsed);
+        syncToolbarFromLayout?.();
+        renderLayouts?.();
+        renderList(); updateInspector(); sinksUI?.refresh?.(); draw();
+        scheduleSave(); pushHistory();
+        syncTopBar?.(); syncOverlayUI?.();
+      }
+
+      function copyShareLink(){
+        const payload = makeSharePayload();
+        const hash = 'v1=' + LZString.compressToEncodedURIComponent(payload);
+        const url = location.origin + location.pathname + '#' + hash;
+        try { navigator.clipboard?.writeText(url); } catch(_){}
+        history.replaceState(null, '', '#'+hash);
+        alert('Share link saved to URL and copied to clipboard.');
+      }
+
+      function tryLoadFromHash(){
+        const m = location.hash.match(/^#v1=(.+)$/);
+        if (!m) return false;
+        const json = LZString.decompressFromEncodedURIComponent(m[1]);
+        if (!json) return false;
+        applySharePayload(json);
+        return true;
+      }
+      window.addEventListener('hashchange', ()=>{ tryLoadFromHash(); });
 
 
       const SAVE_KEY = 'litecad:v2';
@@ -983,6 +1529,8 @@ function restore(){
         border.setAttribute('width', Wpx); border.setAttribute('height', Hpx);
         border.setAttribute('fill','#fff'); border.setAttribute('stroke','#e5e7eb');
         svg.appendChild(border);
+
+        drawOverlay();
 
         if(state.showGrid){
           const g = document.createElementNS('http://www.w3.org/2000/svg','g');
@@ -1379,7 +1927,12 @@ function restore(){
           np.y = clamp(snap(p.y + state.grid, state.grid), 0, state.ch - rs.h);
           state.pieces.push(np);
           state.selectedId = np.id;
-          renderList(); updateInspector(); sinksUI?.refresh(); draw(); scheduleSave();
+          renderList(); 
+          updateInspector(); 
+          sinksUI?.refresh(); 
+          draw(); 
+          scheduleSave(); 
+          pushHistory();
         });
 
         const btnDel = document.createElement('button');
@@ -1398,6 +1951,7 @@ function restore(){
             sinksUI?.refresh();
             draw(); 
             scheduleSave();
+            pushHistory();
           }
         });
 
@@ -2048,15 +2602,28 @@ if(btnAddLayout){
       syncToolbarFromLayout();
       renderLayouts();
 
-      if (!restore()) {
+      // Try URL share first. If none, fall back to restore().
+      let loadedFromHash = tryLoadFromHash();
+      if (!loadedFromHash && !restore()) {
         // first-time load
         draw();
         renderList();
         updateInspector();
         sinksUI?.refresh();
       }
+      pushHistory();
+      syncTopBar?.();
+      syncOverlayUI?.();
 
-      pushHistory(); // <-- baseline snapshot after initial/restore load
+      // Create/attach a Share button next to your export buttons (if not already in HTML)
+      if (!document.getElementById('lc-share-link')){
+        const btnShare = document.createElement('button');
+        btnShare.id='lc-share-link'; btnShare.type='button';
+        btnShare.className='lc-btn alt'; btnShare.textContent='Copy Share Link';
+        btnShare.onclick = (e)=>{ e.preventDefault(); copyShareLink(); };
+        // Try to append beside JSON/SVG/PNG buttons:
+        (btnExportJSON?.parentElement || document.querySelector('.lc-toolbar') || document.body).appendChild(btnShare);
+      }
 
       // --- expose a minimal API for external modules (like the Sinks card) ---
       // (Always do this, regardless of restore())
