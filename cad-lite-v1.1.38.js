@@ -72,14 +72,7 @@
         renderOverlayList?.(); syncOverlayUI?.();
       }
 
-      btnClip && (btnClip.onclick = ()=>{
-        const L = ensureOverlaysOnLayout(activeLayout()); if(!L) return;
-        L.overlayClip = !L.overlayClip;
-        draw(); scheduleSave(); pushHistory();   // <-- commit to undo/redo
-        syncOverlayUI();
-      });
-
-
+      
       // "Copy Share Link" includes Project Name/Date/Notes ===Wiring===
       inProject && (inProject.oninput = e => { state.projectName = e.target.value; scheduleSave(); });
       inDate    && (inDate.onchange  = e => { state.projectDate = e.target.value; scheduleSave(); });
@@ -787,100 +780,6 @@
           decompressFromEncodedURIComponent
         };
       })();
-
-
-      // --- Overlay controls (per-selected overlay) ---
-const inOVF   = document.getElementById('ovfile');
-
-const btnOvT   = document.getElementById('ov-toggle');
-const btnOvClr = document.getElementById('ov-clear');
-const btnOvW   = document.getElementById('ov-white');
-const btnOvG   = document.getElementById('ov-gray');
-const btnOvB   = document.getElementById('ov-black');
-
-function syncOverlayUI(){
-  const o = currentOverlay();
-  const has = !!o;
-
-  // enable/disable inputs when no overlay is selected
-  [inOVW,inOVH,inOVX,inOVY,inOVOP,btnOvT,btnOvClr].forEach(el=>{
-    if (!el) return;
-    el.disabled = !has;
-  });
-
-  if (!has){
-    if (btnOvT){ btnOvT.textContent = 'Show Overlay'; btnOvT.classList.remove('alt'); btnOvT.classList.add('ghost'); }
-    return;
-  }
-
-  // populate values
-  inOVW && (inOVW.value  = o.slabW ?? 126);
-  inOVH && (inOVH.value  = o.slabH ?? 63);
-  inOVX && (inOVX.value  = o.x ?? 0);
-  inOVY && (inOVY.value  = o.y ?? 0);
-  inOVOP&& (inOVOP.value = (o.opacity == null ? 1 : o.opacity));
-
-  if (btnOvT){
-    const on = !!o.visible;
-    btnOvT.textContent = on ? 'Hide Overlay' : 'Show Overlay';
-    btnOvT.classList.toggle('alt', on);
-    btnOvT.classList.toggle('ghost', !on);
-  }
-}
-
-// numeric fields
-inOVW && (inOVW.onchange = e => {
-  const o = currentOverlay(); if(!o) return;
-  o.slabW = Math.max(1, Number(e.target.value||0)); draw(); scheduleSave(); pushHistory();
-});
-inOVH && (inOVH.onchange = e => {
-  const o = currentOverlay(); if(!o) return;
-  o.slabH = Math.max(1, Number(e.target.value||0)); draw(); scheduleSave(); pushHistory();
-});
-inOVX && (inOVX.onchange = e => {
-  const o = currentOverlay(); if(!o) return;
-  o.x = Number(e.target.value||0); draw(); scheduleSave(); pushHistory();
-});
-inOVY && (inOVY.onchange = e => {
-  const o = currentOverlay(); if(!o) return;
-  o.y = Number(e.target.value||0); draw(); scheduleSave(); pushHistory();
-});
-
-// opacity slider (live on input, commit on change)
-inOVOP && (inOVOP.oninput  = e => {
-  const o = currentOverlay(); if(!o) return;
-  o.opacity = Math.max(0.1, Number(e.target.value||1)); draw();
-});
-inOVOP && (inOVOP.onchange = ()=> { scheduleSave(); pushHistory(); });
-
-// file add -> create a new overlay on this layout
-inOVF && (inOVF.onchange = e => {
-  const f = e.target.files?.[0];
-  if(f) loadOverlayFromFileToLayout(f);
-  e.target.value = '';
-});
-
-// toggle visibility
-btnOvT && (btnOvT.onclick = ()=> {
-  const o = currentOverlay(); if(!o) return;
-  o.visible = !o.visible; draw(); scheduleSave(); pushHistory(); syncOverlayUI();
-});
-
-// clear (delete) selected overlay
-btnOvClr && (btnOvClr.onclick = ()=> {
-  const L = ensureOverlaysOnLayout(activeLayout()); if (!L) return;
-  const i = L.ovSel;
-  if (i < 0) return;
-  L.overlays.splice(i,1);
-  L.ovSel = Math.min(i, L.overlays.length-1);
-  draw(); scheduleSave(); pushHistory(); renderOverlayList(); syncOverlayUI();
-});
-
-// presets add a NEW overlay
-btnOvW && (btnOvW.onclick = ()=> overlayPresetToLayout('white'));
-btnOvG && (btnOvG.onclick = ()=> overlayPresetToLayout('gray'));
-btnOvB && (btnOvB.onclick = ()=> overlayPresetToLayout('black'));
-
 
         // ---- Undo/Redo History ----
         const HISTORY_MAX = 50;
@@ -2371,7 +2270,7 @@ function restore(){
             };
 
             state.drag = { startI, group: start, limits };
-            g.setPointerCapture && g.setPointerCapture(e.pointerId);
+            gPiece.setPointerCapture && gPiece.setPointerCapture(e.pointerId);
             e.preventDefault();
           });
 
