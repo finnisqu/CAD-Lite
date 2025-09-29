@@ -460,10 +460,48 @@
   .lc-overlay-grid{ grid-template-columns: 1fr 1fr; }
 }
 
-/* Force a block to take the full width of its parent grid/flex row */
+/* Full-span without overshooting the column */
 .lc-span-full{
-  grid-column: 1 / -1;   /* spans all grid columns if parent is a grid */
+  grid-column: 1 / -1;  /* span all grid tracks */
+  width: auto;          /* don't force 100% if parent has padding/gaps */
+  max-width: 100%;
+}
+
+/* Keep panel inside column and account for padding/borders */
+.lc-overlay-panel{
+  box-sizing: border-box;
+  max-width: 100%;
+}
+
+/* Make every control a single full-width row */
+.lc-overlay-grid{
+  display: grid;
+  grid-template-columns: 1fr;  /* one column: each control on its own row */
+  gap: 10px;
+}
+
+/* Inputs fill their row */
+.lc-overlay-grid .lc-label > input,
+.lc-overlay-grid .lc-label > select{
   width: 100%;
-  flex: 0 0 100%;        /* takes full row if parent is flex and wraps */
-  align-self: stretch;
+}
+
+/* Preset buttons: one per row, full width */
+.lc-preset-row{
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 8px;
+}
+.lc-preset-row .lc-btn{
+  width: 100%;
+}
+
+/* Show/Hide + Clear row: stack vertically, full width */
+.lc-overlay-grid .lc-ctl{
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 8px;
+}
+.lc-overlay-grid .lc-ctl .lc-btn{
+  width: 100%;
 }
