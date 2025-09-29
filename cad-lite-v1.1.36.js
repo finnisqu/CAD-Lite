@@ -16,6 +16,29 @@
         showLabels: true,
       };
 
+      // Downscale a dataURL to fit within maxDim, re-encode as JPEG to save space.
+      function downscaleDataURL(srcDataURL, maxDim = 1600, quality = 0.82){
+        return new Promise((resolve, reject)=>{
+          const img = new Image();
+          img.onload = () => {
+            const { naturalWidth: w, naturalHeight: h } = img;
+            const scale = Math.min(1, maxDim / Math.max(w, h));
+            const W = Math.max(1, Math.round(w * scale));
+            const H = Math.max(1, Math.round(h * scale));
+            const c = document.createElement('canvas');
+            c.width = W; c.height = H;
+            const ctx = c.getContext('2d');
+            ctx.drawImage(img, 0, 0, W, H);
+            // JPEG shrinks a lot compared to PNG photos
+            const out = c.toDataURL('image/jpeg', quality);
+            resolve(out);
+          };
+          img.onerror = reject;
+          img.src = srcDataURL;
+        });
+      }
+
+
       // ---- Slab Overlay (photo underlay scaled to real inches) ----
       state.overlay = state.overlay || {
         visible: false,
@@ -66,13 +89,27 @@
 
       function loadOverlayFromFileToLayout(file){
         const reader = new FileReader();
-        reader.onload = () => {
-          const img = new Image();
-          img.onload = ()=> addOverlayFromDataURL(file.name || 'Overlay', reader.result, img.naturalWidth, img.naturalHeight);
-          img.src = reader.result;
+        reader.onload = async () => {
+          try{
+            const src = String(reader.result || '');
+            // Compress right away so autosave doesn't exceed quota
+            const compact = await downscaleDataURL(src, 1600, 0.82);
+
+            // We still want the natural dimensions from the original for reference.
+            const probe = new Image();
+            probe.onload = () => {
+              addOverlayFromDataURL(file.name || 'Overlay', compact, probe.naturalWidth, probe.naturalHeight);
+            };
+            probe.src = src;
+          }catch(err){
+            console.warn('Overlay load/compress failed:', err);
+            // Fall back: add original (may fail to autosave if too big)
+            addOverlayFromDataURL(file.name || 'Overlay', String(reader.result || ''), 0, 0);
+          }
         };
         reader.readAsDataURL(file);
       }
+
 
       function overlayPresetToLayout(kind='white'){
         const canvas = document.createElement('canvas');
@@ -1693,23 +1730,31 @@ if (window.svg2pdf) {
       function exportApp(){
         return {
           project: { name: state.projectName || '', date: state.projectDate || todayISO(), notes: state.notes || '' },
-          layouts: state.layouts,
-          overlay: state.overlay || null,
-          ui: {
-            showGrid: !!state.showGrid,
-            showDims: !!state.showDims,
-            showLabels: !!state.showLabels
-          }        
+          layouts: state.layouts, // includes per-layout overlays[]
+          ui: { showGrid: !!state.showGrid, showDims: !!state.showDims, showLabels: !!state.showLabels }
         };
       }
 
+
       let saveTimer = null;
+
 function scheduleSave(){
   clearTimeout(saveTimer);
-  saveTimer = setTimeout(()=>{ try{
-    localStorage.setItem(SAVE_KEY, JSON.stringify(exportApp()));
-  }catch(_){} }, 400);
+  saveTimer = setTimeout(()=>{
+    try{
+      const payload = JSON.stringify(exportApp());
+      // quick sanity check: >4.5MB is risky in most browsers
+      if (payload.length > 4_500_000) {
+        console.warn('Autosave payload is large:', (payload.length/1_000_000).toFixed(2), 'MB');
+      }
+      localStorage.setItem(SAVE_KEY, payload);
+    }catch(err){
+      console.error('Autosave failed:', err);
+      alert('Autosave failed — project data is too large.\n\nTip: use smaller overlay photos (they are compressed automatically when added).');
+    }
+  }, 400);
 }
+
 
 function restore(){
   try{
