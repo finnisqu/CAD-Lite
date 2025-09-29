@@ -72,14 +72,6 @@
         renderOverlayList?.(); syncOverlayUI?.();
       }
 
-      
-      // "Copy Share Link" includes Project Name/Date/Notes ===Wiring===
-      inProject && (inProject.oninput = e => { state.projectName = e.target.value; scheduleSave(); });
-      inDate    && (inDate.onchange  = e => { state.projectDate = e.target.value; scheduleSave(); });
-      inNotes   && (inNotes.oninput  = e => { state.notes       = e.target.value; scheduleSave(); });
-
-
-
       // Add overlays
       function addOverlayFromDataURL(name, dataURL, natW, natH){
         const L = ensureOverlaysOnLayout(activeLayout());
@@ -2941,10 +2933,24 @@ if(btnAddLayout){
       } else {
         inDate.value = state.projectDate;
       }
-      inProject.oninput = ()=> state.projectName = inProject.value;
-      inDate.onchange = ()=> state.projectDate = inDate.value || todayISO();
-      inNotes && (inNotes.oninput = ()=> { state.notes = inNotes.value; scheduleSave(); });
-      if(inNotes) inNotes.value = state.notes || '';  
+
+      inProject.oninput = () => {
+        state.projectName = inProject.value;
+        scheduleSave();
+      };
+
+      inDate.onchange = () => {
+        state.projectDate = inDate.value || todayISO();
+        scheduleSave();
+      };
+
+      inNotes && (inNotes.oninput = () => {
+        state.notes = inNotes.value;
+        scheduleSave();
+      });
+
+      if (inNotes) inNotes.value = state.notes || '';
+ 
 
       // ------- Pieces -------
       btnAdd.onclick = () => {
