@@ -26,6 +26,19 @@
             <!-- Body starts closed -->
             <div class="lc-acc-body" id="ov-acc-body" hidden>
               <div class="lc-overlay-panel">
+                <!-- Overlay list + add -->
+                <div class="lc-ov-head lc-ctl" style="margin-bottom:8px;">
+                  <button class="lc-btn alt sm" id="ov-add-photo" type="button">Add Overlay (Photo)</button>
+                  <input id="ov-add-input" type="file" accept="image/*" hidden>
+                  <div class="lc-preset-row" style="margin-top:8px;">
+                    <button class="lc-btn ghost sm" id="ov-add-white" type="button">Add Preset: White</button>
+                    <button class="lc-btn ghost sm" id="ov-add-gray"  type="button">Add Preset: Gray</button>
+                    <button class="lc-btn ghost sm" id="ov-add-black" type="button">Add Preset: Black</button>
+                  </div>
+                </div>
+
+                <div id="ov-list" class="lc-ov-list"></div>
+
                 <div class="lc-overlay-grid">
                   <label class="lc-label">Slab width (in)
                     <input id="ovw" type="number" class="lc-input" min="12" step="0.5" value="126">
