@@ -602,3 +602,71 @@
 .lc-overlay-grid .lc-label > select{ width:100%; }
 
 #ov-add-hint{ min-height: 1em; }
+
+/* Overlay panel stays inside the column */
+.lc-overlay-panel{ box-sizing:border-box; max-width:100%; }
+
+/* List container can scroll if tall */
+#ov-list.lc-ov-list{
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 6px;
+  margin-bottom: 10px;
+  overflow: auto;
+  min-width: 0;
+}
+
+/* Each row: [eye button] [name (flexible)] [actions] */
+.lc-ov-row{
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  min-width: 0;             /* <-- critical for ellipsis to work */
+  box-sizing: border-box;
+  border: 1px solid var(--border,#e5e7eb);
+  border-radius: 8px;
+  padding: 6px 8px;
+  background: #fff;
+  cursor: pointer;
+}
+
+/* Name cell: clamp or ellipsis */
+.lc-ov-row .ov-name{
+  min-width: 0;             /* <-- allow shrinking in grid/flex */
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;      /* single-line; see 2-line option below */
+}
+
+/* Buttons area never wraps or shrinks weirdly */
+.lc-ov-row .ov-actions{
+  display: inline-flex;
+  gap: 6px;
+  white-space: nowrap;
+}
+
+/* Selected highlight */
+.lc-ov-row.selected{ outline: 2px solid var(--accent,#2563eb44); }
+
+/* Tiny buttons */
+.lc-btn.xs{
+  height: 26px;
+  padding: 0 8px;
+  border-radius: 8px;
+  font-size: 12px;
+  line-height: 26px;
+}
+
+/* Optional: 2-line clamp for the name on wide screens (remove nowrap above) */
+/*
+@media (min-width: 1024px){
+  .lc-ov-row .ov-name{
+    white-space: normal;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+  }
+}
+*/
