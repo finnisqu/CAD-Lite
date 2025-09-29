@@ -1859,7 +1859,7 @@ function restore(){
         return g;
       }
 
-      // --- Clip mask for overlays ---
+      // Ensure a <defs> node exists to hold our mask
       function ensureDefs(){
         let d = svg.querySelector('defs#ov-defs');
         if (!d){
@@ -1869,6 +1869,107 @@ function restore(){
         }
         return d;
       }
+
+      // Build a mask that shows piece areas (white) MINUS sink & faucet cutouts (black)
+      function buildOverlayMaskSubtractingCutouts(){
+        const defs = ensureDefs();
+
+        // rebuild fresh each draw
+        let mask = svg.querySelector('#ov-mask');
+        if (mask) mask.remove();
+
+        mask = document.createElementNS(svgNS,'mask');
+        mask.id = 'ov-mask';
+        mask.setAttribute('maskUnits','userSpaceOnUse');
+
+        // For each piece, draw its outline in white, then its cutouts in black
+        const pieces = state.pieces || [];
+        for (const p of pieces){
+          // Piece geometry
+          const rs  = realSize(p);                         // rotated bbox (inches)
+          const x   = i2p(p.x), y = i2p(p.y);
+          const BW  = i2p(rs.w), BH = i2p(rs.h);
+          const W0  = i2p(p.w),  H0 = i2p(p.h);            // unrotated piece size (px)
+          const cx  = x + BW/2,  cy = y + BH/2;            // center of rotation
+          const rIn = i2p(1);
+          const r   = { tl: p.rTL? rIn:0, tr: p.rTR? rIn:0, br: p.rBR? rIn:0, bl: p.rBL? rIn:0 };
+
+          let rotRaw = Number(p.rotation||0);
+          if (!Number.isFinite(rotRaw)) rotRaw = 0;
+          const rot  = ((rotRaw % 360) + 360) % 360;
+
+          // Group with the piece rotation applied
+          const gPiece = document.createElementNS(svgNS,'g');
+          if (rot) gPiece.setAttribute('transform', `rotate(${rot}, ${cx}, ${cy})`);
+
+          // Outer piece area = WHITE (visible)
+          const outer = document.createElementNS(svgNS,'path');
+          outer.setAttribute('d', roundedRectPathCorners(cx - W0/2, cy - H0/2, W0, H0, r));
+          outer.setAttribute('fill', '#fff');
+          gPiece.appendChild(outer);
+
+          // --- Cutouts (Sinks + Faucet holes) = BLACK (hidden) ---
+          if (Array.isArray(p.sinks) && p.sinks.length){
+            const leftPx = cx - W0/2;
+            const topPx  = cy - H0/2;
+
+            for (const sink of p.sinks){
+              const { cx: sxIn, cy: syIn } = sinkPoseOnPiece(p, sink);
+              const sx = leftPx + i2p(sxIn);
+              const sy = topPx  + i2p(syIn);
+
+              const localAngle = (sink.side === 'left' || sink.side === 'right')
+                ? (sink.rotation || 0) + 90
+                : (sink.rotation || 0);
+
+              const gSink = document.createElementNS(svgNS,'g');
+              gSink.setAttribute('transform', `translate(${sx}, ${sy}) rotate(${localAngle})`);
+
+              // sink opening
+              if (sink.shape === 'oval'){
+                const e = document.createElementNS(svgNS,'ellipse');
+                e.setAttribute('cx', '0'); e.setAttribute('cy', '0');
+                e.setAttribute('rx', String(i2p(sink.w/2)));
+                e.setAttribute('ry', String(i2p(sink.h/2)));
+                e.setAttribute('fill', '#000'); // cut out
+                gSink.appendChild(e);
+              } else {
+                const w2 = i2p(sink.w/2), h2 = i2p(sink.h/2);
+                const rr = i2p(Math.min(sink.cornerR || 0, 4));
+                const d  = roundedRectPathSimple(-w2, -h2, w2*2, h2*2, rr);
+                const path = document.createElementNS(svgNS,'path');
+                path.setAttribute('d', d);
+                path.setAttribute('fill', '#000'); // cut out
+                gSink.appendChild(path);
+              }
+
+              // faucet holes (cut out)
+              if (Array.isArray(sink.faucets) && sink.faucets.length){
+                const holeOffsetIn = holeOffsetFromSinkEdge(sink);
+                const startIndex = -4;
+                sink.faucets.forEach(idx => {
+                  const x = (startIndex + idx) * i2p(HOLE_SPACING);
+                  const y = - (i2p(sink.h/2) + i2p(holeOffsetIn));
+                  const c = document.createElementNS(svgNS,'circle');
+                  c.setAttribute('cx', String(x));
+                  c.setAttribute('cy', String(y));
+                  c.setAttribute('r',  String(i2p(HOLE_RADIUS)));
+                  c.setAttribute('fill', '#000'); // cut out
+                  gSink.appendChild(c);
+                });
+              }
+
+              gPiece.appendChild(gSink);
+            }
+          }
+
+          mask.appendChild(gPiece);
+        }
+
+        defs.appendChild(mask);
+        return 'url(#ov-mask)';
+      }
+
 
       function buildOverlayClipPath(){
         const defs = ensureDefs();
@@ -1903,18 +2004,26 @@ function restore(){
       }
 
 
+
       function drawOverlays(){
         const g = ensureOverlaysGroup();
         g.innerHTML = '';
+
         const L = ensureOverlaysOnLayout(activeLayout());
         const arr = (L && Array.isArray(L.overlays)) ? L.overlays : [];
-        if (!arr.length) return;
+        if (!arr.length) {
+          g.removeAttribute('mask');
+          g.removeAttribute('clip-path');
+          return;
+        }
 
-        // optional clip to pieces
+        // Clip to pieces minus cutouts (when enabled)
         if (L.overlayClip){
-          const clipRef = buildOverlayClipPath();
-          g.setAttribute('clip-path', clipRef);
+          const maskRef = buildOverlayMaskSubtractingCutouts();
+          g.setAttribute('mask', maskRef);
+          g.removeAttribute('clip-path'); // ensure we don't have both
         } else {
+          g.removeAttribute('mask');
           g.removeAttribute('clip-path');
         }
 
@@ -1927,7 +2036,7 @@ function restore(){
           const xpx = Math.round((o.x || 0) * pxPerIn);
           const ypx = Math.round((o.y || 0) * pxPerIn);
 
-          // optional subtle backdrop
+          // subtle backdrop (still shows under the image, also masked)
           const r = document.createElementNS(svgNS,'rect');
           r.setAttribute('x', xpx); r.setAttribute('y', ypx);
           r.setAttribute('width', wpx); r.setAttribute('height', hpx);
@@ -1939,10 +2048,11 @@ function restore(){
           im.setAttribute('x', xpx); im.setAttribute('y', ypx);
           im.setAttribute('width', wpx); im.setAttribute('height', hpx);
           im.setAttribute('preserveAspectRatio','none');
-          im.setAttribute('opacity', o.opacity == null ? 1 : o.opacity);
+          im.setAttribute('opacity', o.opacity == null ? 1 : o.opacity); // default 100%
           g.appendChild(im);
         }
       }
+
 
 
 
