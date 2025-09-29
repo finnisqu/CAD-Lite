@@ -53,6 +53,7 @@
       function addOverlayFromDataURL(name, dataURL, natW, natH){
         const L = ensureOverlaysOnLayout(activeLayout());
         if (!L) return;
+        if ((L.overlays?.length || 0) >= 2) return; // enforce limit
         const o = {
           id: uid(), name: name || 'Overlay',
           dataURL: dataURL || '', natW: natW||0, natH: natH||0,
@@ -62,15 +63,17 @@
         L.ovSel = L.overlays.length - 1;
         renderOverlayList(); syncOverlayUI(); draw(); scheduleSave(); pushHistory();
       }
+
       function loadOverlayFromFileToLayout(file){
         const reader = new FileReader();
         reader.onload = () => {
           const img = new Image();
-          img.onload = ()=> addOverlayFromDataURL(file.name || 'Photo', reader.result, img.naturalWidth, img.naturalHeight);
+          img.onload = ()=> addOverlayFromDataURL(file.name || 'Overlay', reader.result, img.naturalWidth, img.naturalHeight);
           img.src = reader.result;
         };
         reader.readAsDataURL(file);
       }
+
       function overlayPresetToLayout(kind='white'){
         const canvas = document.createElement('canvas');
         canvas.width = 800; canvas.height = 400;
@@ -87,36 +90,68 @@
       }
 
       // Overlay list UI
-      function renderOverlayList(){
-        const list = document.getElementById('ov-list');
-        if (!list) return;
-        const L = ensureOverlaysOnLayout(activeLayout());
-        list.innerHTML = '';
-        const arr = L?.overlays || [];
-        if (!arr.length){
-          list.innerHTML = '<div class="lc-small" style="opacity:.7;">No overlays yet. Add one above.</div>';
-          return;
-        }
-        arr.forEach((o, idx)=>{
-          const row = document.createElement('div');
-          row.className = 'lc-ov-row' + (idx===L.ovSel?' selected':'');
-          row.innerHTML = `
-            <button class="lc-btn ghost xs ov-eye">${o.visible?'Hide':'Show'}</button>
-            <span class="ov-name">${o.name || ('Overlay '+(idx+1))}</span>
-            <div class="ov-actions">
-              <button class="lc-btn ghost xs ov-sel">Select</button>
-              <button class="lc-btn red xs ov-del">Delete</button>
-            </div>`;
-          row.querySelector('.ov-eye').onclick = (e)=>{ e.preventDefault(); o.visible=!o.visible; draw(); scheduleSave(); pushHistory(); renderOverlayList(); };
-          row.querySelector('.ov-sel').onclick = (e)=>{ e.preventDefault(); selectOverlay(idx); };
-          row.querySelector('.ov-del').onclick = (e)=>{ e.preventDefault();
-            arr.splice(idx,1);
-            if (L.ovSel >= arr.length) L.ovSel = arr.length - 1;
-            draw(); scheduleSave(); pushHistory(); renderOverlayList(); syncOverlayUI();
-          };
-          list.appendChild(row);
-        });
+    function renderOverlayList(){
+      const list = document.getElementById('ov-list');
+      const hint = document.getElementById('ov-add-hint');
+      const btnAdd = document.getElementById('ov-add-photo');
+      if (!list) return;
+      const L = ensureOverlaysOnLayout(activeLayout());
+      list.innerHTML = '';
+      const arr = L?.overlays || [];
+      const sel = L?.ovSel ?? -1;
+
+      // enforce & reflect the 2-overlay limit
+      const atLimit = arr.length >= 2;
+      if (btnAdd) btnAdd.disabled = atLimit;
+      if (hint) hint.textContent = atLimit ? 'Limit 2 overlays per layout reached.' : '';
+
+      if (!arr.length){
+        list.innerHTML = '<div class="lc-small" style="opacity:.7;">No overlays yet. Click “Add Overlay”.</div>';
+        return;
       }
+
+      arr.forEach((o, idx)=>{
+        const row = document.createElement('div');
+        row.className = 'lc-ov-row' + (idx===sel ? ' selected' : '');
+        row.innerHTML = `
+          <button class="lc-btn ghost xs ov-eye" type="button">${o.visible?'Hide':'Show'}</button>
+          <span class="ov-name">${o.name || ('Overlay '+(idx+1))}</span>
+          <div class="ov-actions">
+            <button class="lc-btn red xs ov-del" type="button">Delete</button>
+          </div>`;
+
+        // Clicking row selects (like Sinks)
+        row.addEventListener('click', (e)=>{
+          // ignore clicks on buttons; those have their own handlers
+          if ((e.target).closest('button')) return;
+          selectOverlay(idx);
+          setOverlayAccordion?.(true);     // open the panel
+          syncOverlayUI?.();
+        });
+
+        // Show/Hide
+        row.querySelector('.ov-eye').onclick = (e)=>{
+          e.preventDefault(); e.stopPropagation();
+          o.visible = !o.visible;
+          draw(); scheduleSave(); pushHistory();
+          renderOverlayList();
+          syncOverlayUI?.();
+        };
+
+        // Delete
+        row.querySelector('.ov-del').onclick = (e)=>{
+          e.preventDefault(); e.stopPropagation();
+          arr.splice(idx,1);
+          if (L.ovSel >= arr.length) L.ovSel = arr.length - 1;
+          draw(); scheduleSave(); pushHistory();
+          renderOverlayList();
+          syncOverlayUI?.();
+        };
+
+        list.appendChild(row);
+      });
+    }
+
 
       function isSelected(id){ return state.selectedIds.includes(id); }
       function setSelection(ids){
@@ -232,18 +267,85 @@
         setOverlayAccordion(accBody.hidden); // toggle
       });
 
-      // === Overlay list "Add" controls (inside init, after other DOM queries) ===
-      const btnOvAdd   = document.getElementById('ov-add-photo');
-      const inOvAdd    = document.getElementById('ov-add-input');
-      const btnOvWAdd  = document.getElementById('ov-add-white');
-      const btnOvGAdd  = document.getElementById('ov-add-gray');
-      const btnOvBAdd  = document.getElementById('ov-add-black');
+      // --- Overlay controls (per-selected overlay) ---
+      const inOVW   = document.getElementById('ovw');
+      const inOVH   = document.getElementById('ovh');
+      const inOVX   = document.getElementById('ovx');
+      const inOVY   = document.getElementById('ovy');
+      const inOVOP  = document.getElementById('ovop');
 
-      btnOvAdd  && (btnOvAdd.onclick = ()=> inOvAdd?.click());
-      inOvAdd   && (inOvAdd.onchange = e => { const f=e.target.files?.[0]; if(f) loadOverlayFromFileToLayout(f); e.target.value=''; });
-      btnOvWAdd && (btnOvWAdd.onclick = ()=> overlayPresetToLayout('white'));
-      btnOvGAdd && (btnOvGAdd.onclick = ()=> overlayPresetToLayout('gray'));
-      btnOvBAdd && (btnOvBAdd.onclick = ()=> overlayPresetToLayout('black'));
+      const btnOvAdd  = document.getElementById('ov-add-photo');
+      const inOvAdd   = document.getElementById('ov-add-input');
+      const btnClip   = document.getElementById('ov-clip-toggle');
+
+      function syncOverlayAddButton(){
+        const L = ensureOverlaysOnLayout(activeLayout());
+        const atLimit = (L?.overlays?.length || 0) >= 2;
+        if (btnOvAdd) btnOvAdd.disabled = atLimit;
+        const hint = document.getElementById('ov-add-hint');
+        if (hint) hint.textContent = atLimit ? 'Limit 2 overlays per layout reached.' : '';
+      }
+
+      function syncOverlayUI(){
+        const o = currentOverlay();
+        const has = !!o;
+        [inOVW,inOVH,inOVX,inOVY,inOVOP].forEach(el=>{ if (el) el.disabled = !has; });
+
+        if (!has){
+          if (inOVW) inOVW.value = '';
+          if (inOVH) inOVH.value = '';
+          if (inOVX) inOVX.value = '';
+          if (inOVY) inOVY.value = '';
+          if (inOVOP) inOVOP.value = 0.75;
+        } else {
+          inOVW && (inOVW.value  = o.slabW ?? 126);
+          inOVH && (inOVH.value  = o.slabH ?? 63);
+          inOVX && (inOVX.value  = o.x ?? 0);
+          inOVY && (inOVY.value  = o.y ?? 0);
+          inOVOP&& (inOVOP.value = (o.opacity == null ? 0.75 : o.opacity));
+        }
+
+        // Clip toggle reflects per-layout flag
+        const L = ensureOverlaysOnLayout(activeLayout());
+        const on = !!(L && L.overlayClip);
+        if (btnClip){
+          btnClip.textContent = on ? 'Clip to Pieces: On' : 'Clip to Pieces: Off';
+          btnClip.classList.toggle('alt', on);
+          btnClip.classList.toggle('ghost', !on);
+        }
+
+        syncOverlayAddButton();
+      }
+
+      // Add Overlay (single entry point)
+      btnOvAdd && (btnOvAdd.onclick = ()=> inOvAdd?.click());
+      inOvAdd && (inOvAdd.onchange = e => {
+        const f = e.target.files?.[0];
+        const L = ensureOverlaysOnLayout(activeLayout());
+        if (!L) return;
+        if ((L.overlays?.length || 0) >= 2){ e.target.value=''; return; }
+        if (f) loadOverlayFromFileToLayout(f);
+        e.target.value='';
+      });
+
+      // Numeric fields
+      inOVW && (inOVW.onchange = e => { const o=currentOverlay(); if(!o) return; o.slabW=Math.max(1,+e.target.value||0); draw(); scheduleSave(); pushHistory(); });
+      inOVH && (inOVH.onchange = e => { const o=currentOverlay(); if(!o) return; o.slabH=Math.max(1,+e.target.value||0); draw(); scheduleSave(); pushHistory(); });
+      inOVX && (inOVX.onchange = e => { const o=currentOverlay(); if(!o) return; o.x=+e.target.value||0; draw(); scheduleSave(); pushHistory(); });
+      inOVY && (inOVY.onchange = e => { const o=currentOverlay(); if(!o) return; o.y=+e.target.value||0; draw(); scheduleSave(); pushHistory(); });
+
+      // Opacity slider: live + commit
+      inOVOP && (inOVOP.oninput  = e => { const o=currentOverlay(); if(!o) return; o.opacity=Math.max(.1,+e.target.value||.75); draw(); });
+      inOVOP && (inOVOP.onchange = ()=> { scheduleSave(); pushHistory(); });
+
+      // Clip to pieces (per layout)
+      btnClip && (btnClip.onclick = ()=>{
+        const L = ensureOverlaysOnLayout(activeLayout()); if(!L) return;
+        L.overlayClip = !L.overlayClip;
+        draw(); scheduleSave(); pushHistory();
+        syncOverlayUI();
+      });
+
 
 
       // ---- LZString (URI-safe subset) ----
@@ -600,12 +702,7 @@
 
 
       // --- Overlay controls (per-selected overlay) ---
-const inOVW   = document.getElementById('ovw');
-const inOVH   = document.getElementById('ovh');
-const inOVX   = document.getElementById('ovx');
-const inOVY   = document.getElementById('ovy');
 const inOVF   = document.getElementById('ovfile');
-const inOVOP  = document.getElementById('ovop');
 
 const btnOvT   = document.getElementById('ov-toggle');
 const btnOvClr = document.getElementById('ov-clear');
@@ -1757,12 +1854,64 @@ function restore(){
         return g;
       }
 
+      // --- Clip mask for overlays ---
+      function ensureDefs(){
+        let d = svg.querySelector('defs#ov-defs');
+        if (!d){
+          d = document.createElementNS(svgNS,'defs');
+          d.id = 'ov-defs';
+          svg.appendChild(d);
+        }
+        return d;
+      }
+
+      function buildOverlayClipPath(){
+        const defs = ensureDefs();
+        let cp = svg.querySelector('#ov-clip');
+        if (cp) cp.remove();
+        cp = document.createElementNS(svgNS,'clipPath');
+        cp.id = 'ov-clip';
+        cp.setAttribute('clipPathUnits','userSpaceOnUse');
+
+        const pieces = state.pieces || [];
+        for (const p of pieces){
+          // build the same rounded rect used in draw(), apply rotation around piece center
+          const rs = realSize(p);
+          const x = i2p(p.x), y=i2p(p.y), W=i2p(rs.w), H=i2p(rs.h);
+          const W0 = i2p(p.w), H0 = i2p(p.h);
+          const cx = x + W/2, cy = y + H/2;
+          const rIn = i2p(1);
+          const r = { tl: p.rTL? rIn:0, tr: p.rTR? rIn:0, br: p.rBR? rIn:0, bl: p.rBL? rIn:0 };
+          let rot = Number(p.rotation||0);
+          if (!Number.isFinite(rot)) rot = 0;
+
+          const path = document.createElementNS(svgNS,'path');
+          path.setAttribute('d', roundedRectPathCorners(cx - W0/2, cy - H0/2, W0, H0, r));
+          if (rot % 360) path.setAttribute('transform', `rotate(${rot}, ${cx}, ${cy})`);
+          // fill is irrelevant for clipping, but we set it anyway
+          path.setAttribute('fill', '#fff');
+          cp.appendChild(path);
+        }
+
+        defs.appendChild(cp);
+        return 'url(#ov-clip)';
+      }
+
+
       function drawOverlays(){
         const g = ensureOverlaysGroup();
         g.innerHTML = '';
-        const L = state.layouts?.[state.active];
+        const L = ensureOverlaysOnLayout(activeLayout());
         const arr = (L && Array.isArray(L.overlays)) ? L.overlays : [];
         if (!arr.length) return;
+
+        // optional clip to pieces
+        if (L.overlayClip){
+          const clipRef = buildOverlayClipPath();
+          g.setAttribute('clip-path', clipRef);
+        } else {
+          g.removeAttribute('clip-path');
+        }
 
         const pxPerIn = state.scale;
         for (const o of arr){
@@ -1773,13 +1922,14 @@ function restore(){
           const xpx = Math.round((o.x || 0) * pxPerIn);
           const ypx = Math.round((o.y || 0) * pxPerIn);
 
-          const r = document.createElementNS('http://www.w3.org/2000/svg','rect');
+          // optional subtle backdrop
+          const r = document.createElementNS(svgNS,'rect');
           r.setAttribute('x', xpx); r.setAttribute('y', ypx);
           r.setAttribute('width', wpx); r.setAttribute('height', hpx);
           r.setAttribute('fill', '#000'); r.setAttribute('opacity', 0.04);
           g.appendChild(r);
 
-          const im = document.createElementNS('http://www.w3.org/2000/svg','image');
+          const im = document.createElementNS(svgNS,'image');
           im.setAttributeNS('http://www.w3.org/1999/xlink','href', o.dataURL);
           im.setAttribute('x', xpx); im.setAttribute('y', ypx);
           im.setAttribute('width', wpx); im.setAttribute('height', hpx);
@@ -1788,6 +1938,7 @@ function restore(){
           g.appendChild(im);
         }
       }
+
 
 
 
