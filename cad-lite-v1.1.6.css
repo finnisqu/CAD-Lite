@@ -459,3 +459,11 @@
 @media (max-width: 899px){
   .lc-overlay-grid{ grid-template-columns: 1fr 1fr; }
 }
+
+/* Force a block to take the full width of its parent grid/flex row */
+.lc-span-full{
+  grid-column: 1 / -1;   /* spans all grid columns if parent is a grid */
+  width: 100%;
+  flex: 0 0 100%;        /* takes full row if parent is flex and wraps */
+  align-self: stretch;
+}
