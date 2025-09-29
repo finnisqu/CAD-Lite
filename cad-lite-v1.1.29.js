@@ -71,6 +71,13 @@
         draw(); scheduleSave();
       });
 
+      window.addEventListener('keyup', (e) => {
+        if (e.key === 'ArrowLeft' || e.key === 'ArrowRight' || e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+          scheduleSave();
+          pushHistory();
+          syncTopBar?.();
+        }
+      });
 
       // create first layout and map legacy props to "current layout"
       const uid = () => Math.random().toString(36).slice(2,9);
