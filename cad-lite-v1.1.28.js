@@ -519,9 +519,10 @@
         function snapshotState(){
           try{
             return JSON.stringify({
-              // keep it plain-data only
               active: state.active,
               cw: state.cw, ch: state.ch, scale: state.scale, grid: state.grid,
+              showGrid: !!state.showGrid, showDims: !!state.showDims, showLabels: !!state.showLabels,
+              overlay: state.overlay ? { ...state.overlay } : null,
               selectedId: state.selectedId ?? null,
               pieces: state.pieces.map(p=>({...p})),
               project: state.project ?? null,
@@ -549,20 +550,29 @@
             if (Array.isArray(data.layouts)) {
               state.layouts = data.layouts;
               state.active  = Number.isInteger(data.active) ? data.active : 0;
+              // derive top-level canvas from active layout if that’s your model,
+              // otherwise keep these explicit fields:
+              state.cw = data.cw; state.ch = data.ch; state.scale = data.scale; state.grid = data.grid;
+              state.pieces = (data.pieces||[]).map(p=>({...p}));
             } else {
-              // fallback for older snapshots
+              // fallback for older payloads
               state.cw = data.cw; state.ch = data.ch; state.scale = data.scale; state.grid = data.grid;
               state.pieces = (data.pieces||[]).map(p=>({...p}));
             }
-            state.selectedId = data.selectedId;
-            if ('project' in data)  state.project  = data.project;
+            state.showGrid   = 'showGrid'   in data ? !!data.showGrid   : state.showGrid;
+            state.showDims   = 'showDims'   in data ? !!data.showDims   : state.showDims;
+            state.showLabels = 'showLabels' in data ? !!data.showLabels : state.showLabels;
+            state.overlay    = data.overlay ? { ...data.overlay } : state.overlay;
+            state.selectedId = data.selectedId ?? null;
+            if ('project'  in data) state.project  = data.project;
             if ('settings' in data) state.settings = data.settings;
           } finally { history.quiet = false; }
+
           renderList(); updateInspector(); sinksUI?.refresh?.(); draw();
           renderLayouts?.();
           syncToolbarFromLayout?.();
-          if (typeof syncTopBar === 'function') requestAnimationFrame(syncTopBar);
-
+          syncTopBar?.();
+          syncOverlayUI?.();
         }
 
         function undo(){ if (history.index > 0){ history.index--; applySnapshot(history.stack[history.index]); } }
@@ -1341,6 +1351,10 @@ if (window.svg2pdf) {
         };
       }
 
+      // prefer full-app snapshot for sharing
+      function makeSharePayloadAll(){ return snapshotState(); }
+
+      // keep the old v1 loader for backward compatibility
       function makeSharePayload(){
         // re-use your existing exporter so we only store what we need
         const data = exportJSON();
@@ -1357,22 +1371,33 @@ if (window.svg2pdf) {
         syncTopBar?.(); syncOverlayUI?.();
       }
 
+      // copy/share
       function copyShareLink(){
-        const payload = makeSharePayload();
-        const hash = 'v1=' + LZString.compressToEncodedURIComponent(payload);
+        const payload = makeSharePayloadAll();             // FULL app (all layouts)
+        const hash = 'v2=' + LZString.compressToEncodedURIComponent(payload);
         const url = location.origin + location.pathname + '#' + hash;
         try { navigator.clipboard?.writeText(url); } catch(_){}
-        history.replaceState(null, '', '#'+hash);
+        window.history.replaceState(null, '', '#'+hash);
         alert('Share link saved to URL and copied to clipboard.');
       }
 
+      // load from URL
       function tryLoadFromHash(){
-        const m = location.hash.match(/^#v1=(.+)$/);
-        if (!m) return false;
-        const json = LZString.decompressFromEncodedURIComponent(m[1]);
-        if (!json) return false;
-        applySharePayload(json);
-        return true;
+        if (!location.hash) return false;
+        const h = location.hash.slice(1);
+      // v2: full snapshot (all layouts)
+        let m = h.match(/^v2=(.+)$/);
+        if (m){
+          const json = LZString.decompressFromEncodedURIComponent(m[1]);
+          if (json){ applySnapshot(json); return true; }
+        }
+      // v1: legacy single-layout
+        m = h.match(/^v1=(.+)$/);
+        if (m){
+          const json = LZString.decompressFromEncodedURIComponent(m[1]);
+          if (json){ applySharePayload(json); return true; }
+        }
+        return false;
       }
       window.addEventListener('hashchange', ()=>{ tryLoadFromHash(); });
 
@@ -1381,7 +1406,13 @@ if (window.svg2pdf) {
       function exportApp(){
         return {
           project: { name: state.projectName || '', date: state.projectDate || todayISO(), notes: state.notes || '' },
-          layouts: state.layouts
+          layouts: state.layouts,
+          overlay: state.overlay || null,
+          ui: {
+            showGrid: !!state.showGrid,
+            showDims: !!state.showDims,
+            showLabels: !!state.showLabels
+          }        
         };
       }
 
@@ -1396,30 +1427,61 @@ function scheduleSave(){
 function restore(){
   try{
     const raw = localStorage.getItem(SAVE_KEY);
-    if(!raw) return false;
+    if (!raw) return false;
     const data = JSON.parse(raw);
 
-    if(data.layouts && Array.isArray(data.layouts)){
+    if (data.layouts && Array.isArray(data.layouts)){
+      // layouts
       state.layouts = data.layouts.map(L => ({ ...L, id: L.id || uid() }));
-      state.active = 0;
-      state.projectName = data.project?.name || '';
-      state.projectDate = data.project?.date || todayISO();
-      state.notes = data.project?.notes || '';
-      inProject.value = state.projectName;
-      inDate.value = state.projectDate;
-      if(inNotes) inNotes.value = state.notes;
+      state.active = 0; // keep first layout active for autosave payloads
+
+      // project meta (don’t overwrite if already set elsewhere during init)
+      state.projectName = (data.project?.name ?? state.projectName ?? '');
+      state.projectDate = (data.project?.date ?? state.projectDate ?? todayISO());
+      state.notes       = (data.project?.notes ?? state.notes ?? '');
+
+      if (inProject) inProject.value = state.projectName;
+      if (inDate)    inDate.value    = state.projectDate;
+      if (inNotes)   inNotes.value   = state.notes;
+
+      // UI toggles (persisted in autosave)
+      if (data.ui){
+        if ('showGrid'   in data.ui) state.showGrid   = !!data.ui.showGrid;
+        if ('showDims'   in data.ui) state.showDims   = !!data.ui.showDims;
+        if ('showLabels' in data.ui) state.showLabels = !!data.ui.showLabels;
+      }
+
+      // Overlay (persisted in autosave)
+      if (data.overlay){
+        state.overlay = { ...(state.overlay || {}), ...data.overlay };
+      }
+
+      // refresh UI
       syncToolbarFromLayout();
-      renderLayouts(); 
-      renderList(); 
-      updateInspector(); 
-      sinksUI?.refresh(); 
+      renderLayouts();
+      renderList();
+      updateInspector();
+      sinksUI?.refresh?.();
       draw();
+      syncTopBar?.();
+      syncOverlayUI?.();
+
       return true;
     } else {
-      // fallback: legacy single-layout file
-      loadLayout(data); renderLayouts(); return true;
+      // fallback: legacy single-layout payloads
+      loadLayout(data);
+      renderLayouts();
+      renderList();
+      updateInspector();
+      sinksUI?.refresh?.();
+      draw();
+      syncTopBar?.();
+      syncOverlayUI?.();
+      return true;
     }
-  } catch(err){ return false; }
+  } catch (_){
+    return false;
+  }
 }
 
       syncTopBar();
@@ -1970,8 +2032,12 @@ function renderList(){
 
 // ------- Drag-to-reorder for Pieces -------
 let listDrag = null;
+let listReorderWired = false;
 
 function installPieceReorder(){
+  if(!list || listReorderWired) return;
+  listReorderWired = true;
+  
   if(!list) return;
 
   const THRESH = 4; // pixels before we consider it a drag
@@ -2099,6 +2165,7 @@ function renderLayouts(){
       copy.id = uid(); copy.name = (L.name||`Layout ${idx+1}`)+' Copy';
       state.layouts.splice(idx+1, 0, copy);
       renderLayouts(); scheduleSave();
+      pushHistory();
     });
 
     const btnDel = document.createElement('button');
@@ -2113,6 +2180,7 @@ function renderLayouts(){
       if(state.active>=state.layouts.length) state.active=state.layouts.length-1;
       state.selectedId=null;
       renderLayouts(); renderList(); updateInspector(); sinksUI?.refresh(); draw(); scheduleSave();
+      pushHistory();
     });
 
     actions.append(btnDup, btnDel);
@@ -2126,6 +2194,7 @@ if(btnAddLayout){
     const L = makeLayout(`Layout ${state.layouts.length+1}`);
     state.layouts.push(L); state.active = state.layouts.length-1;
     renderLayouts(); renderList(); updateInspector(); sinksUI?.refresh(); draw(); syncToolbarFromLayout(); scheduleSave();
+    pushHistory();
   };
 }
 
@@ -2385,12 +2454,28 @@ if(btnAddLayout){
         lblScale.textContent = String(state.scale);
         draw(); scheduleSave(); pushHistory(); syncTopBar();
       };
-      ['input','change'].forEach(evt =>
-        inScale.addEventListener(evt, e => applyScale(e.target.value), { passive: true })
+      inScale.addEventListener(
+        'input',
+        e => {
+          state.scale = +e.target.value;
+          lblScale.textContent = String(state.scale);
+          draw();                          // live preview, no history
+        },
+        { passive: true }
       );
-      inCW.onchange = e => { state.cw = Math.max(12, Number(e.target.value||0)); state.pieces.forEach(clampToCanvas); draw(); };
-      inCH.onchange = e => { state.ch = Math.max(12, Number(e.target.value||0)); state.pieces.forEach(clampToCanvas); draw(); };
-      inGrid.onchange = e => { state.grid = Math.max(0.25, Number(e.target.value||0)); draw(); };
+
+      inScale.addEventListener('change', e => {
+        state.scale = +e.target.value;
+        lblScale.textContent = String(state.scale);
+        draw();
+        scheduleSave();
+        pushHistory();                     // commit once when user releases
+        syncTopBar?.();
+      });
+
+      inCW.onchange = e => { state.cw = Math.max(12, Number(e.target.value||0)); state.pieces.forEach(clampToCanvas); draw(); scheduleSave(); pushHistory(); };
+      inCH.onchange = e => { state.ch = Math.max(12, Number(e.target.value||0)); state.pieces.forEach(clampToCanvas); draw(); scheduleSave(); pushHistory(); };
+      inGrid.onchange = e => { state.grid = Math.max(0.25, Number(e.target.value||0)); draw(); scheduleSave(); pushHistory(); };
       btnSnapAll.onclick = () => {
         state.pieces = state.pieces.map(p=>{
           const rs = realSize(p);
@@ -2414,20 +2499,25 @@ if(btnAddLayout){
       // Show/Hide toggles
       togGrid && (togGrid.onclick = ()=>{
         state.showGrid = !state.showGrid;
-        draw(); scheduleSave(); syncTopBar();
+        draw(); scheduleSave(); pushHistory(); syncTopBar();
       });
       togDims && (togDims.onclick = ()=>{
         state.showDims = !state.showDims;
-        draw(); scheduleSave(); syncTopBar();
+        draw(); scheduleSave(); pushHistory(); syncTopBar();
       });
       togLabels && (togLabels.onclick = ()=>{
         state.showLabels = !state.showLabels;
-        draw(); scheduleSave(); syncTopBar();
+        draw(); scheduleSave(); pushHistory(); syncTopBar();
       });
 
 
       // ------- Project fields -------
-      inDate.value = todayISO(); state.projectDate = inDate.value;
+      if (!state.projectDate) {
+        inDate.value = todayISO();
+        state.projectDate = inDate.value;
+      } else {
+        inDate.value = state.projectDate;
+      }
       inProject.oninput = ()=> state.projectName = inProject.value;
       inDate.onchange = ()=> state.projectDate = inDate.value || todayISO();
       inNotes && (inNotes.oninput = ()=> { state.notes = inNotes.value; scheduleSave(); });
