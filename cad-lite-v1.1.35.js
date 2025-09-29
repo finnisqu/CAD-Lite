@@ -2040,7 +2040,7 @@ function restore(){
           const path = document.createElementNS('http://www.w3.org/2000/svg','path');
           path.setAttribute('d', roundedRectPathCorners(cx - W0/2, cy - H0/2, W0, H0, corners));
           applyPieceFill(path, p);             // << fill/opacity applied here
-          path.setAttribute('stroke', '#94a3b8');
+          path.setAttribute('stroke', '#000');
           path.setAttribute('stroke-width', '1');
           gg.appendChild(path);
 
@@ -2103,7 +2103,7 @@ function restore(){
               }
 
               if (state.showDims){
-                const dimStroke = '#94a3b8';
+                const dimStroke = '#000';
                 const tick = 6, off = 12;
 
                 const xL = leftPx, xR = leftPx + W0;
@@ -2185,7 +2185,7 @@ function restore(){
           }
 
           if (state.showDims) {
-            const dimStroke = '#94a3b8';
+            const dimStroke = '#000';
             const off = 12;
             const tick = 6;
 
