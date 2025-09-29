@@ -670,3 +670,39 @@
   }
 }
 */
+
+/* Overlay list row layout */
+.lc-ov-row{
+  display: grid;
+  grid-template-columns: auto 1fr auto; /* [eye] [name flex] [actions] */
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  border: 1px solid var(--border,#e5e7eb);
+  border-radius: 8px;
+  padding: 6px 8px;
+  background: #fff;
+  cursor: pointer;
+}
+.lc-ov-row .ov-name{
+  min-width: 0;            /* critical for ellipsis */
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.lc-ov-row .ov-actions{
+  display: inline-flex;
+  gap: 6px;
+  white-space: nowrap;
+}
+.lc-ov-row.selected{ outline: 2px solid var(--accent,#2563eb44); }
+
+/* Tiny icon buttons (match pieces list feel) */
+.lc-iconbtn{
+  display: inline-flex; align-items: center; justify-content: center;
+  padding: 0 6px; height: 24px; min-width: 28px;
+  border-radius: 7px;
+}
+.lc-iconbtn.xs .lc-icon{ width: 14px; height: 14px; }
