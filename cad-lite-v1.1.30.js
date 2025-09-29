@@ -120,6 +120,30 @@
       const togDims     = document.getElementById('lc-toggle-dims');
       const togGrid     = document.getElementById('lc-toggle-grid');
 
+      // Accordion toggle for Slab Overlay
+      const accBtn  = document.getElementById('ov-acc-toggle');
+      const accBody = document.getElementById('ov-acc-body');
+
+      function setOverlayAccordion(open){
+        if (!accBtn || !accBody) return;
+        accBtn.setAttribute('aria-expanded', open ? 'true' : 'false');
+        accBtn.classList.toggle('open', !!open);
+        accBody.hidden = !open;       // starts closed
+      }
+
+      // start closed by default
+      setOverlayAccordion(false);
+
+      // optional: auto-open if overlay is already visible or has an image
+      if (state?.overlay && (state.overlay.visible || state.overlay.dataURL)){
+        setOverlayAccordion(true);
+      }
+
+      accBtn && (accBtn.onclick = () => {
+        setOverlayAccordion(accBody.hidden); // toggle
+      });
+
+
       // ---- LZString (URI-safe subset) ----
       const LZString = (function () {
         const keyStrUriSafe = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+-$";
