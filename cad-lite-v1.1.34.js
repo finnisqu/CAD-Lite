@@ -90,67 +90,103 @@
       }
 
       // Overlay list UI
-    function renderOverlayList(){
+        function renderOverlayList(){
       const list = document.getElementById('ov-list');
       const hint = document.getElementById('ov-add-hint');
       const btnAdd = document.getElementById('ov-add-photo');
       if (!list) return;
+
       const L = ensureOverlaysOnLayout(activeLayout());
-      list.innerHTML = '';
       const arr = L?.overlays || [];
       const sel = L?.ovSel ?? -1;
 
-      // enforce & reflect the 2-overlay limit
+      // Enforce/reflect limit
       const atLimit = arr.length >= 2;
       if (btnAdd) btnAdd.disabled = atLimit;
       if (hint) hint.textContent = atLimit ? 'Limit 2 overlays per layout reached.' : '';
 
+      list.innerHTML = '';
       if (!arr.length){
         list.innerHTML = '<div class="lc-small" style="opacity:.7;">No overlays yet. Click “Add Overlay”.</div>';
         return;
       }
 
+      // Small helpers
+      const basename = (s)=> String(s||'').split(/[\\/]/).pop();
+
+      const mkIcon = (d)=> {
+        const svg = document.createElementNS('http://www.w3.org/2000/svg','svg');
+        svg.setAttribute('class','lc-icon'); svg.setAttribute('viewBox','0 0 24 24');
+        const path = document.createElementNS('http://www.w3.org/2000/svg','path');
+        path.setAttribute('d', d); path.setAttribute('fill','none'); path.setAttribute('stroke','currentColor'); path.setAttribute('stroke-width','2'); path.setAttribute('stroke-linecap','round'); path.setAttribute('stroke-linejoin','round');
+        svg.appendChild(path);
+        return svg;
+      };
+      const ICON_EYE     = 'M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12zm11 3a3 3 0 1 0 0-6 3 3 0 0 0 0 6z';
+      const ICON_EYE_OFF = 'M17.94 17.94A10.94 10.94 0 0 1 12 19c-7 0-11-7-11-7a20.57 20.57 0 0 1 5.06-5.94M9.88 9.88A3 3 0 0 0 12 15a3 3 0 0 0 2.12-5.12M1 1l22 22';
+      const ICON_TRASH   = 'M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m-1 0v14a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2V6h10z';
+
       arr.forEach((o, idx)=>{
         const row = document.createElement('div');
         row.className = 'lc-ov-row' + (idx===sel ? ' selected' : '');
-        row.innerHTML = `
-          <button class="lc-btn ghost xs ov-eye" type="button">${o.visible?'Hide':'Show'}</button>
-          <span class="ov-name">${o.name || ('Overlay '+(idx+1))}</span>
-          <div class="ov-actions">
-            <button class="lc-btn red xs ov-del" type="button">Delete</button>
-          </div>`;
+        row.dataset.index = idx;
 
-        // Clicking row selects (like Sinks)
+        // Eye button (tiny)
+        const eye = document.createElement('button');
+        eye.type = 'button';
+        eye.className = 'lc-btn ghost xs lc-iconbtn ov-eye';
+        eye.title = o.visible ? 'Hide overlay' : 'Show overlay';
+        eye.appendChild(mkIcon(o.visible ? ICON_EYE : ICON_EYE_OFF));
+
+        // Name (file name shown; full name in tooltip)
+        const name = document.createElement('div');
+        name.className = 'ov-name';
+        name.textContent = basename(o.name || `Overlay ${idx+1}`);
+        name.title = o.name || `Overlay ${idx+1}`;
+
+        // Actions (trash only—delete)
+        const actions = document.createElement('div');
+        actions.className = 'ov-actions';
+        const del = document.createElement('button');
+        del.type = 'button';
+        del.className = 'lc-btn red xs lc-iconbtn ov-del';
+        del.title = 'Delete overlay';
+        del.appendChild(mkIcon(ICON_TRASH));
+        actions.appendChild(del);
+
+        // Click row to select (like Sinks); ignore clicks on the buttons themselves
         row.addEventListener('click', (e)=>{
-          // ignore clicks on buttons; those have their own handlers
           if ((e.target).closest('button')) return;
           selectOverlay(idx);
-          setOverlayAccordion?.(true);     // open the panel
+          setOverlayAccordion?.(true);
           syncOverlayUI?.();
+          renderOverlayList(); // refresh selected style
         });
 
         // Show/Hide
-        row.querySelector('.ov-eye').onclick = (e)=>{
+        eye.addEventListener('click', (e)=>{
           e.preventDefault(); e.stopPropagation();
           o.visible = !o.visible;
           draw(); scheduleSave(); pushHistory();
-          renderOverlayList();
+          renderOverlayList();  // rebuild icon/title
           syncOverlayUI?.();
-        };
+        });
 
         // Delete
-        row.querySelector('.ov-del').onclick = (e)=>{
+        del.addEventListener('click', (e)=>{
           e.preventDefault(); e.stopPropagation();
           arr.splice(idx,1);
           if (L.ovSel >= arr.length) L.ovSel = arr.length - 1;
           draw(); scheduleSave(); pushHistory();
           renderOverlayList();
           syncOverlayUI?.();
-        };
+        });
 
+        row.append(eye, name, actions);
         list.appendChild(row);
       });
     }
+
 
 
       function isSelected(id){ return state.selectedIds.includes(id); }
