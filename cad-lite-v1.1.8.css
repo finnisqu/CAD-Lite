@@ -505,3 +505,46 @@
 .lc-overlay-grid .lc-ctl .lc-btn{
   width: 100%;
 }
+
+/* Accordion wrapper spans the column but never overflows */
+.lc-accordion{
+  max-width: 100%;
+}
+
+/* Header button */
+.lc-acc-btn{
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 12px;
+  border: 1px solid var(--border, #e5e7eb);
+  border-radius: 10px;
+  background: var(--panel, #fafafa);
+  font-weight: 600;
+}
+
+/* Chevron rotation when open */
+.lc-acc-btn .lc-acc-icon{ transition: transform .2s ease; }
+.lc-acc-btn.open .lc-acc-icon{ transform: rotate(90deg); }
+
+/* Body spacing */
+.lc-acc-body{ margin-top: 8px; }
+
+/* Keep panel within column */
+.lc-overlay-panel{ box-sizing: border-box; max-width: 100%; }
+
+/* Overlay controls stacked neatly (one per row) */
+.lc-overlay-grid{
+  display: grid;
+  grid-template-columns: 1fr; /* one column, full width rows */
+  gap: 10px;
+}
+.lc-overlay-grid .lc-label > input,
+.lc-overlay-grid .lc-label > select{ width: 100%; }
+
+/* Presets + action buttons full width, stacked */
+.lc-preset-row{ display: grid; grid-template-columns: 1fr; gap: 8px; }
+.lc-preset-row .lc-btn{ width: 100%; }
+.lc-overlay-grid .lc-ctl{ display: grid; grid-template-columns: 1fr; gap: 8px; }
+.lc-overlay-grid .lc-ctl .lc-btn{ width: 100%; }
