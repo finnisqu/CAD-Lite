@@ -48,7 +48,7 @@
         slabW: 126,           // inches; user-entered slab width
         slabH: 63,            // inches; user-entered slab height
         x: 0, y: 0,           // top-left, inches (position on canvas)
-        opacity: 0.75
+        opacity: 1
       };
 
       // ===== Per-layout overlay helpers (place above init) =====
@@ -72,6 +72,21 @@
         renderOverlayList?.(); syncOverlayUI?.();
       }
 
+      btnClip && (btnClip.onclick = ()=>{
+        const L = ensureOverlaysOnLayout(activeLayout()); if(!L) return;
+        L.overlayClip = !L.overlayClip;
+        draw(); scheduleSave(); pushHistory();   // <-- commit to undo/redo
+        syncOverlayUI();
+      });
+
+
+      // "Copy Share Link" includes Project Name/Date/Notes ===Wiring===
+      inProject && (inProject.oninput = e => { state.projectName = e.target.value; scheduleSave(); });
+      inDate    && (inDate.onchange  = e => { state.projectDate = e.target.value; scheduleSave(); });
+      inNotes   && (inNotes.oninput  = e => { state.notes       = e.target.value; scheduleSave(); });
+
+
+
       // Add overlays
       function addOverlayFromDataURL(name, dataURL, natW, natH){
         const L = ensureOverlaysOnLayout(activeLayout());
@@ -80,7 +95,7 @@
         const o = {
           id: uid(), name: name || 'Overlay',
           dataURL: dataURL || '', natW: natW||0, natH: natH||0,
-          slabW: 126, slabH: 63, x:0, y:0, opacity:0.75, visible:true
+          slabW: 126, slabH: 63, x:0, y:0, opacity:1, visible:true
         };
         L.overlays.push(o);
         L.ovSel = L.overlays.length - 1;
@@ -369,13 +384,13 @@
           if (inOVH) inOVH.value = '';
           if (inOVX) inOVX.value = '';
           if (inOVY) inOVY.value = '';
-          if (inOVOP) inOVOP.value = 0.75;
+          if (inOVOP) inOVOP.value = 1;
         } else {
           inOVW && (inOVW.value  = o.slabW ?? 126);
           inOVH && (inOVH.value  = o.slabH ?? 63);
           inOVX && (inOVX.value  = o.x ?? 0);
           inOVY && (inOVY.value  = o.y ?? 0);
-          inOVOP&& (inOVOP.value = (o.opacity == null ? 0.75 : o.opacity));
+          inOVOP&& (inOVOP.value = (o.opacity == null ? 1 : o.opacity));
         }
 
         // Clip toggle reflects per-layout flag
@@ -803,7 +818,7 @@ function syncOverlayUI(){
   inOVH && (inOVH.value  = o.slabH ?? 63);
   inOVX && (inOVX.value  = o.x ?? 0);
   inOVY && (inOVY.value  = o.y ?? 0);
-  inOVOP&& (inOVOP.value = (o.opacity == null ? 0.75 : o.opacity));
+  inOVOP&& (inOVOP.value = (o.opacity == null ? 1 : o.opacity));
 
   if (btnOvT){
     const on = !!o.visible;
@@ -834,7 +849,7 @@ inOVY && (inOVY.onchange = e => {
 // opacity slider (live on input, commit on change)
 inOVOP && (inOVOP.oninput  = e => {
   const o = currentOverlay(); if(!o) return;
-  o.opacity = Math.max(0.1, Number(e.target.value||0.75)); draw();
+  o.opacity = Math.max(0.1, Number(e.target.value||1)); draw();
 });
 inOVOP && (inOVOP.onchange = ()=> { scheduleSave(); pushHistory(); });
 
@@ -1693,13 +1708,20 @@ if (window.svg2pdf) {
 
 
       function copyShareLink(){
-        const payload = makeSharePayloadAll();
+        // make sure the latest text from inputs is in state
+        if (inProject) state.projectName = (inProject.value || '').trim();
+        if (inDate)    state.projectDate = inDate.value || state.projectDate || todayISO();
+        if (typeof inNotes !== 'undefined' && inNotes) state.notes = inNotes.value || '';
+
+        const payload = snapshotState(); // full-app snapshot (all layouts + overlays)
         const hash = 'v2=' + LZString.compressToEncodedURIComponent(payload);
-        const url = location.origin + location.pathname + '#' + hash;
-        try { navigator.clipboard?.writeText(url); } catch(_){}
+        const url  = location.origin + location.pathname + '#' + hash;
+
+        try{ navigator.clipboard?.writeText(url); }catch(_){}
         window.history.replaceState(null, '', '#'+hash);
         alert('Share link saved to URL and copied to clipboard.');
       }
+
 
       // load from URL
       function tryLoadFromHash(){
@@ -1727,13 +1749,24 @@ if (window.svg2pdf) {
 
 
       const SAVE_KEY = 'litecad:v2';
+
       function exportApp(){
         return {
-          project: { name: state.projectName || '', date: state.projectDate || todayISO(), notes: state.notes || '' },
-          layouts: state.layouts, // includes per-layout overlays[]
-          ui: { showGrid: !!state.showGrid, showDims: !!state.showDims, showLabels: !!state.showLabels }
+          project: {
+            name: state.projectName || '',
+            date: state.projectDate || todayISO(),
+            notes: state.notes || ''
+          },
+          layouts: state.layouts,  // includes per-layout overlays[]
+          ui: {
+            showGrid:   !!state.showGrid,
+            showDims:   !!state.showDims,
+            showLabels: !!state.showLabels
+          },
+          active: state.active ?? 0
         };
       }
+
 
 
       let saveTimer = null;
@@ -1820,7 +1853,7 @@ function restore(){
       id: uid(), name: o.name || 'Overlay',
       dataURL: o.dataURL || '', natW: o.natW||0, natH: o.natH||0,
       slabW: o.slabW ?? 126, slabH: o.slabH ?? 63,
-      x: o.x||0, y:o.y||0, opacity: (o.opacity ?? 0.75),
+      x: o.x||0, y:o.y||0, opacity: (o.opacity ?? 1),
       visible: !!o.visible
     });
     L.ovSel = L.overlays.length - 1;
@@ -2015,7 +2048,7 @@ function restore(){
           im.setAttribute('x', xpx); im.setAttribute('y', ypx);
           im.setAttribute('width', wpx); im.setAttribute('height', hpx);
           im.setAttribute('preserveAspectRatio','none');
-          im.setAttribute('opacity', o.opacity == null ? 0.75 : o.opacity);
+          im.setAttribute('opacity', o.opacity == null ? 1 : o.opacity);
           g.appendChild(im);
         }
       }
@@ -3109,23 +3142,48 @@ if(btnAddLayout){
         const file = e.target.files && e.target.files[0];
         if(!file) return;
 
-        // show the chosen file name under the buttons
         if (importName) importName.textContent = file.name;
 
         const reader = new FileReader();
         reader.onload = () => {
           try{
             const parsed = JSON.parse(String(reader.result||''));
-            loadLayout(parsed);                // your existing loader
-            scheduleSave();                    // keep autosave state fresh
-            pushHistory(); 
-          }catch(err){
+
+            if (Array.isArray(parsed.layouts)) {
+              // full project
+              state.layouts = parsed.layouts.map(L => ({ ...L, id: L.id || uid() }));
+              state.active  = Number.isInteger(parsed.active) ? parsed.active : 0;
+              state.projectName = parsed.project?.name  || '';
+              state.projectDate = parsed.project?.date  || todayISO();
+              state.notes       = parsed.project?.notes || '';
+
+              if (inProject) inProject.value = state.projectName;
+              if (inDate)    inDate.value    = state.projectDate;
+              if (inNotes)   inNotes.value   = state.notes;
+
+              syncToolbarFromLayout();
+              renderLayouts(); renderList(); updateInspector();
+              sinksUI?.refresh?.(); draw();
+              renderOverlayList?.(); syncOverlayUI?.();
+              scheduleSave(); pushHistory(); syncTopBar?.();
+
+            } else {
+              // legacy single-layout file
+              loadLayout(parsed);
+              syncToolbarFromLayout?.();
+              renderLayouts?.(); renderList(); updateInspector();
+              sinksUI?.refresh?.(); draw();
+              renderOverlayList?.(); syncOverlayUI?.();
+              scheduleSave(); pushHistory(); syncTopBar?.();
+            }
+          }catch(_){
             alert('Failed to parse JSON');
           }
-          e.target.value='';                   // allow re-choosing same file later
+          e.target.value=''; // allow re-selecting same file later
         };
         reader.readAsText(file);
       };
+
 
       btnReset && (btnReset.onclick = ()=>{
         if(!confirm('Reset everything? This will delete all layouts and pieces and clear project name/date.')) return;
@@ -3155,9 +3213,15 @@ if(btnAddLayout){
 
       btnExportJSON.onclick = () => {
         if(!requireProjectName()) return;
-      const data = exportJSON();        const blob = new Blob([JSON.stringify(data,null,2)], {type:'application/json'});
-        const url = URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download=`${fileBase()}.json`; a.click(); URL.revokeObjectURL(url);
+        const data = exportApp();  // <-- full project (all layouts + overlays)
+        const blob = new Blob([JSON.stringify(data,null,2)], {type:'application/json'});
+        const url  = URL.createObjectURL(blob);
+        const a    = document.createElement('a');
+        a.href = url; a.download = `${fileBase()}.json`;
+        a.click();
+        URL.revokeObjectURL(url);
       };
+
 
       btnExportSVG.onclick = () => {
         if(!requireProjectName()) return;
