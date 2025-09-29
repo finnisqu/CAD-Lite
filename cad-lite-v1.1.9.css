@@ -548,3 +548,26 @@
 .lc-preset-row .lc-btn{ width: 100%; }
 .lc-overlay-grid .lc-ctl{ display: grid; grid-template-columns: 1fr; gap: 8px; }
 .lc-overlay-grid .lc-ctl .lc-btn{ width: 100%; }
+
+/* Keep label and % tidy above the slider */
+#insp-fill-pct{
+  margin-left: 8px;
+  opacity: .85;
+  font-variant-numeric: tabular-nums;
+}
+
+.lc-ov-list{
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+.lc-ov-row{
+  display:flex; align-items:center; gap:8px;
+  border:1px solid var(--border,#e5e7eb);
+  border-radius:8px; padding:6px 8px; background:#fff;
+}
+.lc-ov-row .ov-name{ flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.lc-ov-row .ov-actions{ display:flex; gap:6px; }
+.lc-ov-row.selected{ outline:2px solid var(--accent,#2563eb1a); }
+.lc-btn.xs{ height:26px; padding:0 8px; border-radius:8px; font-size:12px; }
