@@ -1845,6 +1845,11 @@ function scheduleSave(){
   }, 400);
 }
 
+// If you don’t want a stale share hash to load/linger across reloads:
+if (location.hash.startsWith('#v2=')) {
+  history.replaceState(null, '', location.pathname);  // drop stale snapshot
+}
+
 
 function restore(){
   try{
@@ -1924,7 +1929,13 @@ function restore(){
       syncTopBar();
 
 
-      window.addEventListener('beforeunload', ()=>{ try{ localStorage.setItem(SAVE_KEY, JSON.stringify(exportApp())); }catch(_){} });
+      // make sure the very latest state gets persisted
+      window.addEventListener('beforeunload', () => {
+        try {
+          clearTimeout(saveTimer);             // <— flush pending debounce
+          localStorage.setItem(SAVE_KEY, JSON.stringify(exportApp()));
+        } catch (_) {}
+      });
 
 
       // --- Text contrast helper ---
