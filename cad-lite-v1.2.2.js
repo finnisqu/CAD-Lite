@@ -51,6 +51,111 @@
         opacity: 1
       };
 
+      // ===== HELPERS GO HERE!! =====
+
+      // ---- PDF helper: load jsPDF on demand ----
+      function ensureJsPDF(){
+        return new Promise((resolve, reject)=>{
+          if (window.jspdf && window.jspdf.jsPDF) return resolve(window.jspdf.jsPDF);
+          const s = document.createElement('script');
+          s.src = 'https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js';
+          s.onload  = ()=> resolve(window.jspdf.jsPDF);
+          s.onerror = ()=> reject(new Error('Failed to load jsPDF'));
+          document.head.appendChild(s);
+        });
+      }
+
+      // ---- Export all layouts to a single multi-page PDF ----
+      async function exportAllLayoutsToPDF(){
+        const jsPDF = await ensureJsPDF();
+
+        const layouts = state.layouts || [];
+        if (!layouts.length){
+          alert('No layouts to export.');
+          return;
+        }
+
+        // remember the current view so we can restore it
+        const active0 = state.active;
+        const sel0    = state.selectedId;
+
+        let doc = null;
+        const pageFormat = 'letter';  // change to 'a4' if you prefer
+        const unit       = 'pt';
+        const margin     = 36;        // 0.5 inch (72pt = 1in)
+        const headerH    = 18;
+
+        for (let i = 0; i < layouts.length; i++){
+          // switch to layout i and render it
+          state.active = i;
+          syncToolbarFromLayout?.();
+          draw();
+
+          const serializer = new XMLSerializer();
+          const src = serializer.serializeToString(svg);
+
+          const W = +svg.getAttribute('width');   // px
+          const H = +svg.getAttribute('height');  // px
+
+          // rasterize SVG to a canvas for PDF embedding
+          const canvas = document.createElement('canvas');
+          canvas.width  = W;
+          canvas.height = H;
+          const ctx = canvas.getContext('2d');
+
+          await new Promise((res)=>{
+            const img = new Image();
+            img.onload = ()=>{ ctx.drawImage(img, 0, 0); res(); };
+            img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(src);
+          });
+
+          // JPEG keeps file size smaller than PNG for photos/overlays
+          const dataUrl = canvas.toDataURL('image/jpeg', 0.92);
+
+          // choose orientation to best fit the layout
+          const orientation = (W >= H) ? 'landscape' : 'portrait';
+
+          if (!doc){
+            doc = new jsPDF({ orientation, unit, format: pageFormat, compress: true });
+          } else {
+            doc.addPage(pageFormat, orientation);
+          }
+
+          const pageW = doc.internal.pageSize.getWidth();
+          const pageH = doc.internal.pageSize.getHeight();
+          const maxW  = pageW - margin*2;
+          const maxH  = pageH - margin*2 - headerH;
+
+          const scale = Math.min(maxW / W, maxH / H);
+          const imgW  = W * scale;
+          const imgH  = H * scale;
+          const x     = margin + (maxW - imgW)/2;
+          const y     = margin + headerH + (maxH - imgH)/2;
+
+          // header (layout name)
+          doc.setFontSize(12);
+          doc.text(String(layouts[i].name || `Layout ${i+1}`), margin, margin + 12);
+
+          // image
+          doc.addImage(dataUrl, 'JPEG', x, y, imgW, imgH);
+        }
+
+        // restore original view
+        state.active     = active0;
+        state.selectedId = sel0;
+        syncToolbarFromLayout?.();
+        draw();
+        renderLayouts?.();
+        renderList?.();
+        updateInspector?.();
+        sinksUI?.refresh?.();
+
+        // download
+        const filename = `${(state.projectName || 'Project').replace(/[^\w\-]+/g,'_')}_AllLayouts.pdf`;
+        doc.save(filename);
+      }
+
+
       // ===== Per-layout overlay helpers (place above init) =====
       function activeLayout(){ return state.layouts?.[state.active] || null; }
       function ensureOverlaysOnLayout(L){
@@ -872,6 +977,26 @@
         if (lblScale) lblScale.textContent = String(state.scale);
       }
 
+      // Canvas Toolbar Clip toggle
+      const btnClipTop = document.getElementById('btn-clip-top');
+
+      function syncClipTop(){
+        const L = ensureOverlaysOnLayout(activeLayout());
+        const on = !!(L && L.overlayClip);
+        if (!btnClipTop) return;
+        btnClipTop.textContent = on ? 'Clip to Pieces: On' : 'Clip to Pieces: Off';
+        btnClipTop.classList.toggle('alt', on);
+        btnClipTop.classList.toggle('ghost', !on);
+      }
+
+      btnClipTop && (btnClipTop.onclick = ()=>{
+        const L = ensureOverlaysOnLayout(activeLayout()); if (!L) return;
+        L.overlayClip = !L.overlayClip;
+        draw(); scheduleSave(); pushHistory();
+        syncClipTop();
+        syncOverlayUI?.();   // keeps the accordion UI in sync if it’s open
+      });
+
 
       // ===== Layering helpers =====
 
@@ -996,6 +1121,7 @@
       const inspector = document.getElementById('lc-inspector');
       const btnAdd = document.getElementById('lc-add');
 
+      const btnExportPDFAll = document.getElementById('btn-export-pdf-all');
       const btnExportJSON = document.getElementById('lc-export-json');
       const btnExportPNG  = document.getElementById('lc-export-png');
       const btnExportSVG  = document.getElementById('lc-export-svg');
@@ -1029,6 +1155,15 @@ function ensureJsPDF(){
     document.head.appendChild(s);
   });
 }
+
+btnExportPDFAll && (btnExportPDFAll.onclick = () => {
+  if (!requireProjectName()) return;
+  exportAllLayoutsToPDF().catch(err => {
+    console.error(err);
+    alert('PDF export failed. Please try again.');
+  });
+});
+
 
 btnExportPDF && (btnExportPDF.onclick = async () => {
   if (!requireProjectName()) return;
@@ -1418,7 +1553,7 @@ if (window.svg2pdf) {
 
           
 
-          // Row 2: 2×2 grid → Centerline, Setback, Rotation (0–180), Corner Radius
+          // Row 2: 2×2 grid → Centerline, Setback, Rotation (0–360), Corner Radius
           const row2 = el('div','row'); // this grid is 2 cols; 4 fields flow 2×2
           const cl = numInput(sink.centerline ?? 20, 0.125, 0);
           cl.oninput = ()=>{ sink.centerline = round3(cl.value); draw(); scheduleSave?.(); };
@@ -1426,8 +1561,8 @@ if (window.svg2pdf) {
           const setback = numInput(sink.setback ?? SINK_STANDARD_SETBACK, 0.125, 0);
           setback.oninput = ()=>{ sink.setback = clamp(round3(setback.value),0,999); draw(); scheduleSave?.(); };
 
-          const rot = numInput(sink.rotation||0, 1, 0, 180);
-          rot.oninput = ()=>{ sink.rotation = clamp(Math.round(rot.value||0),0,180); draw(); scheduleSave?.(); };
+          const rot = numInput(sink.rotation||0, 1, 0, 360);
+          rot.oninput = ()=>{ sink.rotation = clamp(Math.round(rot.value||0),0,360); draw(); scheduleSave?.(); };
 
           const rad = numInput(sink.cornerR ?? 0, 0.125, 0, 4);
           rad.oninput = ()=>{ sink.cornerR = clamp(round3(rad.value),0,4); draw(); scheduleSave?.(); };
@@ -2112,7 +2247,6 @@ function restore(){
           let rotRaw = Number(p.rotation||0);
           if (!Number.isFinite(rotRaw)) rotRaw = 0;
           let rot = ((rotRaw % 360) + 360) % 360;
-          rot = rot % 180;
           if (rot) gg.setAttribute('transform', `rotate(${rot}, ${cx}, ${cy})`);
 
           // main path
@@ -2778,12 +2912,12 @@ if(btnAddLayout){
         row4.className = 'lc-row2';
         row4.style.marginTop = '8px';
 
-        // Left column: Rotation number input (0–180)
+        // Left column: Rotation number input (0–360)
         const rotCol = document.createElement('label');
         rotCol.className = 'lc-label';
         rotCol.innerHTML = `
           Rotation (°)
-          <input id="insp-rot" type="number" min="0" max="180" step="1" class="lc-input" value="${p.rotation||0}">
+          <input id="insp-rot" type="number" min="0" max="360" step="1" class="lc-input" value="${p.rotation||0}">
         `;
         row4.appendChild(rotCol);
 
@@ -2820,7 +2954,7 @@ if(btnAddLayout){
         // Bind rotation input
         const rotInput = wrap.querySelector('#insp-rot');
         rotInput.oninput = (e)=>{
-          p.rotation = clamp(Math.round(Number(e.target.value)||0), 0, 180);
+          p.rotation = clamp(Math.round(Number(e.target.value)||0), 0, 360);
           clampToCanvas(p);
           draw();
         };
@@ -3132,7 +3266,7 @@ if(btnAddLayout){
                 side: s.side || 'front',
                 centerline: Number(s.centerline) || 20,
                 setback: Number(s.setback) || SINK_STANDARD_SETBACK,
-                rotation: clamp(Number(s.rotation) || 0, 0, 180),
+                rotation: clamp(Number(s.rotation) || 0, 0, 360),
                 faucets: Array.isArray(s.faucets) ? s.faucets.filter(n => Number.isFinite(n)).slice(0, 9) : []
               })) : []
             };
