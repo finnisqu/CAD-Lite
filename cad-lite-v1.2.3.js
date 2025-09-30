@@ -65,7 +65,7 @@
         });
       }
 
-      // ---- Export all layouts to a single multi-page PDF ----
+      // ---- Export ALL layouts to one PDF (includes Project Name/Date/Notes) ----
       async function exportAllLayoutsToPDF(){
         const jsPDF = await ensureJsPDF();
 
@@ -75,44 +75,49 @@
           return;
         }
 
-        // remember the current view so we can restore it
+        // snapshot current view to restore later
         const active0 = state.active;
         const sel0    = state.selectedId;
 
+        // sanitize helpers
+        const safe = s => String(s || '').trim();
+        const fileSafe = s => safe(s).replace(/[^\w\-]+/g, '_');
+
+        const projectName = safe(state.projectName) || 'Project';
+        const projectDate = safe(state.projectDate) || todayISO();
+        const projectNotes= safe(state.notes);
+
         let doc = null;
-        const pageFormat = 'letter';  // change to 'a4' if you prefer
+        const pageFormat = 'letter'; // or 'a4'
         const unit       = 'pt';
-        const margin     = 36;        // 0.5 inch (72pt = 1in)
-        const headerH    = 18;
+        const margin     = 36;       // 0.5"
+        const lineGap    = 4;        // spacing between header lines
 
         for (let i = 0; i < layouts.length; i++){
-          // switch to layout i and render it
+          // switch to layout i and render current canvas as-is
           state.active = i;
           syncToolbarFromLayout?.();
           draw();
 
+          // serialize SVG
           const serializer = new XMLSerializer();
           const src = serializer.serializeToString(svg);
 
           const W = +svg.getAttribute('width');   // px
           const H = +svg.getAttribute('height');  // px
 
-          // rasterize SVG to a canvas for PDF embedding
+          // rasterize to reduce PDF size and include overlays
           const canvas = document.createElement('canvas');
-          canvas.width  = W;
-          canvas.height = H;
+          canvas.width  = W; canvas.height = H;
           const ctx = canvas.getContext('2d');
-
-          await new Promise((res)=>{
+          await new Promise(res=>{
             const img = new Image();
             img.onload = ()=>{ ctx.drawImage(img, 0, 0); res(); };
             img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(src);
           });
-
-          // JPEG keeps file size smaller than PNG for photos/overlays
           const dataUrl = canvas.toDataURL('image/jpeg', 0.92);
 
-          // choose orientation to best fit the layout
+          // best orientation for the page
           const orientation = (W >= H) ? 'landscape' : 'portrait';
 
           if (!doc){
@@ -123,20 +128,43 @@
 
           const pageW = doc.internal.pageSize.getWidth();
           const pageH = doc.internal.pageSize.getHeight();
-          const maxW  = pageW - margin*2;
-          const maxH  = pageH - margin*2 - headerH;
 
+          // ----- Header (Project + Date + Notes + Layout name) -----
+          const headerX = margin;
+          let headerY   = margin;
+
+          // Top line: Project — Date
+          doc.setFontSize(12);
+          doc.setFont(undefined, 'bold');
+          doc.text(`${projectName} — ${projectDate}`, headerX, headerY);
+          headerY += 12 + lineGap;
+
+          // Layout name line
+          doc.setFont(undefined, 'normal');
+          doc.text(`Layout: ${safe(layouts[i].name) || `Layout ${i+1}`}`, headerX, headerY);
+          headerY += 12 + lineGap;
+
+          // Notes (wrapped, optional)
+          let headerH = headerY - margin;
+          if (projectNotes){
+            doc.setFontSize(10);
+            const wrapW = pageW - margin*2;
+            const lines = doc.splitTextToSize(projectNotes, wrapW);
+            doc.text(lines, headerX, headerY);
+            // estimate height from lines (approx 12pt per line)
+            headerH += lines.length * 12 + lineGap;
+            headerY += lines.length * 12 + lineGap;
+          }
+
+          // ----- Image fit -----
+          const maxW  = pageW - margin*2;
+          const maxH  = pageH - headerY - margin; // below the header
           const scale = Math.min(maxW / W, maxH / H);
           const imgW  = W * scale;
           const imgH  = H * scale;
           const x     = margin + (maxW - imgW)/2;
-          const y     = margin + headerH + (maxH - imgH)/2;
+          const y     = headerY + (maxH - imgH)/2;
 
-          // header (layout name)
-          doc.setFontSize(12);
-          doc.text(String(layouts[i].name || `Layout ${i+1}`), margin, margin + 12);
-
-          // image
           doc.addImage(dataUrl, 'JPEG', x, y, imgW, imgH);
         }
 
@@ -149,11 +177,13 @@
         renderList?.();
         updateInspector?.();
         sinksUI?.refresh?.();
+        syncClipTop?.();
 
-        // download
-        const filename = `${(state.projectName || 'Project').replace(/[^\w\-]+/g,'_')}_AllLayouts.pdf`;
+        // Download
+        const filename = `${fileSafe(projectName)}_${fileSafe(projectDate)}_AllLayouts.pdf`;
         doc.save(filename);
       }
+
 
 
       // ===== Per-layout overlay helpers (place above init) =====
@@ -940,6 +970,7 @@
           syncTopBar?.();
           renderOverlayList?.();   // <-- add
           syncOverlayUI?.();
+          syncClipTop?.(); 
         }
 
         function undo(){ if (history.index > 0){ history.index--; applySnapshot(history.stack[history.index]); } }
@@ -1849,6 +1880,7 @@ function restore(){
       syncTopBar?.();
       renderOverlayList?.();
       syncOverlayUI?.();
+      syncClipTop?.(); 
 
       return true;
     } else {
@@ -1862,6 +1894,7 @@ function restore(){
       syncTopBar?.();
       renderOverlayList?.();
       syncOverlayUI?.();
+      syncClipTop?.(); 
       return true;
     }
   } catch (_){
@@ -3413,6 +3446,7 @@ if(btnAddLayout){
       syncTopBar?.();
       renderOverlayList?.();
       syncOverlayUI?.();
+      syncClipTop?.(); 
 
       // Create/attach a Share button next to your export buttons (if not already in HTML)
       if (!document.getElementById('lc-share-link')){
