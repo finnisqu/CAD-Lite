@@ -1830,17 +1830,52 @@ if (window.svg2pdf) {
       }
 
 
-      (function boot() {
-        const loadedFromHash = tryLoadFromHash();
-        if (!loadedFromHash) {
-          restore();   // load autosave or defaults
+      // Point this at your Netlify site (or custom domain)
+      const SHARE_SERVICE_ORIGIN = "https://YOUR-NETLIFY-DOMAIN"; // e.g., https://share.yourdomain.com
+
+      async function shareShort() {
+        const snapshot = getSnapshot(); // your existing function
+        const res = await fetch(`${SHARE_SERVICE_ORIGIN}/api/share`, {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ snapshot }) // optional: { snapshot, ttlDays: 90 }
+        });
+
+        if (!res.ok) { alert('Share failed.'); return; }
+        const { id, url } = await res.json();
+
+        // Nice: copy short link and show it in the bar (optional)
+        await navigator.clipboard.writeText(url);
+        history.replaceState(null, '', `?id=${id}`); // keep your page, add id param
+        alert('Short link copied to clipboard.');
+      }
+
+      async function tryLoadFromIdParam() {
+        const id = new URL(location.href).searchParams.get('id');
+        if (!id) return false;
+
+        try {
+          const res = await fetch(`${SHARE_SERVICE_ORIGIN}/api/share?id=${encodeURIComponent(id)}`);
+          if (!res.ok) throw new Error(`Fetch failed: ${res.status}`);
+          const { snapshot } = await res.json();
+          applySnapshot(snapshot);  // your existing
           draw();
+          return true;
+        } catch (e) {
+          console.warn('Failed to load shared ID:', e);
+          return false;
         }
-        if (loadedFromHash) {
-          // Clean the URL only AFTER a successful load
-          history.replaceState(null, '', location.pathname);
+      }
+
+      // In your boot():
+      (async function boot(){
+        const ok = await tryLoadFromIdParam();
+        if (!ok) {
+          const loadedFromHash = tryLoadFromHash?.(); // keep hash-based links working
+          if (!loadedFromHash) { restore(); draw(); }
         }
       })();
+
 
       window.addEventListener('hashchange', ()=>{ tryLoadFromHash(); });
 
