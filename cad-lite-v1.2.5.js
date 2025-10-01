@@ -79,9 +79,6 @@
         const active0 = state.active;
         const sel0    = state.selectedId;
 
-        // One regex to recognize supported share hashes
-        const SHARE_HASH_RE = /^#v(1|2)=/;
-
         // sanitize helpers
         const safe = s => String(s || '').trim();
         const fileSafe = s => safe(s).replace(/[^\w\-]+/g, '_');
@@ -1771,52 +1768,52 @@ if (window.svg2pdf) {
         alert('Share link saved to URL and copied to clipboard.');
       }
 
+      // Recognize supported share-hash formats (#v1=..., #v2=...)
+      const SHARE_HASH_RE = /^#v(1|2)=/;
 
       // load from URL
       function tryLoadFromHash() {
         if (!SHARE_HASH_RE.test(location.hash)) return false;
         try {
-          const raw = location.hash.slice(1); // remove leading '#'
-          const [, payload] = raw.split('='); // v2=<payload>
+          const raw = location.hash.slice(1);           // "v2=xxxxx"
+          const [v, payload] = raw.split('=');
           const json = LZString.decompressFromEncodedURIComponent(payload);
           if (!json) throw new Error('Bad or empty share payload');
-          const snapshot = JSON.parse(json);
-          applySnapshot(snapshot);   // your existing function
-          draw();                    // force a render after applying
-          // Optionally persist so autosave takes over from here
-          localStorage.setItem('cadlite.autosave', JSON.stringify(snapshot));
-          return true;
+
+          // v2: full-app snapshot (preferred)
+          if (v === 'v2') {
+            const snapshot = JSON.parse(json);
+            applySnapshot(snapshot);
+            draw();
+            localStorage.setItem('cadlite.autosave', JSON.stringify(snapshot));
+            return true;
+          }
+
+          // v1: legacy single-layout payload (kept for backward compatibility)
+          if (v === 'v1') {
+            applySharePayload(json);
+            return true;
+          }
+
+          return false;
         } catch (e) {
           console.warn('Failed to load shared snapshot:', e);
           return false;
         }
       }
 
+
       (function boot() {
         const loadedFromHash = tryLoadFromHash();
         if (!loadedFromHash) {
-          // fall back to local autosave or defaults
-          restore(); // your existing restore() that pulls from localStorage
+          restore();   // load autosave or defaults
           draw();
         }
-
-        // If you still want to clean the URL, do it *after* successful load:
-        // (This avoids breaking the initial open while preventing stale re-loads.)
         if (loadedFromHash) {
-          // Keep the nice clean URL without the giant hash:
+          // Clean the URL only AFTER a successful load
           history.replaceState(null, '', location.pathname);
         }
       })();
-
-        // v1 (legacy single-layout) – backward compatible
-        m = h.match(/^#?v1=(.+)$/);
-        if (m){
-          const json = LZString.decompressFromEncodedURIComponent(m[1]);
-          if (json){ applySharePayload(json); return true; }
-        }
-
-        return false;
-      }
 
       window.addEventListener('hashchange', ()=>{ tryLoadFromHash(); });
 
