@@ -411,6 +411,33 @@
         }
       });
 
+
+    // Keyboard shortcuts: Undo/Redo  (Ctrl/Cmd+Z, Ctrl/Cmd+Y, Ctrl/Cmd+Shift+Z)
+    window.addEventListener('keydown', (e) => {
+      // Don’t hijack keys while typing in inputs
+      const ael = document.activeElement;
+      const tag = (ael && ael.tagName || '').toLowerCase();
+      if (tag === 'input' || tag === 'textarea' || tag === 'select' || (ael && ael.isContentEditable)) return;
+
+      if (!e.ctrlKey && !e.metaKey) return; // require Ctrl/Cmd
+      const k = (e.key || '').toLowerCase();
+
+      // Undo: Ctrl/Cmd+Z (no Shift)
+      if (k === 'z' && !e.shiftKey) {
+        e.preventDefault();
+        if (typeof canUndo === 'function' && canUndo()) undo();
+        return;
+      }
+
+      // Redo: Ctrl/Cmd+Y  OR  Ctrl/Cmd+Shift+Z
+      if ((k === 'y') || (k === 'z' && e.shiftKey)) {
+        e.preventDefault();
+        if (typeof canRedo === 'function' && canRedo()) redo();
+        return;
+      }
+    });
+
+
       // create first layout and map legacy props to "current layout"
       const uid = () => Math.random().toString(36).slice(2,9);
       function makeLayout(name){
@@ -2320,6 +2347,15 @@ function restore(){
             gg.appendChild(outline);
           }
 
+          // After you append the visible path to `gg`
+          const hit = document.createElementNS('http://www.w3.org/2000/svg','path');
+          hit.setAttribute('d', path.getAttribute('d'));
+          hit.setAttribute('fill', '#000');
+          hit.setAttribute('fill-opacity', '0.001'); // effectively invisible
+          hit.setAttribute('stroke', 'none');
+          hit.setAttribute('pointer-events', 'fill'); // only the interior
+          hit.setAttribute('class', 'lc-hitbox');
+          gg.appendChild(hit);
 
           // --- Sinks (inside rotated group)
           if (Array.isArray(p.sinks) && p.sinks.length){
