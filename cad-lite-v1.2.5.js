@@ -79,6 +79,9 @@
         const active0 = state.active;
         const sel0    = state.selectedId;
 
+        // One regex to recognize supported share hashes
+        const SHARE_HASH_RE = /^#v(1|2)=/;
+
         // sanitize helpers
         const safe = s => String(s || '').trim();
         const fileSafe = s => safe(s).replace(/[^\w\-]+/g, '_');
@@ -1176,17 +1179,6 @@
       const inspectorPanel= col2?.querySelector('.lc-card:nth-child(1)');  // Inspector (outer card)
       const importCard    = col2?.querySelector('.lc-card:nth-child(2)');  // Import/Export
 
-function ensureJsPDF(){
-  return new Promise((resolve,reject)=>{
-    if(window.jspdf && window.jspdf.jsPDF){ return resolve(window.jspdf.jsPDF); }
-    const s = document.createElement('script');
-    s.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
-    s.onload = ()=> resolve(window.jspdf.jsPDF);
-    s.onerror = ()=> reject(new Error('Failed to load jsPDF'));
-    document.head.appendChild(s);
-  });
-}
-
 btnExportPDFAll && (btnExportPDFAll.onclick = () => {
   if (!requireProjectName()) return;
   exportAllLayoutsToPDF().catch(err => {
@@ -1781,16 +1773,40 @@ if (window.svg2pdf) {
 
 
       // load from URL
-      function tryLoadFromHash(){
-        const h = String(location.hash || '');
-        if (!h) return false;
-
-        // v2 (full-app snapshot)
-        let m = h.match(/^#?v2=(.+)$/);
-        if (m){
-          const json = LZString.decompressFromEncodedURIComponent(m[1]);
-          if (json){ applySnapshot(json); return true; }
+      function tryLoadFromHash() {
+        if (!SHARE_HASH_RE.test(location.hash)) return false;
+        try {
+          const raw = location.hash.slice(1); // remove leading '#'
+          const [, payload] = raw.split('='); // v2=<payload>
+          const json = LZString.decompressFromEncodedURIComponent(payload);
+          if (!json) throw new Error('Bad or empty share payload');
+          const snapshot = JSON.parse(json);
+          applySnapshot(snapshot);   // your existing function
+          draw();                    // force a render after applying
+          // Optionally persist so autosave takes over from here
+          localStorage.setItem('cadlite.autosave', JSON.stringify(snapshot));
+          return true;
+        } catch (e) {
+          console.warn('Failed to load shared snapshot:', e);
+          return false;
         }
+      }
+
+      (function boot() {
+        const loadedFromHash = tryLoadFromHash();
+        if (!loadedFromHash) {
+          // fall back to local autosave or defaults
+          restore(); // your existing restore() that pulls from localStorage
+          draw();
+        }
+
+        // If you still want to clean the URL, do it *after* successful load:
+        // (This avoids breaking the initial open while preventing stale re-loads.)
+        if (loadedFromHash) {
+          // Keep the nice clean URL without the giant hash:
+          history.replaceState(null, '', location.pathname);
+        }
+      })();
 
         // v1 (legacy single-layout) – backward compatible
         m = h.match(/^#?v1=(.+)$/);
@@ -1844,12 +1860,6 @@ function scheduleSave(){
     }
   }, 400);
 }
-
-// If you don’t want a stale share hash to load/linger across reloads:
-if (location.hash.startsWith('#v2=')) {
-  history.replaceState(null, '', location.pathname);  // drop stale snapshot
-}
-
 
 function restore(){
   try{
