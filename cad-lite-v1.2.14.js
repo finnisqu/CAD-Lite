@@ -1009,6 +1009,8 @@
 
 
         function pushHistory(){
+          // If we came from a short link, detach now that the user has changed something
+          detachShareIdFromUrl();
           if (history.quiet) return;
           const snap = snapshotState(); if (!snap) return;
           if (history.stack[history.index] === snap) return; // dedupe
@@ -1907,6 +1909,10 @@ if (window.svg2pdf) {
         }
       }
 
+      // Track when the page was loaded from a short-link
+      let SHARE_ID_ATTACHED = false;
+
+      // Call this after you successfully load ?id=…
       async function tryLoadFromIdParam() {
         const id = new URL(location.href).searchParams.get('id');
         if (!id) return false;
@@ -1914,14 +1920,29 @@ if (window.svg2pdf) {
           const res = await fetch(`${SHARE_SERVICE_ORIGIN}/api/share?id=${encodeURIComponent(id)}`);
           if (!res.ok) throw new Error(`Fetch failed ${res.status}`);
           const { snapshot } = await res.json();
-          applySnapshot(snapshot); // your existing
+          applySnapshot(snapshot);
           draw();
+          SHARE_ID_ATTACHED = true;       // <-- mark attached
           return true;
         } catch (e) {
           console.warn('Share load failed:', e);
           return false;
         }
       }
+
+      // Helper: remove ?id from the address bar (pretty URL),
+      // so refresh uses autosave (localStorage) instead of reloading the share.
+      function detachShareIdFromUrl() {
+        if (!SHARE_ID_ATTACHED) return;
+        try {
+          const u = new URL(location.href);
+          u.searchParams.delete('id');
+          // IMPORTANT: use window.history to avoid your undo stack "history"
+          window.history.replaceState(null, '', u.toString());
+        } catch {}
+        SHARE_ID_ATTACHED = false;
+      }
+
 
       document.addEventListener('DOMContentLoaded', () => {
         const btn = document.getElementById('copy-share-link');
@@ -1965,6 +1986,7 @@ if (window.svg2pdf) {
       let saveTimer = null;
 
 function scheduleSave(){
+  detachShareIdFromUrl();    // Detach on any save
   clearTimeout(saveTimer);
   saveTimer = setTimeout(()=>{
     try{
