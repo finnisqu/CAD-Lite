@@ -453,6 +453,55 @@
         });
       });
 
+      // ==== Robust short-link wiring (works even if the button is added later) ====
+      window.SHARE_SERVICE_ORIGIN = 'https://copy-share-link.netlify.app';
+
+      // Make shareShort global and resilient
+      window.shareShort = window.shareShort || async function shareShort() {
+        try {
+          if (typeof getSnapshot !== 'function') throw new Error('getSnapshot() not found');
+          const snapshot = getSnapshot();
+
+          const res = await fetch(`${window.SHARE_SERVICE_ORIGIN}/api/share`, {
+            method: 'POST',
+            headers: { 'content-type': 'application/json' },
+            body: JSON.stringify({ snapshot })
+          });
+          if (!res.ok) throw new Error(`Share failed: ${res.status}`);
+          const { id, url } = await res.json();
+
+          // Copy and reflect ?id in the URL (optional)
+          try { await navigator.clipboard.writeText(url); } catch {}
+          const u = new URL(location.href); u.searchParams.set('id', id);
+          history.replaceState(null, '', u.toString());
+
+          alert('Short link copied:\n' + url);
+        } catch (e) {
+          console.warn('[shareShort] error:', e);
+          alert('Could not create share link.');
+        }
+      };
+
+      // Neutralize any legacy inline handler and route to short links
+      window.copyShareLink = function(ev) {
+        try { ev && ev.preventDefault && ev.preventDefault(); } catch {}
+        return window.shareShort();
+      };
+
+      // Event delegation: fires even if the button is inserted later
+      document.addEventListener('click', (e) => {
+        const btn = e.target && e.target.closest && e.target.closest('#copy-share-link');
+        if (!btn) return;
+        console.log('[copy-share-link] click'); // sanity log
+        e.preventDefault();
+        window.shareShort();
+      }, { passive: false });
+
+      // Safety: ensure the button isn’t disabled by CSS pointer-events
+      const style = document.createElement('style');
+      style.textContent = `#copy-share-link { pointer-events:auto; }`;
+      document.head.appendChild(style);
+
 
       // ------- Elements -------
       const svg = document.getElementById('lc-svg');
