@@ -473,7 +473,7 @@
           // Copy and reflect ?id in the URL (optional)
           try { await navigator.clipboard.writeText(url); } catch {}
           const u = new URL(location.href); u.searchParams.set('id', id);
-          history.replaceState(null, '', u.toString());
+          window.history.replaceState(null, '', u.toString());
 
           alert('Short link copied:\n' + url);
         } catch (e) {
@@ -1899,7 +1899,7 @@ if (window.svg2pdf) {
 
           try { await navigator.clipboard.writeText(url); } catch {}
           const u = new URL(location.href); u.searchParams.set('id', id);
-          history.replaceState(null, '', u.toString());
+          window.history.replaceState(null, '', u.toString());
           alert('Short link copied:\n' + url);
         } catch (e) {
           console.warn(e);
