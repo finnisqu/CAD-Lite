@@ -3545,16 +3545,6 @@ if(btnAddLayout){
       syncOverlayUI?.();
       syncClipTop?.(); 
 
-      // Create/attach a Share button next to your export buttons (if not already in HTML)
-      if (!document.getElementById('lc-share-link')){
-        const btnShare = document.createElement('button');
-        btnShare.id='lc-share-link'; btnShare.type='button';
-        btnShare.className='lc-btn alt'; btnShare.textContent='Copy Share Link';
-        btnShare.onclick = (e)=>{ e.preventDefault(); copyShareLink(); };
-        // Try to append beside JSON/SVG/PNG buttons:
-        (btnExportJSON?.parentElement || document.querySelector('.lc-toolbar') || document.body).appendChild(btnShare);
-      }
-
       // --- expose a minimal API for external modules (like the Sinks card) ---
       // (Always do this, regardless of restore())
       window.CADLITE = { state, svg, draw, scheduleSave, updateInspector };
