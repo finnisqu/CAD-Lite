@@ -1004,6 +1004,10 @@
           }catch(e){ console.warn('history snapshot failed:', e); return null; }
         }
 
+        // keep the API shape used by shareShort()
+        window.getSnapshot = () => snapshotState();
+
+
         function pushHistory(){
           if (history.quiet) return;
           const snap = snapshotState(); if (!snap) return;
