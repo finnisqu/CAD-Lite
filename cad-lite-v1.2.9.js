@@ -1831,50 +1831,58 @@ if (window.svg2pdf) {
 
 
       // Point this at your Netlify site (or custom domain)
-      const SHARE_SERVICE_ORIGIN = "https://YOUR-NETLIFY-DOMAIN"; // e.g., https://share.yourdomain.com
+      const SHARE_SERVICE_ORIGIN = 'https://copy-share-link.netlify.app';
 
       async function shareShort() {
-        const snapshot = getSnapshot(); // your existing function
-        const res = await fetch(`${SHARE_SERVICE_ORIGIN}/api/share`, {
-          method: 'POST',
-          headers: { 'content-type': 'application/json' },
-          body: JSON.stringify({ snapshot }) // optional: { snapshot, ttlDays: 90 }
-        });
+        try {
+          const snapshot = getSnapshot(); // your existing app-state function
+          const res = await fetch(`${SHARE_SERVICE_ORIGIN}/api/share`, {
+            method: 'POST',
+            headers: { 'content-type': 'application/json' },
+            body: JSON.stringify({ snapshot })
+          });
+          if (!res.ok) throw new Error(`Share failed ${res.status}`);
+          const { id, url } = await res.json();
 
-        if (!res.ok) { alert('Share failed.'); return; }
-        const { id, url } = await res.json();
-
-        // Nice: copy short link and show it in the bar (optional)
-        await navigator.clipboard.writeText(url);
-        history.replaceState(null, '', `?id=${id}`); // keep your page, add id param
-        alert('Short link copied to clipboard.');
+          try { await navigator.clipboard.writeText(url); } catch {}
+          const u = new URL(location.href); u.searchParams.set('id', id);
+          history.replaceState(null, '', u.toString());
+          alert('Short link copied:\n' + url);
+        } catch (e) {
+          console.warn(e);
+          alert('Could not create share link.');
+        }
       }
 
       async function tryLoadFromIdParam() {
         const id = new URL(location.href).searchParams.get('id');
         if (!id) return false;
-
         try {
           const res = await fetch(`${SHARE_SERVICE_ORIGIN}/api/share?id=${encodeURIComponent(id)}`);
-          if (!res.ok) throw new Error(`Fetch failed: ${res.status}`);
+          if (!res.ok) throw new Error(`Fetch failed ${res.status}`);
           const { snapshot } = await res.json();
-          applySnapshot(snapshot);  // your existing
+          applySnapshot(snapshot); // your existing
           draw();
           return true;
         } catch (e) {
-          console.warn('Failed to load shared ID:', e);
+          console.warn('Share load failed:', e);
           return false;
         }
       }
 
-      // In your boot():
+      document.addEventListener('DOMContentLoaded', () => {
+        const btn = document.getElementById('copy-share-link');
+        if (btn) btn.addEventListener('click', (e) => { e.preventDefault(); shareShort(); });
+      });
+
       (async function boot(){
         const ok = await tryLoadFromIdParam();
         if (!ok) {
-          const loadedFromHash = tryLoadFromHash?.(); // keep hash-based links working
-          if (!loadedFromHash) { restore(); draw(); }
+          const fromHash = typeof tryLoadFromHash === 'function' && tryLoadFromHash();
+          if (!fromHash) { restore(); draw(); }
         }
       })();
+
 
 
       window.addEventListener('hashchange', ()=>{ tryLoadFromHash(); });
