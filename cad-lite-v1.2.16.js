@@ -56,6 +56,38 @@
 
       // ===== HELPERS GO HERE!! =====
 
+      // === Header offset helper (Squarespace) ===
+      function setHeaderOffsetVar() {
+        // Try the common Squarespace header nodes
+        const header =
+          document.querySelector('[data-animation-role="header"]') ||
+          document.querySelector('.Header') ||
+          document.querySelector('header');
+
+        const h = header ? Math.round(header.getBoundingClientRect().height) : 0;
+        document.documentElement.style.setProperty('--site-header-h', h + 'px');
+      }
+
+      // Debounce (so we don't thrash on scroll/resize)
+      let _hoffTimer;
+      function _debouncedHeaderOffset() {
+        clearTimeout(_hoffTimer);
+        _hoffTimer = setTimeout(setHeaderOffsetVar, 80);
+      }
+
+      // Run on load and as layout changes
+      window.addEventListener('DOMContentLoaded', setHeaderOffsetVar);
+      window.addEventListener('resize', _debouncedHeaderOffset);
+      window.addEventListener('scroll', _debouncedHeaderOffset);
+
+      // If Squarespace manipulates the header after load, watch mutations
+      const hdrRoot = document.querySelector('body');
+      if (hdrRoot && window.MutationObserver) {
+        const mo = new MutationObserver(_debouncedHeaderOffset);
+        mo.observe(hdrRoot, { childList: true, subtree: true, attributes: true });
+      }
+
+
       // ---- PDF helper: load jsPDF on demand ----
       function ensureJsPDF(){
         return new Promise((resolve, reject)=>{
