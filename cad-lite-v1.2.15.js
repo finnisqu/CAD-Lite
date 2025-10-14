@@ -16,6 +16,9 @@
         showLabels: true,
       };
 
+      // Squarespace gallery page that holds your curated slab images
+      const SLAB_COLLECTION_PATH = '/stone-colors';
+
       // Downscale a dataURL to fit within maxDim, re-encode as JPEG to save space.
       function downscaleDataURL(srcDataURL, maxDim = 1600, quality = 0.82){
         return new Promise((resolve, reject)=>{
@@ -206,6 +209,213 @@
         L.ovSel = (i>=0 && i < L.overlays.length) ? i : -1;
         renderOverlayList?.(); syncOverlayUI?.();
       }
+
+      // Fetch all items from a Squarespace collection page as { name, url }
+      async function fetchSquarespaceSlabs(collectionPath = SLAB_COLLECTION_PATH) {
+        const base = new URL(collectionPath, location.origin);
+        const pageSize = 20; // Squarespace paginates at 20 items
+        let offset = 0;
+        const out = [];
+
+        while (true) {
+          const url = new URL(base.href);
+          url.searchParams.set('format', 'json');
+          url.searchParams.set('offset', String(offset));
+
+          const res = await fetch(url.href, { cache: 'no-store' });
+          if (!res.ok) throw new Error(`Squarespace JSON ${res.status}`);
+          const data = await res.json();
+
+          const items = data.items || [];
+          for (const it of items) {
+            if (it && it.assetUrl) {
+              out.push({
+                name: String(it.title || 'Untitled Slab'),
+                // Optional: ask SS CDN for optimized size
+                url: it.assetUrl + '?format=1500w'
+              });
+            }
+          }
+          if (items.length < pageSize) break; // no more pages
+          offset += pageSize;
+        }
+        return out;
+      }
+
+      // Elements
+      const slabModal = document.getElementById('slabModal');
+      const slabGrid = document.getElementById('slabGrid');
+      const slabSearch = document.getElementById('slabSearch');
+      const slabInsertBtn = document.getElementById('slabInsert');
+      const slabCount = document.getElementById('slabCount');
+      const openLibBtn = document.getElementById('ov-lib-photo');
+
+      let slabCache = [];      // [{name, url}]
+      let slabFiltered = [];   // current filter result
+      let slabSelectedIndex = -1;
+
+      // Open/close
+      function openSlabModal() {
+        slabModal.setAttribute('aria-hidden', 'false');
+        document.body.style.overflow = 'hidden';
+        // First-time load
+        if (!slabCache.length) loadSlabLibrary().catch(err => {
+          console.error(err);
+          alert('Could not load slab library.');
+          closeSlabModal();
+        });
+        // Focus search
+        setTimeout(() => slabSearch?.focus(), 0);
+      }
+      function closeSlabModal() {
+        slabModal.setAttribute('aria-hidden', 'true');
+        document.body.style.overflow = '';
+        slabClearSelection();
+      }
+
+      // Loader used by the "Choose from Library" button
+      async function loadSlabLibrary() {
+        slabCache = await fetchSquarespaceSlabs(SLAB_COLLECTION_PATH);
+        applyFilter(''); // re-renders the grid
+      }
+
+
+      // Render
+      function applyFilter(q) {
+        const term = (q || '').trim().toLowerCase();
+        slabFiltered = term
+          ? slabCache.filter(s => s.name.toLowerCase().includes(term))
+          : slabCache.slice();
+
+        slabGrid.innerHTML = '';
+        slabFiltered.forEach((s, i) => {
+          const card = document.createElement('div');
+          card.className = 'slab-card';
+          card.dataset.index = String(i);
+          card.tabIndex = 0;
+
+          const wrap = document.createElement('div');
+          wrap.className = 'slab-card__imgwrap';
+          const img = new Image();
+          img.loading = 'lazy';
+          img.decoding = 'async';
+          img.src = s.url;
+          img.alt = s.name;
+          wrap.appendChild(img);
+
+          const name = document.createElement('div');
+          name.className = 'slab-card__name';
+          name.textContent = s.name;
+
+          card.appendChild(wrap);
+          card.appendChild(name);
+          slabGrid.appendChild(card);
+        });
+
+        slabCount.textContent = `${slabFiltered.length} item${slabFiltered.length === 1 ? '' : 's'}`;
+        slabClearSelection();
+      }
+
+      // Selection helpers
+      function slabClearSelection() {
+        slabSelectedIndex = -1;
+        [...slabGrid.children].forEach(el => el.classList.remove('is-selected'));
+        slabInsertBtn.disabled = true;
+      }
+      function selectIndex(idx, scrollIntoView = false) {
+        if (idx < 0 || idx >= slabFiltered.length) return;
+        slabSelectedIndex = idx;
+        [...slabGrid.children].forEach(el => el.classList.remove('is-selected'));
+        const card = slabGrid.children[idx];
+        if (card) {
+          card.classList.add('is-selected');
+          slabInsertBtn.disabled = false;
+          if (scrollIntoView) card.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+        }
+      }
+      function moveSelection(delta) {
+        const len = slabFiltered.length;
+        if (!len) return;
+        const next = slabSelectedIndex < 0 ? 0 : Math.max(0, Math.min(len - 1, slabSelectedIndex + delta));
+        selectIndex(next, true);
+      }
+
+      // Insert into overlays
+      function insertSelected() {
+        if (slabSelectedIndex < 0) return;
+        const { url, name } = slabFiltered[slabSelectedIndex];
+        addOverlaySafe(url, name);
+        closeSlabModal();
+      }
+
+      // Wire up open
+      openLibBtn?.addEventListener('click', openSlabModal);
+
+      // Close handlers
+      slabModal.addEventListener('click', (e) => {
+        const target = e.target;
+        if (target.matches('[data-close]')) closeSlabModal();
+      });
+
+      // Search (debounced)
+      let searchTimer = null;
+      slabSearch?.addEventListener('input', (e) => {
+        clearTimeout(searchTimer);
+        searchTimer = setTimeout(() => applyFilter(e.target.value), 120);
+      });
+
+      // Grid click / keyboard
+      slabGrid.addEventListener('click', (e) => {
+        const card = e.target.closest('.slab-card');
+        if (!card) return;
+        selectIndex(Number(card.dataset.index));
+      });
+
+      slabGrid.addEventListener('dblclick', (e) => {
+        const card = e.target.closest('.slab-card');
+        if (!card) return;
+        selectIndex(Number(card.dataset.index));
+        insertSelected();
+      });
+
+      slabGrid.addEventListener('keydown', (e) => {
+        if (!slabFiltered.length) return;
+        switch (e.key) {
+          case 'ArrowRight': e.preventDefault(); moveSelection(+1); break;
+          case 'ArrowLeft':  e.preventDefault(); moveSelection(-1); break;
+          case 'ArrowDown':  e.preventDefault(); moveSelection(+4); break; // approx row jump
+          case 'ArrowUp':    e.preventDefault(); moveSelection(-4); break;
+          case 'Enter':      e.preventDefault(); insertSelected(); break;
+        }
+      });
+
+      // Global keys
+      document.addEventListener('keydown', (e) => {
+        if (slabModal.getAttribute('aria-hidden') === 'true') return;
+        if (e.key === 'Escape') closeSlabModal();
+      });
+
+      // Footer buttons
+      slabInsertBtn.addEventListener('click', insertSelected);
+
+      // ---- Safe overlay adder (uses your existing overlay stack if present) ----
+      function addOverlaySafe(url, name = 'Overlay') {
+        if (typeof addOverlay === 'function') {
+          addOverlay(url, name);
+          return;
+        }
+        // fallback if your app uses a different overlay path
+        const img = new Image();
+        img.src = url;
+        img.onload = () => {
+          // Expecting these in your app; adjust if needed:
+          window.overlays = window.overlays || [];
+          window.overlays.push({ name, url, img, visible: true, x: 0, y: 0, w: 126, h: 63, opacity: 0.75 });
+          if (typeof renderOverlayList === 'function') renderOverlayList();
+          if (typeof drawCanvas === 'function') drawCanvas();
+        };
+      }
+
 
       // Add overlays
       function addOverlayFromDataURL(name, dataURL, natW, natH){
@@ -1883,10 +2093,6 @@ if (window.svg2pdf) {
           return false;
         }
       }
-
-
-      // Point this at your Netlify site (or custom domain)
-      const SHARE_SERVICE_ORIGIN = 'https://copy-share-link.netlify.app';
 
       async function shareShort() {
         try {
