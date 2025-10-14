@@ -746,3 +746,18 @@
   .slab-modal__dialog { margin: 0; max-width: none; width: 100vw; height: 100vh; border-radius: 0; }
   .slab-grid { grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); }
 }
+
+/* Header offset (tweak default as needed) */
+:root { --site-header-h: 72px; }
+
+/* Move the whole modal area below the header */
+.slab-modal { position: fixed; left: 0; right: 0; top: var(--site-header-h); bottom: 0; }
+
+/* Backdrop should also start below the header */
+.slab-modal__backdrop { position: absolute; left: 0; right: 0; top: 0; bottom: 0; }
+
+/* Pull dialog down a little (visual breathing room) */
+.slab-modal__dialog { margin-top: 2vh; }
+
+/* Ensure it doesn’t sit above the Squarespace header */
+.slab-modal { z-index: 900; } /* Most SQSP headers are 1000+ */
