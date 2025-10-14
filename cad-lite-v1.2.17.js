@@ -242,37 +242,127 @@
         renderOverlayList?.(); syncOverlayUI?.();
       }
 
-      // Fetch all items from a Squarespace collection page as { name, url }
+      // Robust Squarespace page/section → [{name,url}]
       async function fetchSquarespaceSlabs(collectionPath = SLAB_COLLECTION_PATH) {
         const base = new URL(collectionPath, location.origin);
-        const pageSize = 20; // Squarespace paginates at 20 items
-        let offset = 0;
+        const pageSize = 20;
         const out = [];
 
+        // helper: normalize image items
+        const pickItems = (items) => {
+          const rows = [];
+          for (const it of items || []) {
+            const name =
+              it?.title ||
+              it?.heading ||
+              it?.seoTitle ||
+              it?.captionPlain ||
+              (it?.metadata && it.metadata.title) ||
+              'Untitled Slab';
+
+            const rawUrl =
+              it?.assetUrl ||
+              it?.imageUrl ||
+              it?.mediaUrl ||
+              (it?.asset && it.asset.url) ||
+              (it?.image && (it.image.assetUrl || it.image.url)) ||
+              it?.posterImageUrl ||
+              it?.thumbUrl ||
+              null;
+
+            if (rawUrl) {
+              const u = String(rawUrl);
+              rows.push({
+                name: String(name),
+                url: u + (u.includes('?') ? '&' : '?') + 'format=1500w'
+              });
+            }
+          }
+          return rows;
+        };
+
+        // helper: extract <img> from an HTML string
+        const extractFromHtml = (html) => {
+          const doc = new DOMParser().parseFromString(html, 'text/html');
+          const imgs = [...doc.querySelectorAll(
+            'img[data-src], img[data-image], img[data-image-dimensions], .gallery-item img, img.sqs-image, img'
+          )];
+          const results = [];
+          for (const img of imgs) {
+            const raw = img.getAttribute('data-src') || img.getAttribute('src') || '';
+            if (!raw) continue;
+            if (/\.(svg|gif)$/i.test(raw)) continue; // skip icons/spacers
+
+            // name: prefer alt, else filename
+            const alt = (img.getAttribute('alt') || '').trim();
+            const fileName = raw.split('/').pop()?.split('?')[0] || '';
+            const baseName = decodeURIComponent(fileName.replace(/\.[a-z0-9]+$/i, ''));
+            const name = alt || baseName || 'Untitled Slab';
+
+            const abs = raw.startsWith('http') ? raw : new URL(raw, location.origin).href;
+            results.push({ name, url: abs + (abs.includes('?') ? '&' : '?') + 'format=1500w' });
+          }
+          // de-dup by URL
+          const seen = new Set();
+          return results.filter(r => (seen.has(r.url) ? false : (seen.add(r.url), true)));
+        };
+
+        // Pass 1: JSON endpoint (?format=json) — try items[] AND mainContent
+        let offset = 0;
         while (true) {
           const url = new URL(base.href);
           url.searchParams.set('format', 'json');
           url.searchParams.set('offset', String(offset));
+          url.searchParams.set('_', Date.now().toString()); // avoid cache quirks
 
           const res = await fetch(url.href, { cache: 'no-store' });
-          if (!res.ok) throw new Error(`Squarespace JSON ${res.status}`);
+          if (!res.ok) break;
           const data = await res.json();
 
-          const items = data.items || [];
-          for (const it of items) {
-            if (it && it.assetUrl) {
-              out.push({
-                name: String(it.title || 'Untitled Slab'),
-                // Optional: ask SS CDN for optimized size
-                url: it.assetUrl + '?format=1500w'
-              });
-            }
+          // Try collection-like shapes first
+          let items = [];
+          if (Array.isArray(data.items)) items = data.items;
+          else if (Array.isArray(data.collection?.items)) items = data.collection.items;
+          else if (Array.isArray(data.items?.map?.(x => x.item))) items = data.items.map(x => x.item);
+
+          const picked = pickItems(items);
+          out.push(...picked);
+
+          // Also parse page HTML if present
+          if (data.mainContent && typeof data.mainContent === 'string') {
+            const rows = extractFromHtml(data.mainContent);
+            out.push(...rows);
           }
-          if (items.length < pageSize) break; // no more pages
+
+          // Stop paginating if it isn't a true collection or we didn't get a full page
+          if (!Array.isArray(items) || items.length < pageSize) break;
           offset += pageSize;
         }
-        return out;
+
+        if (out.length) {
+          console.info('[Slab Library] Loaded', out.length, 'items from JSON/mainContent at', base.href);
+          return out;
+        }
+
+        // Pass 2: Fallback — fetch rendered HTML and parse <img>
+        try {
+          const htmlRes = await fetch(base.href, { cache: 'no-store' });
+          if (htmlRes.ok) {
+            const html = await htmlRes.text();
+            const rows = extractFromHtml(html);
+            if (rows.length) {
+              console.info('[Slab Library] Loaded', rows.length, 'items from rendered HTML at', base.href);
+              return rows;
+            }
+          }
+        } catch (e) {
+          console.warn('[Slab Library] HTML fallback failed:', e);
+        }
+
+        console.warn('[Slab Library] No images found at', base.href, '— ensure the page actually contains image blocks or a gallery/section.');
+        return [];
       }
+
 
       // Elements
       const slabModal = document.getElementById('slabModal');
