@@ -31,6 +31,7 @@
                 <div class="lc-ov-head lc-ctl" style="margin-bottom:8px;">
                   <button class="lc-btn alt sm" id="ov-add-photo" type="button">Add Overlay</button>
                   <input id="ov-add-input" type="file" accept="image/*" hidden>
+                  <button class="lc-btn sm" id="ov-lib-photo" type="button">Choose from Library</button>
                   <div class="lc-small" id="ov-add-hint" style="opacity:.75;"></div>
                 </div>
 
@@ -86,6 +87,13 @@
         </div>
         <div id="lc-list" class="lc-list"></div>
       </div>
+      <div class="lc-card">
+        <div class="lc-card-head">
+          <h3>Dimensions</h3>
+        </div>
+        <div id="lc-dim-list" class="lc-list"></div>
+      </div>
+
     </div>
 
     <!-- Col 2: Inspector + Import/Export -->
@@ -107,16 +115,21 @@
           <button class="lc-btn alt" id="lc-export-png" type="button">PNG</button>
           <button class="lc-btn alt" id="lc-export-svg" type="button">SVG</button>
           <button class="lc-btn alt" id="lc-export-json" type="button">JSON</button>
+          <button class="lc-btn alt" id="copy-share-link" type="button" title="Copy a short link to this layout">Copy Share Link</button>
         </div>
 
         <div class="lc-subhead">Import</div>
         <div class="lc-export-grid"><!-- reuse the same 2x2 grid class -->
           <button class="lc-btn alt" id="lc-load-starter" type="button">Starter Layout</button>
           <button class="lc-btn alt" id="lc-import-btn" type="button">JSON</button>
-          <button class="lc-btn red" id="lc-reset" type="button" style="grid-column: 1 / -1;">Reset</button>
         </div>
+        <hr>
         <input id="lc-import" type="file" accept=".json,application/json" style="display:none" />
         <div id="lc-import-name" class="lc-label"></div>
+        <hr>
+        <div class="lc-export-grid"><!-- reuse the same 2x2 grid class -->
+          <button class="lc-btn red" id="lc-reset" type="button" style="grid-column: 1 / -1;">Reset</button>
+        </div>
 
       </div>
 
@@ -161,12 +174,20 @@
 
           <!-- 2×2: Show/Hide toggles -->
           <div class="lc-2x2">
-            <button class="lc-btn ghost big" id="lc-toggle-labels" type="button">Show Labels</button>
-            <button class="lc-btn ghost big" id="lc-toggle-dims"   type="button">Show Dimensions</button>
-            <button class="lc-btn ghost big" id="lc-toggle-grid"   type="button">Show Grid</button>
-            <button class="lc-btn ghost big" id="btn-clip-top" type="button">Clip to Pieces: Off</button>
+            <button class="lc-btn ghost big" id="lc-toggle-labels"      type="button">Show Labels</button>
+            <button class="lc-btn ghost big" id="lc-toggle-dims"        type="button">Show Piece Dims</button>
+            <button class="lc-btn ghost big" id="lc-toggle-manual-dims" type="button">Show Manual Dims</button>
+            <button class="lc-btn ghost big" id="lc-toggle-grid"        type="button">Show Grid</button>
+            <button class="lc-btn ghost big" id="btn-clip-top"          type="button">Clip to Pieces: Off</button>
             <div class="lc-ctl"><!-- spacer --></div>
           </div>
+
+          <div class="lc-ctl" style="margin-top:6px;">
+            <button class="lc-btn ghost big" id="lc-dim-tool" type="button">
+              Dim Tool: Off
+            </button>
+          </div>
+
         </div>
 
         <div class="lc-top"><div id="lc-meta">Canvas: —</div></div>
@@ -175,4 +196,29 @@
         </div>
       </div>
     </div>
+    <!-- NEW: Slab Library Modal -->
+    <div id="slabModal" class="slab-modal" role="dialog" aria-modal="true" aria-labelledby="slabModalTitle" aria-hidden="true">
+      <div class="slab-modal__backdrop" data-close></div>
+      <div class="slab-modal__dialog" role="document">
+        <header class="slab-modal__header">
+          <h3 id="slabModalTitle">Select a Slab</h3>
+          <button class="slab-modal__close" type="button" title="Close" data-close>&times;</button>
+        </header>
+
+        <div class="slab-modal__tools">
+          <input id="slabSearch" type="search" class="lc-input" placeholder="Search slabs by name…">
+          <div class="slab-count" id="slabCount">0 items</div>
+        </div>
+
+        <div class="slab-grid" id="slabGrid" tabindex="0" aria-label="Slab choices (arrow keys to navigate)">
+          <!-- Thumbnails injected here -->
+        </div>
+
+        <footer class="slab-modal__footer">
+          <button class="lc-btn" id="slabInsert" type="button" disabled>Add to Canvas</button>
+          <button class="lc-btn alt" type="button" data-close>Cancel</button>
+        </footer>
+      </div>
+    </div>
+
   </div>
