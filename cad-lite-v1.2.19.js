@@ -3830,18 +3830,24 @@ if(btnAddLayout){
       if (!L) return;
       if (!Array.isArray(L.dims)) L.dims = [];
 
-      // Convert click to SVG px, then to inches
-      const pt = svgPoint(e);
-      const raw = { x: p2i(pt.x), y: p2i(pt.y) };
-      const snapped = snapDimPoint(raw);
-
       // If click landed on an existing dimension, don't create a new one;
       // that click will be used to select the dim instead.
-      if (e.target.closest('g[data-dimid]')) return;
+      if (e.target.closest && e.target.closest('g[data-dimid]')) return;
+
+      // Convert click to SVG px, then to inches
+      const pt = svgPoint(e);
+      if (!pt) return; // safety
+
+      const raw = { x: p2i(pt.x), y: p2i(pt.y) };
+
+      // Try to snap to a nearby corner/edge; if nothing close, use raw point
+      let snapped = snapDimPoint(raw);
+      if (!snapped) snapped = raw;
 
       if (!dimTempStart) {
         // First point
         dimTempStart = snapped;
+        state.selectedDimId = null;
       } else {
         // Second point => create a dimension
         const d = {
@@ -3863,6 +3869,7 @@ if(btnAddLayout){
 
       e.stopPropagation();
     });
+
 
 
 
