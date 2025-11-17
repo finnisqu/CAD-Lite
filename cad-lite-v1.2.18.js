@@ -7,14 +7,18 @@
         notes: '',
         // multi-layout support
         layouts: [],
-        active: 0,          // index into layouts[]
+        active: 0,
         selectedId: null,
-        selectedIds: [],    // NEW: multi-selection
-        lastSelIndex: -1,   // NEW: for Shift-range in the list
+        selectedIds: [],
+        lastSelIndex: -1,
         drag: null,
-        showDims: false,
+        showDims: false,        // per-piece dims
+        showManualDims: true,   // NEW: manual dims visibility
         showLabels: true,
+        selectedDimId: null
       };
+
+
 
       // Squarespace gallery page that holds your curated slab images
       const SLAB_COLLECTION_PATH = '/stone-colors';
@@ -705,36 +709,64 @@
       }
       function clearSelection(){ setSelection([]); }
 
-      window.addEventListener('keydown', (e)=>{
+      // 1) Manual dimension deletion
+      window.addEventListener('keydown', (e) => {
         const ael = document.activeElement;
         const tag = (ael && ael.tagName || '').toLowerCase();
-        if(tag==='input' || tag==='textarea' || tag==='select' || (ael && ael.isContentEditable)) return;
+        if (tag === 'input' || tag === 'textarea' || tag === 'select' || (ael && ael.isContentEditable)) return;
 
-        // NEW: figure out targets (multi or single)
+        if (e.key !== 'Delete' && e.key !== 'Backspace') return;
+
+        const L = cur();
+        if (!L || !Array.isArray(L.dims)) return;
+        if (!state.selectedDimId) return;
+
+        const idx = L.dims.findIndex(d => d.id === state.selectedDimId);
+        if (idx === -1) return;
+
+        L.dims.splice(idx, 1);
+        state.selectedDimId = null;
+
+        draw();
+        renderDimList();
+        scheduleSave();
+        pushHistory();
+
+        e.preventDefault();
+      });
+
+      // 2) Arrow keys move selected pieces
+      window.addEventListener('keydown', (e) => {
+        const ael = document.activeElement;
+        const tag = (ael && ael.tagName || '').toLowerCase();
+        if (tag === 'input' || tag === 'textarea' || tag === 'select' || (ael && ael.isContentEditable)) return;
+
         const targets = state.selectedIds.length
-          ? state.pieces.filter(p=>state.selectedIds.includes(p.id))
-          : (state.selectedId ? [state.pieces.find(x=>x.id===state.selectedId)].filter(Boolean) : []);
+          ? state.pieces.filter(p => state.selectedIds.includes(p.id))
+          : (state.selectedId ? [state.pieces.find(x => x.id === state.selectedId)].filter(Boolean) : []);
 
-        if(!targets.length) return;
+        if (!targets.length) return;
 
-        let dx=0, dy=0;
+        let dx = 0, dy = 0;
         const step = (e.shiftKey ? 4 : 1) * state.grid;
-        if(e.key==='ArrowLeft')  dx = -step;
-        else if(e.key==='ArrowRight') dx =  step;
-        else if(e.key==='ArrowUp')    dy = -step;
-        else if(e.key==='ArrowDown')  dy =  step;
+        if (e.key === 'ArrowLeft')      dx = -step;
+        else if (e.key === 'ArrowRight') dx = step;
+        else if (e.key === 'ArrowUp')    dy = -step;
+        else if (e.key === 'ArrowDown')  dy = step;
         else return;
 
         e.preventDefault();
 
-        targets.forEach(p=>{
+        targets.forEach(p => {
           const rs = realSize(p);
           p.x = clamp(snap(p.x + dx, state.grid), 0, state.cw - rs.w);
           p.y = clamp(snap(p.y + dy, state.grid), 0, state.ch - rs.h);
         });
-        draw(); scheduleSave();
+        draw();
+        scheduleSave();
       });
 
+      // 3) Keyup commit for history
       window.addEventListener('keyup', (e) => {
         if (e.key === 'ArrowLeft' || e.key === 'ArrowRight' || e.key === 'ArrowUp' || e.key === 'ArrowDown') {
           scheduleSave();
@@ -742,6 +774,7 @@
           syncTopBar?.();
         }
       });
+
 
 
     // Keyboard shortcuts: Undo/Redo  (Ctrl/Cmd+Z, Ctrl/Cmd+Y, Ctrl/Cmd+Shift+Z)
@@ -773,10 +806,28 @@
       // create first layout and map legacy props to "current layout"
       const uid = () => Math.random().toString(36).slice(2,9);
       function makeLayout(name){
-        return { id: uid(), name: name || 'Layout 1', cw:180, ch:120, scale:6, grid:1, showGrid:true, pieces: [] };
+        return { 
+          id: uid(),
+          name: name || 'Layout 1',
+          cw:180,
+          ch:120,
+          scale:6,
+          grid:1,
+          showGrid:true,
+          pieces: [],
+          dims: [],        // << manual dimension lines
+          showManualDims: true  
+        };
       }
+
       state.layouts = [ makeLayout('Layout 1') ];
-      const cur = () => state.layouts[state.active];
+      const cur = () => {
+        const L = state.layouts[state.active];
+        if (!L) return null;
+        if (!Array.isArray(L.dims)) L.dims = [];
+        return L;
+      };
+
       // Map old properties to current layout so the rest of the code keeps working
       ['cw','ch','scale','grid','showGrid','pieces'].forEach(k=>{
         Object.defineProperty(state, k, {
@@ -858,7 +909,9 @@
 
       const togLabels   = document.getElementById('lc-toggle-labels');
       const togDims     = document.getElementById('lc-toggle-dims');
+      const togManualDims  = document.getElementById('lc-toggle-manual-dims'); 
       const togGrid     = document.getElementById('lc-toggle-grid');
+      const btnDimTool = document.getElementById('lc-dim-tool');
 
       // Accordion toggle for Slab Overlay
       const accBtn  = document.getElementById('ov-acc-toggle');
@@ -1325,7 +1378,7 @@
             return JSON.stringify({
               active: state.active,
               cw: state.cw, ch: state.ch, scale: state.scale, grid: state.grid,
-              showGrid: !!state.showGrid, showDims: !!state.showDims, showLabels: !!state.showLabels,
+              showGrid: !!state.showGrid, showDims: !!state.showDims, showManualDims: !!state.showManualDims, showLabels: !!state.showLabels,
               overlay: state.overlay ? { ...state.overlay } : null,
               selectedId: state.selectedId ?? null,
               pieces: state.pieces.map(p=>({...p})),
@@ -1371,6 +1424,7 @@
             }
             state.showGrid   = 'showGrid'   in data ? !!data.showGrid   : state.showGrid;
             state.showDims   = 'showDims'   in data ? !!data.showDims   : state.showDims;
+            state.showManualDims = 'showManualDims' in data ? !!data.showManualDims : state.showManualDims;
             state.showLabels = 'showLabels' in data ? !!data.showLabels : state.showLabels;
             state.overlay    = data.overlay ? { ...data.overlay } : state.overlay;
             state.selectedId = data.selectedId ?? null;
@@ -1416,11 +1470,13 @@
       function syncTopBar(){
         if (btnUndoTop) btnUndoTop.disabled = !canUndo();
         if (btnRedoTop) btnRedoTop.disabled = !canRedo();
-        setToggle(togGrid,   !!state.showGrid,   'Grid');
-        setToggle(togDims,   !!state.showDims,   'Dimensions');
-        setToggle(togLabels, !!state.showLabels, 'Labels');
+        setToggle(togGrid,       !!state.showGrid,       'Grid');
+        setToggle(togDims,       !!state.showDims,       'Piece Dims');
+        setToggle(togManualDims, !!state.showManualDims, 'Manual Dims');
+        setToggle(togLabels,     !!state.showLabels,     'Labels');
         if (lblScale) lblScale.textContent = String(state.scale);
       }
+
 
       // Canvas Toolbar Clip toggle
       const btnClipTop = document.getElementById('btn-clip-top');
@@ -1563,6 +1619,7 @@
       };
 
       const list = document.getElementById('lc-list');
+      const dimList   = document.getElementById('lc-dim-list');
       const inspector = document.getElementById('lc-inspector');
       const btnAdd = document.getElementById('lc-add');
 
@@ -2070,6 +2127,48 @@ if (window.svg2pdf) {
 
       }
 
+      function getSnapPointsInches(){
+        // Corners + midpoints of each piece (ignores rotation for now)
+        const pts = [];
+        for (const p of state.pieces || []) {
+          const x0 = p.x, y0 = p.y;
+          const x1 = p.x + p.w, y1 = p.y + p.h;
+
+          // corners
+          pts.push({ x: x0, y: y0 });
+          pts.push({ x: x1, y: y0 });
+          pts.push({ x: x1, y: y1 });
+          pts.push({ x: x0, y: y1 });
+
+          // edge midpoints
+          pts.push({ x: (x0 + x1) / 2, y: y0 });
+          pts.push({ x: (x0 + x1) / 2, y: y1 });
+          pts.push({ x: x0, y: (y0 + y1) / 2 });
+          pts.push({ x: x1, y: (y0 + y1) / 2 });
+        }
+        return pts;
+      }
+
+      function snapDimPoint(pt){
+        const SNAP_IN = 0.5; // snap radius in inches
+        const snapPts = getSnapPointsInches();
+        if (!snapPts.length) return pt;
+
+        let best = null;
+        let bestD2 = SNAP_IN * SNAP_IN;
+        for (const s of snapPts) {
+          const dx = s.x - pt.x;
+          const dy = s.y - pt.y;
+          const d2 = dx*dx + dy*dy;
+          if (d2 < bestD2) {
+            bestD2 = d2;
+            best = s;
+          }
+        }
+        return best || pt;
+      }
+
+
       // --- Fill helpers ---
       function getFillOpacity(p){
         // default to 1 if not set; clamp to [0,1]
@@ -2142,7 +2241,8 @@ if (window.svg2pdf) {
           layoutName: cur().name,
           canvas: { w: state.cw, h: state.ch },
           grid: state.grid, scale: state.scale, showGrid: state.showGrid,
-          pieces: state.pieces
+          pieces: state.pieces,
+          dims: cur().dims || []  
         };
       }
 
@@ -2216,27 +2316,6 @@ if (window.svg2pdf) {
         }
       }
 
-      async function shareShort() {
-        try {
-          const snapshot = getSnapshot(); // your existing app-state function
-          const res = await fetch(`${SHARE_SERVICE_ORIGIN}/api/share`, {
-            method: 'POST',
-            headers: { 'content-type': 'application/json' },
-            body: JSON.stringify({ snapshot })
-          });
-          if (!res.ok) throw new Error(`Share failed ${res.status}`);
-          const { id, url } = await res.json();
-
-          try { await navigator.clipboard.writeText(url); } catch {}
-          const u = new URL(location.href); u.searchParams.set('id', id);
-          window.history.replaceState(null, '', u.toString());
-          alert('Short link copied:\n' + url);
-        } catch (e) {
-          console.warn(e);
-          alert('Could not create share link.');
-        }
-      }
-
       // Track when the page was loaded from a short-link
       let SHARE_ID_ATTACHED = false;
 
@@ -2303,6 +2382,7 @@ if (window.svg2pdf) {
           ui: {
             showGrid:   !!state.showGrid,
             showDims:   !!state.showDims,
+            showManualDims: !!state.showManualDims,
             showLabels: !!state.showLabels
           },
           active: state.active ?? 0
@@ -2351,6 +2431,7 @@ function restore(){
       if (data.ui){
         if ('showGrid'   in data.ui) state.showGrid   = !!data.ui.showGrid;
         if ('showDims'   in data.ui) state.showDims   = !!data.ui.showDims;
+        if ('showManualDims' in data.ui) state.showManualDims = !!data.ui.showManualDims;
         if ('showLabels' in data.ui) state.showLabels = !!data.ui.showLabels;
       }
 
@@ -3046,6 +3127,105 @@ function restore(){
           svg.appendChild(gPiece);
         });
 
+        // ----- Manual dimension lines (per-layout) -----
+        const L = cur();
+        if (L && Array.isArray(L.dims) && L.dims.length && state.showManualDims) {
+          const svgNS = 'http://www.w3.org/2000/svg';
+          const gAll = document.createElementNS(svgNS, 'g');
+          gAll.setAttribute('class', 'dims-manual');
+
+          const offPx = 12; // perpendicular offset in px from the measured segment
+
+          L.dims.forEach(d => {
+            const x1px = i2p(d.x1);
+            const y1px = i2p(d.y1);
+            const x2px = i2p(d.x2);
+            const y2px = i2p(d.y2);
+
+            const dx = x2px - x1px;
+            const dy = y2px - y1px;
+            const lenPx = Math.sqrt(dx*dx + dy*dy) || 1;
+
+            // perpendicular offset
+            const ox = (-dy / lenPx) * offPx;
+            const oy = ( dx / lenPx) * offPx;
+
+            const midx = (x1px + x2px) / 2;
+            const midy = (y1px + y2px) / 2;
+
+            const distIn = Math.sqrt(
+              Math.pow(d.x2 - d.x1, 2) + Math.pow(d.y2 - d.y1, 2)
+            );
+
+            const label = distIn.toFixed(2) + '"';
+
+            const g = document.createElementNS(svgNS, 'g');
+            g.setAttribute('class', 'dim-line');
+            g.setAttribute('data-dimid', d.id);
+
+            if (state.selectedDimId === d.id) {
+              g.classList.add('selected');
+            }
+
+            // extension lines
+            const makeExt = (x, y) => {
+              const l = document.createElementNS(svgNS, 'line');
+              l.setAttribute('x1', x);
+              l.setAttribute('y1', y);
+              l.setAttribute('x2', x + ox);
+              l.setAttribute('y2', y + oy);
+              l.setAttribute('stroke', '#111');
+              l.setAttribute('vector-effect', 'non-scaling-stroke');
+              return l;
+            };
+
+            const ext1 = makeExt(x1px, y1px);
+            const ext2 = makeExt(x2px, y2px);
+
+            // dimension line itself
+            const dl = document.createElementNS(svgNS, 'line');
+            dl.setAttribute('x1', x1px + ox);
+            dl.setAttribute('y1', y1px + oy);
+            dl.setAttribute('x2', x2px + ox);
+            dl.setAttribute('y2', y2px + oy);
+            dl.setAttribute('stroke', '#111');
+            dl.setAttribute('vector-effect', 'non-scaling-stroke');
+
+            if (state.selectedDimId === d.id) {
+              dl.setAttribute('stroke-width', '2');
+            }
+
+            // text (auto-rotated along the segment)
+            const t = document.createElementNS(svgNS, 'text');
+            t.setAttribute('x', midx + ox * 1.4);
+            t.setAttribute('y', midy + oy * 1.4);
+            t.setAttribute('dominant-baseline', 'middle');
+            t.setAttribute('text-anchor', 'middle');
+            t.setAttribute('font-size', '14');
+            t.textContent = label;
+
+            // angle of the dimension line, convert to deg
+            let angleDeg = Math.atan2(d.y2 - d.y1, d.x2 - d.x1) * 180 / Math.PI;
+            // keep text upright
+            if (angleDeg > 90 || angleDeg < -90) angleDeg += 180;
+            t.setAttribute('transform', `rotate(${angleDeg}, ${midx + ox * 1.4}, ${midy + oy * 1.4})`);
+
+            // click-to-select
+            g.addEventListener('click', (ev) => {
+              state.selectedDimId = d.id;
+              renderDimList();
+              draw();
+              ev.stopPropagation();
+            });
+
+            g.append(ext1, ext2, dl, t);
+            gAll.appendChild(g);
+          });
+
+          svg.appendChild(gAll);
+        }
+
+
         meta.textContent = `Canvas: ${state.cw}" × ${state.ch}" · Grid ${state.grid}" · Scale ${state.scale}px/in`;
       }
 
@@ -3247,6 +3427,36 @@ function installPieceReorder(){
 }
 
 
+function renderDimList(){
+  if (!dimList) return;
+  const L = cur();
+  dimList.innerHTML = '';
+  if (!L || !Array.isArray(L.dims)) return;
+
+  L.dims.forEach((d, idx) => {
+    const li = document.createElement('div');
+    li.className = 'lc-item nav' + (state.selectedDimId === d.id ? ' selected' : '');
+
+    const dx = d.x2 - d.x1;
+    const dy = d.y2 - d.y1;
+    const dist = Math.sqrt(dx*dx + dy*dy);
+    const angDeg = (Math.atan2(d.y2 - d.y1, d.x2 - d.x1) * 180 / Math.PI + 360) % 180;
+    const orientation = (angDeg < 45 || angDeg > 135) ? 'Horiz' : 'Vert';
+
+    li.textContent = `Dim ${idx+1}: ${dist.toFixed(2)}" (${orientation})`;
+
+    li.addEventListener('click', () => {
+      state.selectedDimId = d.id;
+      renderDimList();
+      draw();
+    });
+
+    dimList.appendChild(li);
+  });
+}
+
+
+
 function renderLayouts(){
   if(!layoutsEl) return;
   layoutsEl.innerHTML = '';
@@ -3260,9 +3470,10 @@ function renderLayouts(){
       if(e.target.closest('button, input, textarea')) return;
       state.active = idx; state.selectedId = null;
       syncToolbarFromLayout(); renderList(); updateInspector(); sinksUI?.refresh(); draw();
-      renderOverlayList?.();   // <-- add
-      syncOverlayUI?.();       // <-- add
+      renderOverlayList?.();   
+      syncOverlayUI?.();       
       renderLayouts(); scheduleSave();
+      renderDimList();
     });
 
     // inline, editable layout name
@@ -3609,6 +3820,52 @@ if(btnAddLayout){
       let blankDown = null;
       const CLICK_THRESH = 4; // px of wiggle allowed and still treat as a click
 
+      // --- Manual dimensions tool ---
+      let dimTempStart = null;  // { x, y } in inches for first click
+      svg.addEventListener('click', (e) => {
+      // Only when Dim Tool is active
+      if (!state.dimTool) return;
+
+      const L = cur();
+      if (!L) return;
+      if (!Array.isArray(L.dims)) L.dims = [];
+
+      // Convert click to SVG px, then to inches
+      const pt = svgPoint(e);
+      const raw = { x: p2i(pt.x), y: p2i(pt.y) };
+      const snapped = snapDimPoint(raw);
+
+      // If click landed on an existing dimension, don't create a new one;
+      // that click will be used to select the dim instead.
+      if (e.target.closest('g[data-dimid]')) return;
+
+      if (!dimTempStart) {
+        // First point
+        dimTempStart = snapped;
+      } else {
+        // Second point => create a dimension
+        const d = {
+          id: uid(),
+          x1: dimTempStart.x,
+          y1: dimTempStart.y,
+          x2: snapped.x,
+          y2: snapped.y
+        };
+        L.dims.push(d);
+        state.selectedDimId = d.id;
+        dimTempStart = null;
+
+        draw();
+        renderDimList();
+        scheduleSave();
+        pushHistory();
+      }
+
+      e.stopPropagation();
+    });
+
+
+
       // Track a potential blank-canvas click only if the pointer starts on empty SVG
       svg.addEventListener('pointerdown', (e)=>{
         // if the event started on a piece group, ignore (we'll be dragging/selecting that piece)
@@ -3694,13 +3951,37 @@ if(btnAddLayout){
         draw(); scheduleSave(); pushHistory(); syncTopBar();
       });
       togDims && (togDims.onclick = ()=>{
+        // per-piece dims
         state.showDims = !state.showDims;
+        draw(); scheduleSave(); pushHistory(); syncTopBar();
+      });
+      togManualDims && (togManualDims.onclick = ()=>{
+        // manual dims visibility
+        state.showManualDims = !state.showManualDims;
         draw(); scheduleSave(); pushHistory(); syncTopBar();
       });
       togLabels && (togLabels.onclick = ()=>{
         state.showLabels = !state.showLabels;
         draw(); scheduleSave(); pushHistory(); syncTopBar();
       });
+
+
+      if (btnDimTool) {
+        const updateDimToolLabel = () => {
+          btnDimTool.textContent = state.dimTool ? 'Dim Tool: ON' : 'Dim Tool: Off';
+          svg.style.cursor = state.dimTool ? 'crosshair' : 'default';
+        };
+
+        btnDimTool.onclick = () => {
+          state.dimTool = !state.dimTool;
+          // reset any half-finished segment
+          dimTempStart = null;
+          state.selectedDimId = null;
+          updateDimToolLabel();
+        };
+
+        updateDimToolLabel();
+      }
 
 
       // ------- Project fields -------
