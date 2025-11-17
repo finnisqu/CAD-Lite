@@ -14,6 +14,7 @@
         drag: null,
         showDims: false,        // per-piece dims
         showManualDims: true,   // NEW: manual dims visibility
+        dimTool: false,
         showLabels: true,
         selectedDimId: null
       };
@@ -3820,6 +3821,35 @@ if(btnAddLayout){
       let blankDown = null;
       const CLICK_THRESH = 4; // px of wiggle allowed and still treat as a click
 
+      // ---- Dim Tool button (toggle + styling) ----
+      function syncDimToolUI(){
+        if (!btnDimTool) return;
+        const on = !!state.dimTool;
+
+        btnDimTool.textContent = on ? 'Dim Tool: On' : 'Dim Tool: Off';
+        btnDimTool.classList.toggle('alt',   on);
+        btnDimTool.classList.toggle('ghost', !on);
+
+        if (svg) {
+          svg.style.cursor = on ? 'crosshair' : '';
+        }
+      }
+
+      // Initialize once on load
+      syncDimToolUI();
+
+      btnDimTool && (btnDimTool.onclick = () => {
+        state.dimTool = !state.dimTool;
+
+        // If we’re turning the tool OFF, cancel a half-finished dim
+        if (!state.dimTool) {
+          dimTempStart = null;
+        }
+
+        syncDimToolUI();
+      });
+
+
       // --- Manual dimensions tool ---
       let dimTempStart = null;  // { x, y } in inches for first click
       svg.addEventListener('click', (e) => {
@@ -3873,12 +3903,15 @@ if(btnAddLayout){
 
 
 
-      // Track a potential blank-canvas click only if the pointer starts on empty SVG
       svg.addEventListener('pointerdown', (e)=>{
-        // if the event started on a piece group, ignore (we'll be dragging/selecting that piece)
-        if (e.target.closest('g[data-id]')) { blankDown = null; return; }
-        blankDown = { x: e.clientX, y: e.clientY };
-      });
+      // When Dim Tool is active, we don't track blank clicks – they’re for dimension points
+      if (state.dimTool) { blankDown = null; return; }
+
+      // if the event started on a piece group, ignore (we'll be dragging/selecting that piece)
+      if (e.target.closest('g[data-id]')) { blankDown = null; return; }
+      blankDown = { x: e.clientX, y: e.clientY };
+    });
+
 
       // Cancel the "blank click" if the pointer moves too much (user is panning/dragging)
       svg.addEventListener('pointermove', (e)=>{
@@ -3962,11 +3995,12 @@ if(btnAddLayout){
         state.showDims = !state.showDims;
         draw(); scheduleSave(); pushHistory(); syncTopBar();
       });
-      togManualDims && (togManualDims.onclick = ()=>{
-        // manual dims visibility
+
+      togManualDims && (togManualDims.onclick = ()=> {
         state.showManualDims = !state.showManualDims;
         draw(); scheduleSave(); pushHistory(); syncTopBar();
       });
+
       togLabels && (togLabels.onclick = ()=>{
         state.showLabels = !state.showLabels;
         draw(); scheduleSave(); pushHistory(); syncTopBar();
