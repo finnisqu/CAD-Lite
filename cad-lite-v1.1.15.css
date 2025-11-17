@@ -761,3 +761,17 @@
 
 /* Ensure it doesn’t sit above the Squarespace header */
 .slab-modal { z-index: 900; } /* Most SQSP headers are 1000+ */
+
+
+/*Manual dimension */
+.dims-manual .dim-line text {
+  pointer-events: none; /* clicks go to the group */
+}
+
+.dims-manual .dim-line.selected line {
+  stroke-width: 2;
+}
+
+.dims-manual .dim-line.selected text {
+  font-weight: 600;
+}
