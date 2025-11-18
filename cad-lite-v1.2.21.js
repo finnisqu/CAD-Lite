@@ -1433,11 +1433,13 @@
             if ('settings' in data) state.settings = data.settings;
           } finally { history.quiet = false; }
 
-          renderList(); updateInspector(); sinksUI?.refresh?.(); draw();
+          renderList();
+          renderDimList();  
+          updateInspector(); sinksUI?.refresh?.(); draw();
           renderLayouts?.();
           syncToolbarFromLayout?.();
           syncTopBar?.();
-          renderOverlayList?.();   // <-- add
+          renderOverlayList?.();
           syncOverlayUI?.();
           syncClipTop?.(); 
         }
