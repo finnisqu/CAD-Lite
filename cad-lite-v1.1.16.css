@@ -775,3 +775,10 @@
 .dims-manual .dim-line.selected text {
   font-weight: 600;
 }
+
+.dims-manual .dim-line {
+  cursor: grab;
+}
+.dims-manual .dim-line.selected {
+  stroke-width: 2;
+}
