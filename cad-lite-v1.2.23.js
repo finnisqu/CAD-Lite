@@ -2177,40 +2177,42 @@ if (window.svg2pdf) {
         return pts;
       }
 
-      function snapDimPoint(pt){
-        const SNAP_IN = 0.5; // snap radius in inches
-        const snapPts = getSnapPointsInches();
+      function snapDimPoint(pt) {
+        // How close (in inches) you have to be for snapping
+        const SNAP_IN = 1.0; // a bit more forgiving than 0.5"
 
+        const snapPoints = getSnapPointsInches();
         let best = null;
         let bestD2 = SNAP_IN * SNAP_IN;
 
-        // 1) Try snapping to piece corners + midpoints
-        for (const s of snapPts) {
-          const dx = s.x - pt.x;
-          const dy = s.y - pt.y;
-          const d2 = dx*dx + dy*dy;
-          if (d2 < bestD2) {
+        // 1) Try piece corners / edges
+        for (const sp of snapPoints) {
+          const dx = sp.x - pt.x;
+          const dy = sp.y - pt.y;
+          const d2 = dx * dx + dy * dy;
+          if (d2 <= bestD2) {
             bestD2 = d2;
-            best = s;
+            best = { x: sp.x, y: sp.y };
           }
         }
 
-        if (best) return best;
-
-        // 2) Fallback: snap to grid if close enough
-        const gx = Math.round(pt.x / state.grid) * state.grid;
-        const gy = Math.round(pt.y / state.grid) * state.grid;
-        const gdx = gx - pt.x;
-        const gdy = gy - pt.y;
-        const gd2 = gdx*gdx + gdy*gdy;
-
-        if (gd2 <= SNAP_IN * SNAP_IN) {
-          return { x: gx, y: gy };
+        // 2) Try grid intersections if no piece snap wins
+        const g = state.grid || 0;
+        if (!best && g > 0) {
+          const gx = Math.round(pt.x / g) * g;
+          const gy = Math.round(pt.y / g) * g;
+          const dx = gx - pt.x;
+          const dy = gy - pt.y;
+          const d2 = dx * dx + dy * dy;
+          if (d2 <= bestD2) {
+            best = { x: gx, y: gy };
+          }
         }
 
-        // 3) Otherwise leave it where it is
-        return pt;
+        // Fallback: no snap, just raw point
+        return best || pt;
       }
+
 
 
 
@@ -2501,6 +2503,7 @@ function restore(){
       loadLayout(data);
       renderLayouts();
       renderList();
+      renderDimList();
       updateInspector();
       sinksUI?.refresh?.();
       draw();
@@ -3287,7 +3290,9 @@ function restore(){
               g.addEventListener('pointerdown', (ev) => {
                 ev.stopPropagation();
                 state.selectedDimId = d.id;
+                state.selectedId = null;     // ✅ clear piece selection
                 renderDimList();
+                updateInspector();           // ✅ update inspector
                 draw(); // to update selected styling
 
                 // Start drag for this dimension
@@ -3587,7 +3592,9 @@ function renderDimList(){
 
     li.addEventListener('click', () => {
       state.selectedDimId = d.id;
+      state.selectedId = null;
       renderDimList();
+      updateInspector();
       draw();
     });
 
@@ -4043,18 +4050,6 @@ if(btnAddLayout){
         }
       }
 
-      if (btnDimTool) {
-        btnDimTool.addEventListener('click', () => {
-          state.dimTool = !state.dimTool;
-          // visually match other toggles
-          btnDimTool.classList.toggle('alt', state.dimTool);
-          btnDimTool.classList.toggle('ghost', !state.dimTool);
-          btnDimTool.textContent = state.dimTool ? 'Dim Tool: On' : 'Dim Tool: Off';
-          // reset temp start so we don't accidentally continue a previous segment
-          dimTempStart = null;
-        });
-      }
-
       // Initialize once on load
       syncDimToolUI();
 
@@ -4306,7 +4301,27 @@ if(btnAddLayout){
       // ------- Pieces -------
       btnAdd.onclick = () => {
         const idx = state.pieces.length; const top = Math.max(0,...state.pieces.map(x=>x.layer||0))+1;
-        const p = { id: uid(), name: `Piece ${idx+1}`, w:24, h:12, x:0, y:0, rotation:0, color:'#ffffff', layer: top, rTL:false, rTR:false, rBL:false, rBR:false };
+        const p = { 
+          id: uid(), 
+          name: `Piece ${idx+1}`, 
+          w:24, 
+          h:12, 
+          x:0, 
+          y:0, 
+          rotation:0, 
+          color:'#ffffff', 
+          layer: top, 
+          rTL:false, 
+          rTR:false, 
+          rBL:false, 
+          rBR:false, 
+          edgeProfiles: {
+            top: 'flat',
+            right: 'flat',
+            bottom: 'flat',
+            left: 'flat',
+          } 
+        };
         clampToCanvas(p); 
         state.pieces.push(p); 
         state.selectedId=p.id; 
