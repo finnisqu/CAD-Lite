@@ -14,6 +14,7 @@
         drag: null,
         showDims: false,        // per-piece dims
         showManualDims: true,   // NEW: manual dims visibility
+        showEdgeProfiles: true,  // NEW: edge profiles visibility
         dimTool: false,
         showLabels: true,
         selectedDimId: null
@@ -376,6 +377,7 @@
       const slabInsertBtn = document.getElementById('slabInsert');
       const slabCount = document.getElementById('slabCount');
       const openLibBtn = document.getElementById('ov-lib-photo');
+      const togEdges   = document.getElementById('lc-toggle-edges');
 
       let slabCache = [];      // [{name, url}]
       let slabFiltered = [];   // current filter result
@@ -1379,7 +1381,7 @@
             return JSON.stringify({
               active: state.active,
               cw: state.cw, ch: state.ch, scale: state.scale, grid: state.grid,
-              showGrid: !!state.showGrid, showDims: !!state.showDims, showManualDims: !!state.showManualDims, showLabels: !!state.showLabels,
+              showGrid: !!state.showGrid, showDims: !!state.showDims, showManualDims: !!state.showManualDims, showEdgeProfiles: !!state.showEdgeProfiles, showLabels: !!state.showLabels,
               overlay: state.overlay ? { ...state.overlay } : null,
               selectedId: state.selectedId ?? null,
               pieces: state.pieces.map(p=>({...p})),
@@ -1426,6 +1428,7 @@
             state.showGrid   = 'showGrid'   in data ? !!data.showGrid   : state.showGrid;
             state.showDims   = 'showDims'   in data ? !!data.showDims   : state.showDims;
             state.showManualDims = 'showManualDims' in data ? !!data.showManualDims : state.showManualDims;
+            state.showEdgeProfiles = 'showEdgeProfiles' in data ? !!data.showEdgeProfiles : state.showEdgeProfiles;
             state.showLabels = 'showLabels' in data ? !!data.showLabels : state.showLabels;
             state.overlay    = data.overlay ? { ...data.overlay } : state.overlay;
             state.selectedId = data.selectedId ?? null;
@@ -1477,6 +1480,7 @@
         setToggle(togDims,       !!state.showDims,       'Piece Dims');
         setToggle(togManualDims, !!state.showManualDims, 'Manual Dims');
         setToggle(togLabels,     !!state.showLabels,     'Labels');
+        setToggle(togEdges,     !!state.showEdgeProfiles, 'Edge Profiles');
         if (lblScale) lblScale.textContent = String(state.scale);
       }
 
@@ -1531,6 +1535,7 @@
 
 
       let sinksUI; // Sinks card handle
+      let dimDrag = null; // { dimId, x1px, y1px, nx, ny, pointerId }
 
 
       // ===== Sinks: config =====
@@ -1561,20 +1566,40 @@
 
       const svgNS = 'http://www.w3.org/2000/svg';
 
-      function endDrag(){
-        if(!state.drag) return;
-        // snap to grid now (once)
-        state.drag.group.forEach(gp=>{
-          const piece = state.pieces.find(x=>x.id===gp.id);
-          if(!piece) return;
-          piece.x = snap(piece.x, state.grid);
-          piece.y = snap(piece.y, state.grid);
-        });
-        state.drag = null;
-        draw(); scheduleSave(); pushHistory(); 
+      function endPointerDrag(){
+        let changed = false;
+
+        // Piece dragging
+        if (state.drag) {
+          state.drag.group.forEach(gp => {
+            const piece = state.pieces.find(x => x.id === gp.id);
+            if (!piece) return;
+            piece.x = snap(piece.x, state.grid);
+            piece.y = snap(piece.y, state.grid);
+          });
+          state.drag = null;
+          changed = true;
+        }
+
+        // Dimension offset dragging
+        if (dimDrag) {
+          if (svg.releasePointerCapture && dimDrag.pointerId != null) {
+            try { svg.releasePointerCapture(dimDrag.pointerId); } catch (_) {}
+          }
+          dimDrag = null;
+          changed = true;
+        }
+
+        if (changed) {
+          draw();
+          scheduleSave();
+          pushHistory();
+        }
       }
-      svg.addEventListener('pointerup', endDrag);
-      svg.addEventListener('pointerleave', endDrag);
+
+      svg.addEventListener('pointerup', endPointerDrag);
+      svg.addEventListener('pointerleave', endPointerDrag);
+
 
 
       const appRoot = document.querySelector('.lite-cad') || document.body;
@@ -2155,10 +2180,11 @@ if (window.svg2pdf) {
       function snapDimPoint(pt){
         const SNAP_IN = 0.5; // snap radius in inches
         const snapPts = getSnapPointsInches();
-        if (!snapPts.length) return pt;
 
         let best = null;
         let bestD2 = SNAP_IN * SNAP_IN;
+
+        // 1) Try snapping to piece corners + midpoints
         for (const s of snapPts) {
           const dx = s.x - pt.x;
           const dy = s.y - pt.y;
@@ -2168,8 +2194,24 @@ if (window.svg2pdf) {
             best = s;
           }
         }
-        return best || pt;
+
+        if (best) return best;
+
+        // 2) Fallback: snap to grid if close enough
+        const gx = Math.round(pt.x / state.grid) * state.grid;
+        const gy = Math.round(pt.y / state.grid) * state.grid;
+        const gdx = gx - pt.x;
+        const gdy = gy - pt.y;
+        const gd2 = gdx*gdx + gdy*gdy;
+
+        if (gd2 <= SNAP_IN * SNAP_IN) {
+          return { x: gx, y: gy };
+        }
+
+        // 3) Otherwise leave it where it is
+        return pt;
       }
+
 
 
       // --- Fill helpers ---
@@ -2386,6 +2428,7 @@ if (window.svg2pdf) {
             showGrid:   !!state.showGrid,
             showDims:   !!state.showDims,
             showManualDims: !!state.showManualDims,
+            showEdgeProfiles: !!state.showEdgeProfiles,
             showLabels: !!state.showLabels
           },
           active: state.active ?? 0
@@ -2435,6 +2478,7 @@ function restore(){
         if ('showGrid'   in data.ui) state.showGrid   = !!data.ui.showGrid;
         if ('showDims'   in data.ui) state.showDims   = !!data.ui.showDims;
         if ('showManualDims' in data.ui) state.showManualDims = !!data.ui.showManualDims;
+        if ('showEdgeProfiles' in data.ui) state.showEdgeProfiles = !!data.ui.showEdgeProfiles;
         if ('showLabels' in data.ui) state.showLabels = !!data.ui.showLabels;
       }
 
@@ -3090,6 +3134,69 @@ function restore(){
             gg.appendChild(dims);
           }
 
+          // --- Edge profile labels on each side ---
+          if (state.showEdgeProfiles && p.edgeProfiles) {
+            const edges = p.edgeProfiles;
+
+            const labelsG = document.createElementNS(svgNS, 'g');
+            labelsG.setAttribute('class', 'edge-profiles');
+            labelsG.setAttribute('pointer-events', 'none');
+
+            function addEdgeLabel(text, x, y, anchor, baseline) {
+              if (!text || text === 'flat') return;
+              const t = document.createElementNS(svgNS, 'text');
+              t.setAttribute('x', x);
+              t.setAttribute('y', y);
+              t.setAttribute('text-anchor', anchor || 'middle');
+              if (baseline) t.setAttribute('dominant-baseline', baseline);
+              t.setAttribute('font-size', '11');
+              t.setAttribute('fill', '#111');
+              t.textContent = text;
+              labelsG.appendChild(t);
+            }
+
+            const MARGIN = 16; // px away from piece edge
+
+            // Top edge label
+            addEdgeLabel(
+              edges.top,
+              cx,
+              (cy - H0/2) - MARGIN,
+              'middle',
+              'baseline'
+            );
+
+            // Bottom edge label
+            addEdgeLabel(
+              edges.bottom,
+              cx,
+              (cy + H0/2) + MARGIN,
+              'middle',
+              'hanging'
+            );
+
+            // Left edge label
+            addEdgeLabel(
+              edges.left,
+              (cx - W0/2) - MARGIN,
+              cy,
+              'end',
+              'middle'
+            );
+
+            // Right edge label
+            addEdgeLabel(
+              edges.right,
+              (cx + W0/2) + MARGIN,
+              cy,
+              'start',
+              'middle'
+            );
+
+            gg.appendChild(labelsG);
+          }
+
+
           // selection / drag
           gPiece.addEventListener('pointerdown', (e)=>{
             const pt = svgPoint(e);                 // SVG px
@@ -3139,91 +3246,121 @@ function restore(){
 
           const offPx = 12; // perpendicular offset in px from the measured segment
 
-          L.dims.forEach(d => {
-            const x1px = i2p(d.x1);
-            const y1px = i2p(d.y1);
-            const x2px = i2p(d.x2);
-            const y2px = i2p(d.y2);
+            L.dims.forEach(d => {
+              const x1px = i2p(d.x1);
+              const y1px = i2p(d.y1);
+              const x2px = i2p(d.x2);
+              const y2px = i2p(d.y2);
 
-            const dx = x2px - x1px;
-            const dy = y2px - y1px;
-            const lenPx = Math.sqrt(dx*dx + dy*dy) || 1;
+              const dx = x2px - x1px;
+              const dy = y2px - y1px;
+              const lenPx = Math.sqrt(dx*dx + dy*dy) || 1;
 
-            // perpendicular offset
-            const ox = (-dy / lenPx) * offPx;
-            const oy = ( dx / lenPx) * offPx;
+              // Unit direction along the dimension line
+              const ux = dx / lenPx;
+              const uy = dy / lenPx;
+              // Unit normal (perpendicular) – this is what we offset along
+              const nx = -uy;
+              const ny = ux;
 
-            const midx = (x1px + x2px) / 2;
-            const midy = (y1px + y2px) / 2;
+              // Perpendicular offset in pixels (store on the dim; default 12px)
+              const offPx = (typeof d.offsetPx === 'number' ? d.offsetPx : 12);
 
-            const distIn = Math.sqrt(
-              Math.pow(d.x2 - d.x1, 2) + Math.pow(d.y2 - d.y1, 2)
-            );
+              // Base offset vector
+              const ox = nx * offPx;
+              const oy = ny * offPx;
 
-            const label = distIn.toFixed(2) + '"';
+              const midx = (x1px + x2px) / 2;
+              const midy = (y1px + y2px) / 2;
 
-            const g = document.createElementNS(svgNS, 'g');
-            g.setAttribute('class', 'dim-line');
-            g.setAttribute('data-dimid', d.id);
+              const distIn = Math.sqrt(
+                Math.pow(d.x2 - d.x1, 2) + Math.pow(d.y2 - d.y1, 2)
+              );
+              const label = distIn.toFixed(2) + '"';
 
-            if (state.selectedDimId === d.id) {
-              g.classList.add('selected');
-            }
+              const g = document.createElementNS(svgNS, 'g');
+              g.setAttribute('class', 'dim-line');
+              g.setAttribute('data-dimid', d.id);
+              if (state.selectedDimId === d.id) g.classList.add('selected');
 
-            // extension lines
-            const makeExt = (x, y) => {
-              const l = document.createElementNS(svgNS, 'line');
-              l.setAttribute('x1', x);
-              l.setAttribute('y1', y);
-              l.setAttribute('x2', x + ox);
-              l.setAttribute('y2', y + oy);
-              l.setAttribute('stroke', '#111');
-              l.setAttribute('vector-effect', 'non-scaling-stroke');
-              return l;
-            };
+              // --- selection + drag to move offset ---
+              g.addEventListener('pointerdown', (ev) => {
+                ev.stopPropagation();
+                state.selectedDimId = d.id;
+                renderDimList();
+                draw(); // to update selected styling
 
-            const ext1 = makeExt(x1px, y1px);
-            const ext2 = makeExt(x2px, y2px);
+                // Start drag for this dimension
+                const pt = svgPoint(ev);
+                const vx = pt.x - x1px;
+                const vy = pt.y - y1px;
+                // Signed distance from base line along the normal
+                const signedOff = vx * nx + vy * ny;
 
-            // dimension line itself
-            const dl = document.createElementNS(svgNS, 'line');
-            dl.setAttribute('x1', x1px + ox);
-            dl.setAttribute('y1', y1px + oy);
-            dl.setAttribute('x2', x2px + ox);
-            dl.setAttribute('y2', y2px + oy);
-            dl.setAttribute('stroke', '#111');
-            dl.setAttribute('vector-effect', 'non-scaling-stroke');
+                dimDrag = {
+                  dimId: d.id,
+                  x1px,
+                  y1px,
+                  nx,
+                  ny,
+                  pointerId: ev.pointerId
+                };
 
-            if (state.selectedDimId === d.id) {
-              dl.setAttribute('stroke-width', '2');
-            }
+                if (svg.setPointerCapture) {
+                  svg.setPointerCapture(ev.pointerId);
+                }
+              });
 
-            // text (auto-rotated along the segment)
-            const t = document.createElementNS(svgNS, 'text');
-            t.setAttribute('x', midx + ox * 1.4);
-            t.setAttribute('y', midy + oy * 1.4);
-            t.setAttribute('dominant-baseline', 'middle');
-            t.setAttribute('text-anchor', 'middle');
-            t.setAttribute('font-size', '14');
-            t.textContent = label;
+              // --- extension lines ---
+              const makeExt = (x, y) => {
+                const l = document.createElementNS(svgNS, 'line');
+                l.setAttribute('x1', x);
+                l.setAttribute('y1', y);
+                l.setAttribute('x2', x + ox);
+                l.setAttribute('y2', y + oy);
+                l.setAttribute('stroke', '#111');
+                l.setAttribute('vector-effect', 'non-scaling-stroke');
+                return l;
+              };
 
-            // angle of the dimension line, convert to deg
-            let angleDeg = Math.atan2(d.y2 - d.y1, d.x2 - d.x1) * 180 / Math.PI;
-            // keep text upright
-            if (angleDeg > 90 || angleDeg < -90) angleDeg += 180;
-            t.setAttribute('transform', `rotate(${angleDeg}, ${midx + ox * 1.4}, ${midy + oy * 1.4})`);
+              const ext1 = makeExt(x1px, y1px);
+              const ext2 = makeExt(x2px, y2px);
 
-            // click-to-select
-            g.addEventListener('click', (ev) => {
-              state.selectedDimId = d.id;
-              renderDimList();
-              draw();
-              ev.stopPropagation();
+              // --- dimension line itself ---
+              const dl = document.createElementNS(svgNS, 'line');
+              dl.setAttribute('x1', x1px + ox);
+              dl.setAttribute('y1', y1px + oy);
+              dl.setAttribute('x2', x2px + ox);
+              dl.setAttribute('y2', y2px + oy);
+              dl.setAttribute('stroke', '#111');
+              dl.setAttribute('vector-effect', 'non-scaling-stroke');
+              if (state.selectedDimId === d.id) {
+                dl.setAttribute('stroke-width', '2');
+              }
+
+              // --- label: pushed further off the line so it doesn’t overlap ---
+              const LABEL_MULT = 1.8; // how far off the dim line to place the text
+              const lx = midx + ox * LABEL_MULT;
+              const ly = midy + oy * LABEL_MULT;
+
+              const t = document.createElementNS(svgNS, 'text');
+              t.setAttribute('x', lx);
+              t.setAttribute('y', ly);
+              t.setAttribute('dominant-baseline', 'middle');
+              t.setAttribute('text-anchor', 'middle');
+              t.setAttribute('font-size', '14');
+              t.setAttribute('pointer-events', 'none'); // clicks go to the line
+              t.textContent = label;
+
+              // angle in inches space (for upright text)
+              let angleDeg = Math.atan2(d.y2 - d.y1, d.x2 - d.x1) * 180 / Math.PI;
+              if (angleDeg > 90 || angleDeg < -90) angleDeg += 180;
+              t.setAttribute('transform', `rotate(${angleDeg}, ${lx}, ${ly})`);
+
+              g.append(ext1, ext2, dl, t);
+              gAll.appendChild(g);
             });
 
-            g.append(ext1, ext2, dl, t);
-            gAll.appendChild(g);
-          });
 
           svg.appendChild(gAll);
         }
@@ -3698,6 +3835,75 @@ if(btnAddLayout){
         row4.appendChild(cornersCol);
         wrap.appendChild(row4);
 
+        // --- Edge Profiles (4 sides) ---
+        if (!p.edgeProfiles) {
+          p.edgeProfiles = { top: 'flat', right: 'flat', bottom: 'flat', left: 'flat' };
+        }
+
+        const edgeRow = document.createElement('div');
+        edgeRow.className = 'lc-row';
+        edgeRow.style.marginTop = '8px';
+
+        const edgesLabel = document.createElement('div');
+        edgesLabel.className = 'lc-label';
+        edgesLabel.textContent = 'Edge profiles';
+
+        const edgeOptions = [
+          { v: 'none',      t: '' },
+          { v: 'seam',      t: 'Seam' },
+          { v: 'flat',      t: 'Flat' },
+          { v: 'quarter',   t: 'Quarter' },
+          { v: 'bevel',     t: 'Bevel' },
+          { v: 'half-bull', t: 'HB' },
+          { v: 'full-bull', t: 'FB' },
+          { v: 'ogee',      t: 'Ogee' },
+          { v: 'miter',     t: 'Miter' }
+        ];
+
+        function makeEdgeSelect(sideKey, labelText) {
+          const wrap = document.createElement('label');
+          wrap.className = 'lc-label lc-edge-field';
+
+          const cap = document.createElement('div');
+          cap.className = 'lc-small';
+          cap.textContent = labelText;
+          wrap.appendChild(cap);
+
+          const sel = document.createElement('select');
+          sel.className = 'lc-input';
+          edgeOptions.forEach(opt => {
+            const o = document.createElement('option');
+            o.value = opt.v;
+            o.textContent = opt.t;
+            sel.appendChild(o);
+          });
+          sel.value = p.edgeProfiles[sideKey] || 'flat';
+
+          sel.addEventListener('change', () => {
+            p.edgeProfiles[sideKey] = sel.value;
+            draw();
+            scheduleSave();
+            pushHistory();
+          });
+
+          wrap.appendChild(sel);
+          return wrap;
+        }
+
+        const edgesGrid = document.createElement('div');
+        edgesGrid.style.display = 'grid';
+        edgesGrid.style.gridTemplateColumns = 'repeat(2, minmax(0, 1fr))';
+        edgesGrid.style.gap = '6px';
+
+        edgesGrid.appendChild(makeEdgeSelect('top', 'Top'));
+        edgesGrid.appendChild(makeEdgeSelect('bottom', 'Bottom'));
+        edgesGrid.appendChild(makeEdgeSelect('left', 'Left'));
+        edgesGrid.appendChild(makeEdgeSelect('right', 'Right'));
+
+        edgeRow.appendChild(edgesLabel);
+        edgeRow.appendChild(edgesGrid);
+        wrap.appendChild(edgeRow);
+
         // Bind rotation input
         const rotInput = wrap.querySelector('#insp-rot');
         rotInput.oninput = (e)=>{
@@ -3837,6 +4043,18 @@ if(btnAddLayout){
         }
       }
 
+      if (btnDimTool) {
+        btnDimTool.addEventListener('click', () => {
+          state.dimTool = !state.dimTool;
+          // visually match other toggles
+          btnDimTool.classList.toggle('alt', state.dimTool);
+          btnDimTool.classList.toggle('ghost', !state.dimTool);
+          btnDimTool.textContent = state.dimTool ? 'Dim Tool: On' : 'Dim Tool: Off';
+          // reset temp start so we don't accidentally continue a previous segment
+          dimTempStart = null;
+        });
+      }
+
       // Initialize once on load
       syncDimToolUI();
 
@@ -3851,56 +4069,81 @@ if(btnAddLayout){
         syncDimToolUI();
       });
 
+      svg.addEventListener('pointermove', (e) => {
+        if (!dimDrag) return;
+
+        const L = cur();
+        if (!L || !Array.isArray(L.dims)) return;
+        const d = L.dims.find(dd => dd.id === dimDrag.dimId);
+        if (!d) return;
+
+        const pt = svgPoint(e);
+        const vx = pt.x - dimDrag.x1px;
+        const vy = pt.y - dimDrag.y1px;
+
+        // New perpendicular offset (signed) in px
+        let newOff = vx * dimDrag.nx + vy * dimDrag.ny;
+
+        // Clamp so it doesn't go crazy far
+        const MAX = 300;
+        newOff = Math.max(-MAX, Math.min(MAX, newOff));
+
+        d.offsetPx = newOff;
+        draw(); // live update; history/save on pointerup
+      });
+
 
       // --- Manual dimensions tool ---
       let dimTempStart = null;  // { x, y } in inches for first click
+
       svg.addEventListener('click', (e) => {
-      // Only when Dim Tool is active
-      if (!state.dimTool) return;
+        // Only when Dim Tool is active
+        if (!state.dimTool) return;
 
-      const L = cur();
-      if (!L) return;
-      if (!Array.isArray(L.dims)) L.dims = [];
+        const L = cur();
+        if (!L) return;
+        if (!Array.isArray(L.dims)) L.dims = [];
 
-      // If click landed on an existing dimension, don't create a new one;
-      // that click will be used to select the dim instead.
-      if (e.target.closest && e.target.closest('g[data-dimid]')) return;
+        // If click landed on an existing dimension, don't create a new one;
+        // that click will be used to select the dim instead.
+        if (e.target.closest && e.target.closest('g[data-dimid]')) return;
 
-      // Convert click to SVG px, then to inches
-      const pt = svgPoint(e);
-      if (!pt) return; // safety
+        // Convert click to SVG px, then to inches
+        const pt = svgPoint(e);
+        if (!pt) return; // safety
 
-      const raw = { x: p2i(pt.x), y: p2i(pt.y) };
+        const raw = { x: p2i(pt.x), y: p2i(pt.y) };
 
-      // Try to snap to a nearby corner/edge; if nothing close, use raw point
-      let snapped = snapDimPoint(raw);
-      if (!snapped) snapped = raw;
+        // Try to snap to a nearby corner/edge; if nothing close, use raw point
+        let snapped = snapDimPoint(raw);
+        if (!snapped) snapped = raw;
 
-      if (!dimTempStart) {
-        // First point
-        dimTempStart = snapped;
-        state.selectedDimId = null;
-      } else {
-        // Second point => create a dimension
-        const d = {
-          id: uid(),
-          x1: dimTempStart.x,
-          y1: dimTempStart.y,
-          x2: snapped.x,
-          y2: snapped.y
-        };
-        L.dims.push(d);
-        state.selectedDimId = d.id;
-        dimTempStart = null;
+        if (!dimTempStart) {
+          // First point
+          dimTempStart = snapped;
+          state.selectedDimId = null;
+        } else {
+          // Second point => create a dimension
+          const d = {
+            id: uid(),
+            x1: dimTempStart.x,
+            y1: dimTempStart.y,
+            x2: snapped.x,
+            y2: snapped.y
+          };
+          L.dims.push(d);
+          state.selectedDimId = d.id;
+          dimTempStart = null;
 
-        draw();
-        renderDimList();
-        scheduleSave();
-        pushHistory();
-      }
+          draw();
+          renderDimList();
+          scheduleSave();
+          pushHistory();
+        }
 
-      e.stopPropagation();
-    });
+        e.stopPropagation();
+      });
+
 
 
 
@@ -4008,6 +4251,13 @@ if(btnAddLayout){
         draw(); scheduleSave(); pushHistory(); syncTopBar();
       });
 
+      togEdges && (togEdges.onclick = () => {
+        state.showEdgeProfiles = !state.showEdgeProfiles;
+        syncTopBar();
+        draw();
+        scheduleSave();
+        pushHistory();
+      });
 
       if (btnDimTool) {
         const updateDimToolLabel = () => {
@@ -4280,5 +4530,5 @@ if(btnAddLayout){
       document.dispatchEvent(new CustomEvent('cad:ready', { detail: window.CADLITE }));
 
     } // <-- end of init()
-    document.addEventListener('DOMContentLoaded', init);
+  document.addEventListener('DOMContentLoaded', init);
     })();
