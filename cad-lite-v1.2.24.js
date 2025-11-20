@@ -3856,14 +3856,14 @@ if(btnAddLayout){
         edgesLabel.textContent = 'Edge profiles';
 
         const edgeOptions = [
-          { v: 'none',      t: '' },
+          { v: '',      t: 'None' },
           { v: 'seam',      t: 'Seam' },
           { v: 'flat',      t: 'Flat' },
           { v: 'quarter',   t: 'Quarter' },
           { v: 'bevel',     t: 'Bevel' },
-          { v: 'half-bull', t: 'HB' },
-          { v: 'full-bull', t: 'FB' },
-          { v: 'ogee',      t: 'Ogee' },
+          { v: 'HB',        t: 'Half Bull' },
+          { v: 'FB',        t: 'Full Bull' },
+          { v: 'OG',        t: 'Ogee' },
           { v: 'miter',     t: 'Miter' }
         ];
 
