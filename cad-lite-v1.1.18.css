@@ -804,3 +804,98 @@
   flex-direction:column;
   gap:6px;
 }
+
+/* Inspector sub-cards */
+#lc-inspector .lc-item.selected{
+  border-color:#e5e7eb;
+  box-shadow:none;
+  padding:8px;
+}
+#lc-inspector .lc-subcard{
+  border:1px solid #e5e7eb;
+  border-radius:10px;
+  background:#f9fafb;
+  padding:8px 10px;
+  margin-bottom:8px;
+}
+#lc-inspector .lc-subcard-label{
+  font-size:11px;
+  font-weight:600;
+  letter-spacing:.03em;
+  text-transform:uppercase;
+  color:#6b7280;
+  margin-bottom:4px;
+}
+#lc-inspector .lc-subcard-body{
+  display:flex;
+  flex-direction:column;
+  gap:6px;
+}
+
+/* Compact controls inside inspector */
+#lc-inspector .lc-btn,
+#lc-inspector .lc-btn.sm{
+  height:28px;
+  min-width:0;
+  padding:0 8px;
+  border-radius:8px;
+  font-size:12px;
+}
+#lc-inspector .lc-btn.lc-iconbtn{
+  width:28px;
+  min-width:28px;
+  padding:0;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+}
+
+/* Fill toggle smaller */
+#lc-inspector button.lc-fill-toggle{
+  height:28px;
+  min-width:0;
+  padding:0 10px;
+}
+
+/* Opacity slider smaller */
+#lc-inspector input[type="range"]{
+  width:100%;
+  margin-top:4px;
+}
+
+/* Color swatch shorter to match buttons */
+#lc-inspector .lc-color-ghost{
+  height:28px;
+}
+
+/* Layer badge: no label, just pill */
+#lc-inspector .lc-layer-badge{
+  width:28px;
+  height:28px;
+  border-radius:999px;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  font-size:11px;
+  font-weight:600;
+  border:1px solid #d1d5db;
+  background:#e5e7eb;
+  color:#111;
+}
+
+/* Make sinks card look like a subcard */
+#lc-sinks-card{
+  border:1px solid #e5e7eb;
+  border-radius:10px;
+  background:#f9fafb;
+  padding:8px 10px;
+  margin-top:8px;
+}
+#lc-sinks-card h3{
+  font-size:11px;
+  font-weight:600;
+  letter-spacing:.03em;
+  text-transform:uppercase;
+  color:#6b7280;
+  margin:0 0 4px;
+}
