@@ -782,3 +782,25 @@
 .dims-manual .dim-line.selected {
   stroke-width: 2;
 }
+
+/* Inspector sub-sections */
+.lc-subcard{
+  border:1px solid #e5e7eb;
+  border-radius:10px;
+  background:#f9fafb;
+  padding:8px 10px;
+  margin-bottom:8px;
+}
+.lc-subcard-label{
+  font-size:11px;
+  font-weight:600;
+  letter-spacing:.03em;
+  text-transform:uppercase;
+  color:#6b7280;
+  margin-bottom:4px;
+}
+.lc-subcard-body{
+  display:flex;
+  flex-direction:column;
+  gap:6px;
+}
