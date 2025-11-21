@@ -916,25 +916,6 @@
       const togGrid     = document.getElementById('lc-toggle-grid');
       const btnDimTool = document.getElementById('lc-dim-tool');
 
-      // Dim snap marker
-      function initDimSnapMarker(){
-        if (!svg || dimSnapMarker) return;
-        const svgNS = 'http://www.w3.org/2000/svg';
-        const c = document.createElementNS(svgNS, 'circle');
-        c.setAttribute('r', 4);
-        c.setAttribute('fill', '#111'); // dark dot
-        c.setAttribute('stroke', '#fff');
-        c.setAttribute('stroke-width', 1.2);
-        c.setAttribute('vector-effect', 'non-scaling-stroke');
-        c.setAttribute('opacity', '0.9');
-        c.style.pointerEvents = 'none';
-        c.style.display = 'none';
-        c.classList.add('dim-snap-marker');
-        dimSnapMarker = c;
-        svg.appendChild(c);
-      }
-
-
       // Accordion toggle for Slab Overlay
       const accBtn  = document.getElementById('ov-acc-toggle');
       const accBody = document.getElementById('ov-acc-body');
@@ -1485,13 +1466,12 @@
       };
 
       // ===== Canvas Toggle Buttons =====
-      // --- Toggle helper (buttons gray/white like other toggles) ---
-      function setToggle(btn, on) {
+      function setToggle(btn, on, label){
         if (!btn) return;
-        btn.classList.toggle('btn-secondary', !!on);          // filled / "on"
-        btn.classList.toggle('btn-outline-secondary', !on);   // hollow / "off"
+        btn.classList.toggle('alt',   on);    // ON = filled (selected)
+        btn.classList.toggle('ghost', !on);   // OFF = outline
+        btn.textContent = (on ? `Hide ${label}` : `Show ${label}`);
       }
-
 
       function syncTopBar(){
         if (btnUndoTop) btnUndoTop.disabled = !canUndo();
@@ -2870,15 +2850,6 @@ function restore(){
       // ------- Drawing -------
       function draw(){
         const Wpx = i2p(state.cw), Hpx = i2p(state.ch);
-        // Fall back to global flags if a layout flag is missing
-        const showGrid        = L ? (L.showGrid        ?? state.showGrid)        : state.showGrid;
-        const showSlabs       = L ? (L.showSlabs       ?? true)                  : true;
-        const showPieces      = L ? (L.showPieces      ?? true)                  : true;
-        const showPieceDims   = L ? (L.showPieceDims   ?? state.showDims)        : state.showDims;
-        const showManualDims  = L ? (L.showManualDims  ?? state.showManualDims)  : state.showManualDims;
-        const showCornerRadii = L ? (L.showCornerRadii ?? true)                  : true;
-        const showLabels      = L ? (L.showLabels      ?? state.showLabels)      : state.showLabels;
-        const showEdges       = L ? (L.showEdgeProfiles ?? state.showEdgeProfiles) : state.showEdgeProfiles;
         svg.setAttribute('width', Wpx);
         svg.setAttribute('height', Hpx);
         svg.setAttribute('viewBox', `0 0 ${Wpx} ${Hpx}`);
@@ -2893,7 +2864,7 @@ function restore(){
         // overlays above background, below grid/pieces
         drawOverlays();
 
-        if(showGrid){
+        if(state.showGrid){
           const g = document.createElementNS('http://www.w3.org/2000/svg','g');
           const stepPx = i2p(state.grid);
           for(let x=0; x<=Wpx+0.5; x+=stepPx){
@@ -3174,10 +3145,8 @@ function restore(){
             labelsG.setAttribute('class', 'edge-profiles');
             labelsG.setAttribute('pointer-events', 'none');
 
-            // Add rotation support
-            function addEdgeLabel(text, x, y, rotationDeg, anchor, baseline) {
-              if (!text || text === 'none' || text === 'flat') return;
-
+            function addEdgeLabel(text, x, y, anchor, baseline) {
+              if (!text || text === 'flat') return;
               const t = document.createElementNS(svgNS, 'text');
               t.setAttribute('x', x);
               t.setAttribute('y', y);
@@ -3186,62 +3155,49 @@ function restore(){
               t.setAttribute('font-size', '11');
               t.setAttribute('fill', '#111');
               t.textContent = text;
-
-              if (rotationDeg !== 0) {
-                t.setAttribute(
-                  'transform',
-                  `rotate(${rotationDeg}, ${x}, ${y})`
-                );
-              }
-
               labelsG.appendChild(t);
             }
 
-            const MARGIN = -6; // negative pushes INSIDE the piece
+            const MARGIN = 16; // px away from piece edge
 
-            // TOP → upside-down (180°)
+            // Top edge label
             addEdgeLabel(
               edges.top,
               cx,
               (cy - H0/2) - MARGIN,
-              180,           // rotation
               'middle',
               'baseline'
             );
 
-            // BOTTOM → normal (0°)
+            // Bottom edge label
             addEdgeLabel(
               edges.bottom,
               cx,
               (cy + H0/2) + MARGIN,
-              0,             // rotation
               'middle',
               'hanging'
             );
 
-            // LEFT → 90° (text runs top-to-bottom)
+            // Left edge label
             addEdgeLabel(
               edges.left,
               (cx - W0/2) - MARGIN,
               cy,
-              90,            // rotation
-              'middle',
+              'end',
               'middle'
             );
 
-            // RIGHT → 270° (or -90°)
+            // Right edge label
             addEdgeLabel(
               edges.right,
               (cx + W0/2) + MARGIN,
               cy,
-              270,           // rotation
-              'middle',
+              'start',
               'middle'
             );
 
             gg.appendChild(labelsG);
           }
-
 
 
           // selection / drag
@@ -3416,42 +3372,6 @@ function restore(){
 
 
         meta.textContent = `Canvas: ${state.cw}" × ${state.ch}" · Grid ${state.grid}" · Scale ${state.scale}px/in`;
-      }
-
-      // --- Canvas visibility toggle buttons ---
-      const btnToggleGrid        = document.getElementById('btnToggleGrid');
-      const btnToggleSlabs       = document.getElementById('btnToggleSlabs');
-      const btnTogglePieces      = document.getElementById('btnTogglePieces');
-      const btnTogglePieceDims   = document.getElementById('btnTogglePieceDims');   // auto per-piece dims
-      const btnToggleManualDims  = document.getElementById('btnToggleManualDims');  // manual dims
-      const btnToggleCornerRadii = document.getElementById('btnToggleCornerRadii');
-      const btnToggleLabels      = document.getElementById('btnToggleLabels');
-      const btnToggleEdges       = document.getElementById('btnToggleEdges');       // edge profiles
-
-      function syncVisibilityToggles() {
-        const L = cur();
-        if (!L) return;
-
-        setToggle(btnToggleGrid,        L.showGrid        ?? true);
-        setToggle(btnToggleSlabs,       L.showSlabs       ?? true);
-        setToggle(btnTogglePieces,      L.showPieces      ?? true);
-        setToggle(btnTogglePieceDims,   L.showPieceDims   ?? true);
-        setToggle(btnToggleManualDims,  L.showManualDims  ?? true);
-        setToggle(btnToggleCornerRadii, L.showCornerRadii ?? true);
-        setToggle(btnToggleLabels,      L.showLabels      ?? true);
-        setToggle(btnToggleEdges,       L.showEdgeProfiles ?? true);
-      }
-
-      // Ensure new layouts have sane defaults
-      function ensureLayoutVisibilityDefaults(L) {
-        if (!('showGrid'         in L)) L.showGrid         = true;
-        if (!('showSlabs'        in L)) L.showSlabs        = true;
-        if (!('showPieces'       in L)) L.showPieces       = true;
-        if (!('showPieceDims'    in L)) L.showPieceDims    = true;
-        if (!('showManualDims'   in L)) L.showManualDims   = true;
-        if (!('showCornerRadii'  in L)) L.showCornerRadii  = true;
-        if (!('showLabels'       in L)) L.showLabels       = true;
-        if (!('showEdgeProfiles' in L)) L.showEdgeProfiles = true;
       }
 
 
@@ -3656,15 +3576,11 @@ function renderDimList(){
   if (!dimList) return;
   const L = cur();
   dimList.innerHTML = '';
-  if (!L || !Array.isArray(L.dims) || !L.dims.length) return;
+  if (!L || !Array.isArray(L.dims)) return;
 
   L.dims.forEach((d, idx) => {
-    const row = document.createElement('div');
-    row.className = 'lc-item nav' + (state.selectedDimId === d.id ? ' selected' : '');
-
-    // Main line: label text
-    const line = document.createElement('span');
-    line.className = 'lc-line';
+    const li = document.createElement('div');
+    li.className = 'lc-item nav' + (state.selectedDimId === d.id ? ' selected' : '');
 
     const dx = d.x2 - d.x1;
     const dy = d.y2 - d.y1;
@@ -3672,45 +3588,9 @@ function renderDimList(){
     const angDeg = (Math.atan2(d.y2 - d.y1, d.x2 - d.x1) * 180 / Math.PI + 360) % 180;
     const orientation = (angDeg < 45 || angDeg > 135) ? 'Horiz' : 'Vert';
 
-    line.innerHTML = `<strong>Dim ${idx+1}</strong> · ${dist.toFixed(2)}" (${orientation})`;
-    row.appendChild(line);
+    li.textContent = `Dim ${idx+1}: ${dist.toFixed(2)}" (${orientation})`;
 
-    // Actions: tiny trash icon like Pieces
-    const actions = document.createElement('div');
-    actions.style.display = 'flex';
-    actions.style.gap = '6px';
-
-    const btnDel = document.createElement('button');
-    btnDel.type = 'button';
-    btnDel.className = 'lc-btn red lc-iconbtn';
-    btnDel.title = 'Delete';
-    btnDel.innerHTML = '<svg class="lc-icon" viewBox="0 0 24 24"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m-1 0v14a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2V6h10z" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
-
-    btnDel.addEventListener('click', (e) => {
-      e.stopPropagation(); // don’t also select the row
-
-      const Lcur = cur();
-      if (!Lcur || !Array.isArray(Lcur.dims)) return;
-
-      const i = Lcur.dims.findIndex(dd => dd.id === d.id);
-      if (i === -1) return;
-
-      Lcur.dims.splice(i, 1);
-      if (state.selectedDimId === d.id) {
-        state.selectedDimId = null;
-      }
-
-      renderDimList();
-      draw();
-      scheduleSave();
-      pushHistory();
-    });
-
-    actions.appendChild(btnDel);
-    row.appendChild(actions);
-
-    // Clicking the row (not the button) selects the dim
-    row.addEventListener('click', () => {
+    li.addEventListener('click', () => {
       state.selectedDimId = d.id;
       state.selectedId = null;
       renderDimList();
@@ -3718,11 +3598,9 @@ function renderDimList(){
       draw();
     });
 
-    dimList.appendChild(row);
+    dimList.appendChild(li);
   });
 }
-
-
 
 
 
@@ -3819,9 +3697,9 @@ if(btnAddLayout){
       function updateInspector(){
         const p = state.pieces.find(x => x.id === state.selectedId);
         if (!p) {
-          inspector.className = 'lc-small';
-          inspector.textContent = 'Select a piece from the canvas or list.';
-          return;
+            inspector.className = 'lc-small';
+            inspector.textContent = 'Select a piece from the canvas or list.';
+            return;
         }
         inspector.className = '';
         inspector.innerHTML = '';
@@ -3831,20 +3709,20 @@ if(btnAddLayout){
 
         // Helper to make little gray outlined sections
         function makeSection(title){
-          const sec = document.createElement('div');
-          sec.className = 'lc-subcard';
+            const sec = document.createElement('div');
+            sec.className = 'lc-subcard';
 
-          const label = document.createElement('div');
-          label.className = 'lc-subcard-label lc-small';
-          label.textContent = title;
-          sec.appendChild(label);
+            const label = document.createElement('div');
+            label.className = 'lc-subcard-label lc-small';
+            label.textContent = title;
+            sec.appendChild(label);
 
-          const body = document.createElement('div');
-          body.className = 'lc-subcard-body';
-          sec.appendChild(body);
+            const body = document.createElement('div');
+            body.className = 'lc-subcard-body';
+            sec.appendChild(body);
 
-          root.appendChild(sec);
-          return body;
+            root.appendChild(sec);
+            return body;
         }
 
         // --- 1) Piece Info -------------------------------------------------------
@@ -3864,13 +3742,13 @@ if(btnAddLayout){
         nameInput.className = 'lc-input';
         nameInput.value = p.name || '';
         nameInput.oninput = () => {
-          p.name = nameInput.value;
-          renderList();
-          draw();
+            p.name = nameInput.value;
+            renderList();
+            draw();
         };
         nameInput.onblur = () => {
-          scheduleSave();
-          pushHistory();
+            scheduleSave();
+            pushHistory();
         };
         nameWrap.appendChild(nameInput);
 
@@ -3885,21 +3763,21 @@ if(btnAddLayout){
         btnDup.title = 'Duplicate';
         btnDup.innerHTML = '<svg class="lc-icon" viewBox="0 0 24 24"><path d="M9 9V5a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-4M5 9a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V9z" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
         btnDup.onclick = (e) => {
-          e.preventDefault();
-          const rs = realSize(p);
-          const np = JSON.parse(JSON.stringify(p));
-          np.id = uid();
-          np.name = (p.name || 'Piece') + ' Copy';
-          np.x = clamp(snap(p.x + state.grid, state.grid), 0, state.cw - rs.w);
-          np.y = clamp(snap(p.y + state.grid, state.grid), 0, state.ch - rs.h);
-          state.pieces.push(np);
-          state.selectedId = np.id;
-          renderList();
-          updateInspector();
-          sinksUI?.refresh?.();
-          draw();
-          scheduleSave();
-          pushHistory();
+            e.preventDefault();
+            const rs = realSize(p);
+            const np = JSON.parse(JSON.stringify(p));
+            np.id = uid();
+            np.name = (p.name || 'Piece') + ' Copy';
+            np.x = clamp(snap(p.x + state.grid, state.grid), 0, state.cw - rs.w);
+            np.y = clamp(snap(p.y + state.grid, state.grid), 0, state.ch - rs.h);
+            state.pieces.push(np);
+            state.selectedId = np.id;
+            renderList();
+            updateInspector();
+            sinksUI?.refresh?.();
+            draw();
+            scheduleSave();
+            pushHistory();
         };
 
         // Delete button
@@ -3908,9 +3786,9 @@ if(btnAddLayout){
         btnDel.title = 'Delete';
         btnDel.innerHTML = '<svg class="lc-icon" viewBox="0 0 24 24"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m-1 0v14a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2V6h10z" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
         btnDel.onclick = (e) => {
-          e.preventDefault();
-          const idx = state.pieces.findIndex(x => x.id === p.id);
-          if (idx >= 0) {
+            e.preventDefault();
+            const idx = state.pieces.findIndex(x => x.id === p.id);
+            if (idx >= 0) {
             state.pieces.splice(idx, 1);
             setSelection([]);
             state.selectedId = null;
@@ -3920,7 +3798,7 @@ if(btnAddLayout){
             draw();
             scheduleSave();
             pushHistory();
-          }
+            }
         };
 
         actions.appendChild(btnDup);
@@ -3939,38 +3817,38 @@ if(btnAddLayout){
         r2.style.gap = '6px';
 
         function makeNumField(label, value, id, step, onChange){
-          const lab = document.createElement('label');
-          lab.className = 'lc-label';
-          lab.textContent = label;
-          const input = document.createElement('input');
-          input.id = id;
-          input.type = 'number';
-          input.className = 'lc-input';
-          input.step = String(step);
-          input.value = value;
-          input.addEventListener('change', () => onChange(parseFloat(input.value) || 0));
-          lab.appendChild(input);
-          return lab;
+            const lab = document.createElement('label');
+            lab.className = 'lc-label';
+            lab.textContent = label;
+            const input = document.createElement('input');
+            input.id = id;
+            input.type = 'number';
+            input.className = 'lc-input';
+            input.step = String(step);
+            input.value = value;
+            input.addEventListener('change', () => onChange(parseFloat(input.value) || 0));
+            lab.appendChild(input);
+            return lab;
         }
 
         const wField = makeNumField('Width (in)', p.w, 'insp-w', 0.25, (v) => {
-          p.w = Math.max(0.25, v);
-          draw();
-          scheduleSave();
-          pushHistory();
+            p.w = Math.max(0.25, v);
+            draw();
+            scheduleSave();
+            pushHistory();
         });
         const hField = makeNumField('Height (in)', p.h, 'insp-h', 0.25, (v) => {
-          p.h = Math.max(0.25, v);
-          draw();
-          scheduleSave();
-          pushHistory();
+            p.h = Math.max(0.25, v);
+            draw();
+            scheduleSave();
+            pushHistory();
         });
         const rotField = makeNumField('Rotation (°)', p.rotation || 0, 'insp-rot', 1, (v) => {
-          const r = ((v % 360) + 360) % 360;
-          p.rotation = r;
-          draw();
-          scheduleSave();
-          pushHistory();
+            const r = ((v % 360) + 360) % 360;
+            p.rotation = r;
+            draw();
+            scheduleSave();
+            pushHistory();
         });
 
         r2.appendChild(wField);
@@ -3993,11 +3871,11 @@ if(btnAddLayout){
         colorCol.className = 'lc-label';
         colorCol.textContent = 'Color';
         const cs = colorStack(p.color, (val) => {
-          p.color = val;
-          renderList();
-          draw();
-          scheduleSave();
-          pushHistory();
+            p.color = val;
+            renderList();
+            draw();
+            scheduleSave();
+            pushHistory();
         });
         colorCol.appendChild(cs.wrap);
 
@@ -4015,8 +3893,8 @@ if(btnAddLayout){
         opacityCol.className = 'lc-label';
         opacityCol.textContent = 'Opacity';
         opacityCol.innerHTML += `
-          <input id="insp-fill" type="range" min="0" max="100" step="5" class="lc-input" value="${Math.round((p.fillOpacity ?? 1) * 100)}">
-          <span id="insp-fill-pct" class="lc-small">${Math.round((p.fillOpacity ?? 1) * 100)}%</span>
+            <input id="insp-fill" type="range" min="0" max="100" step="5" class="lc-input" value="${Math.round((p.fillOpacity ?? 1) * 100)}">
+            <span id="insp-fill-pct" class="lc-small">${Math.round((p.fillOpacity ?? 1) * 100)}%</span>
         `;
 
         rowA.appendChild(colorCol);
@@ -4028,32 +3906,32 @@ if(btnAddLayout){
         const lblPct = opacityCol.querySelector('#insp-fill-pct');
 
         function syncFillControls(){
-          const pct = Math.round(getFillOpacity(p) * 100);
-          inFill.value = String(pct);
-          lblPct.textContent = pct + '%';
-          inFill.disabled = !!p.noFill;
-          const on = !p.noFill;
-          btnFill.textContent = on ? 'Fill: On' : 'Fill: Off';
-          btnFill.classList.toggle('alt', on);
-          btnFill.classList.toggle('ghost', !on);
+            const pct = Math.round(getFillOpacity(p) * 100);
+            inFill.value = String(pct);
+            lblPct.textContent = pct + '%';
+            inFill.disabled = !!p.noFill;
+            const on = !p.noFill;
+            btnFill.textContent = on ? 'Fill: On' : 'Fill: Off';
+            btnFill.classList.toggle('alt', on);
+            btnFill.classList.toggle('ghost', !on);
         }
 
         inFill.addEventListener('input', () => {
-          const pct = parseFloat(inFill.value) || 0;
-          p.fillOpacity = Math.max(0, Math.min(1, pct / 100));
-          draw();
+            const pct = parseFloat(inFill.value) || 0;
+            p.fillOpacity = Math.max(0, Math.min(1, pct / 100));
+            draw();
         });
         inFill.addEventListener('change', () => {
-          scheduleSave();
-          pushHistory();
+            scheduleSave();
+            pushHistory();
         });
 
         btnFill.addEventListener('click', () => {
-          p.noFill = !p.noFill;
-          syncFillControls();
-          draw();
-          scheduleSave();
-          pushHistory();
+            p.noFill = !p.noFill;
+            syncFillControls();
+            draw();
+            scheduleSave();
+            pushHistory();
         });
 
         syncFillControls();
@@ -4067,32 +3945,32 @@ if(btnAddLayout){
         rowB.style.gap = '6px';
 
         function mkBtn(label, cls, handler){
-          const b = document.createElement('button');
-          b.type = 'button';
-          b.className = 'lc-btn ' + cls;
-          b.textContent = label;
-          b.onclick = handler;
-          return b;
+            const b = document.createElement('button');
+            b.type = 'button';
+            b.className = 'lc-btn ' + cls;
+            b.textContent = label;
+            b.onclick = handler;
+            return b;
         }
 
         const bBack = mkBtn('Backward', 'ghost sm', () => {
-          sendBackward(p);
-          renderList();
-          updateInspector();
-          sinksUI?.refresh?.();
-          draw();
-          scheduleSave();
-          pushHistory();
+            sendBackward(p);
+            renderList();
+            updateInspector();
+            sinksUI?.refresh?.();
+            draw();
+            scheduleSave();
+            pushHistory();
         });
 
         const bFwd = mkBtn('Forward', 'ghost sm', () => {
-          bringForward(p);
-          renderList();
-          updateInspector();
-          sinksUI?.refresh?.();
-          draw();
-          scheduleSave();
-          pushHistory();
+            bringForward(p);
+            renderList();
+            updateInspector();
+            sinksUI?.refresh?.();
+            draw();
+            scheduleSave();
+            pushHistory();
         });
 
         const layerWrap = document.createElement('div');
@@ -4104,20 +3982,20 @@ if(btnAddLayout){
         layerBadge.textContent = String(p.layer ?? 0);
         layerBadge.disabled = true;
         Object.assign(layerBadge.style, {
-          width: '28px',
-          height: '28px',
-          borderRadius: '9999px',
-          display: 'inline-flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          fontSize: '11px',
-          fontWeight: '600',
-          lineHeight: '1',
-          border: '1px solid var(--border, #ddd)',
-          background: 'var(--muted, #f3f4f6)',
-          color: 'var(--text, #111)',
-          userSelect: 'none',
-          pointerEvents: 'none'
+            width: '28px',
+            height: '28px',
+            borderRadius: '9999px',
+            display: 'inline-flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            fontSize: '11px',
+            fontWeight: '600',
+            lineHeight: '1',
+            border: '1px solid var(--border, #ddd)',
+            background: 'var(--muted, #f3f4f6)',
+            color: 'var(--text, #111)',
+            userSelect: 'none',
+            pointerEvents: 'none'
         });
         layerWrap.appendChild(layerBadge);
 
@@ -4137,7 +4015,7 @@ if(btnAddLayout){
 
         // Left: Edge profiles
         if (!p.edgeProfiles) {
-          p.edgeProfiles = { top: 'flat', right: 'flat', bottom: 'flat', left: 'flat' };
+            p.edgeProfiles = { top: 'flat', right: 'flat', bottom: 'flat', left: 'flat' };
         }
 
         const edgesCol = document.createElement('div');
@@ -4147,44 +4025,44 @@ if(btnAddLayout){
         edgesCol.appendChild(edgesLabel);
 
         const edgeOptions = [
-          { v: 'flat',      t: 'Flat' },
-          { v: 'quarter',   t: 'Quarter' },
-          { v: 'bevel',     t: 'Bevel' },
-          { v: 'half-bull', t: 'Half bull' },
-          { v: 'full-bull', t: 'Full bull' },
-          { v: 'ogee',      t: 'Ogee' },
-          { v: 'miter',     t: 'Miter' },
-          { v: 'seam',      t: 'Seam' }
+            { v: 'flat',      t: 'Flat' },
+            { v: 'quarter',   t: 'Quarter' },
+            { v: 'bevel',     t: 'Bevel' },
+            { v: 'half-bull', t: 'Half bull' },
+            { v: 'full-bull', t: 'Full bull' },
+            { v: 'ogee',      t: 'Ogee' },
+            { v: 'miter',     t: 'Miter' },
+            { v: 'seam',      t: 'Seam' }
         ];
 
         function makeEdgeSelect(sideKey, labelText) {
-          const wrap = document.createElement('label');
-          wrap.className = 'lc-label lc-edge-field';
+            const wrap = document.createElement('label');
+            wrap.className = 'lc-label lc-edge-field';
 
-          const cap = document.createElement('div');
-          cap.className = 'lc-small';
-          cap.textContent = labelText;
-          wrap.appendChild(cap);
+            const cap = document.createElement('div');
+            cap.className = 'lc-small';
+            cap.textContent = labelText;
+            wrap.appendChild(cap);
 
-          const sel = document.createElement('select');
-          sel.className = 'lc-input';
-          edgeOptions.forEach(opt => {
+            const sel = document.createElement('select');
+            sel.className = 'lc-input';
+            edgeOptions.forEach(opt => {
             const o = document.createElement('option');
             o.value = opt.v;
             o.textContent = opt.t;
             sel.appendChild(o);
-          });
-          sel.value = p.edgeProfiles[sideKey] || 'flat';
+            });
+            sel.value = p.edgeProfiles[sideKey] || 'flat';
 
-          sel.addEventListener('change', () => {
+            sel.addEventListener('change', () => {
             p.edgeProfiles[sideKey] = sel.value;
             draw();
             scheduleSave();
             pushHistory();
-          });
+            });
 
-          wrap.appendChild(sel);
-          return wrap;
+            wrap.appendChild(sel);
+            return wrap;
         }
 
         const edgesGrid = document.createElement('div');
@@ -4213,13 +4091,13 @@ if(btnAddLayout){
         const bBR = cornerButton('br', p.rBR);
 
         function toggleCorner(btn, key){
-          return () => {
+            return () => {
             p[key] = !p[key];
             btn.classList.toggle('active', p[key]);
             draw();
             scheduleSave();
             pushHistory();
-          };
+            };
         }
         bTL.onclick = toggleCorner(bTL, 'rTL');
         bTR.onclick = toggleCorner(bTR, 'rTR');
@@ -4242,10 +4120,10 @@ if(btnAddLayout){
 
         // lock the inspector height
         requestAnimationFrame(() => {
-          lockInspectorHeight(inspector.scrollHeight);
+            lockInspectorHeight(inspector.scrollHeight);
         });
-      }
-   
+        }
+  
 
       // ------- Canvas interactions -------
       svg.addEventListener('pointermove', (e) => {
@@ -4275,36 +4153,6 @@ if(btnAddLayout){
       draw(); // smooth (no snapping here)
     });
 
-    svg.addEventListener('pointermove', (e) => {
-      // If Dim Tool is off, or we’re dragging a dim line, hide the marker
-      if (!state.dimTool || dimDrag) {
-        if (dimSnapMarker) dimSnapMarker.style.display = 'none';
-        return;
-      }
-      if (!dimSnapMarker) return;
-
-      const pt = svgPoint(e);
-      if (!pt) return;
-
-      // Convert to inches
-      const raw = { x: p2i(pt.x), y: p2i(pt.y) };
-      const snap = snapDimPoint(raw) || raw; // grid/corner snap or raw point
-
-      // Back to px
-      const cx = i2p(snap.x);
-      const cy = i2p(snap.y);
-
-      dimSnapMarker.setAttribute('cx', cx);
-      dimSnapMarker.setAttribute('cy', cy);
-      dimSnapMarker.style.display = 'block';
-    });
-    
-    svg.addEventListener('pointerleave', () => {
-      if (dimSnapMarker) dimSnapMarker.style.display = 'none';
-    });
-
-
-
       // --- Deselect all when clicking blank canvas (no drag) ---
       // Place this AFTER the pointermove handler and AFTER your endDrag wiring.
       let blankDown = null;
@@ -4321,9 +4169,6 @@ if(btnAddLayout){
 
         if (svg) {
           svg.style.cursor = on ? 'crosshair' : '';
-        }
-        if (dimSnapMarker) {
-          dimSnapMarker.style.display = on ? dimSnapMarker.style.display : 'none';
         }
       }
 
@@ -4367,8 +4212,6 @@ if(btnAddLayout){
 
       // --- Manual dimensions tool ---
       let dimTempStart = null;  // { x, y } in inches for first click
-      let dimSnapMarker = null; // floating snap indicator circle
-
 
       svg.addEventListener('click', (e) => {
         // Only when Dim Tool is active
