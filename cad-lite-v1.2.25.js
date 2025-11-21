@@ -916,6 +916,25 @@
       const togGrid     = document.getElementById('lc-toggle-grid');
       const btnDimTool = document.getElementById('lc-dim-tool');
 
+      // Dim snap marker
+      function initDimSnapMarker(){
+        if (!svg || dimSnapMarker) return;
+        const svgNS = 'http://www.w3.org/2000/svg';
+        const c = document.createElementNS(svgNS, 'circle');
+        c.setAttribute('r', 4);
+        c.setAttribute('fill', '#111'); // dark dot
+        c.setAttribute('stroke', '#fff');
+        c.setAttribute('stroke-width', 1.2);
+        c.setAttribute('vector-effect', 'non-scaling-stroke');
+        c.setAttribute('opacity', '0.9');
+        c.style.pointerEvents = 'none';
+        c.style.display = 'none';
+        c.classList.add('dim-snap-marker');
+        dimSnapMarker = c;
+        svg.appendChild(c);
+      }
+
+
       // Accordion toggle for Slab Overlay
       const accBtn  = document.getElementById('ov-acc-toggle');
       const accBody = document.getElementById('ov-acc-body');
@@ -3576,11 +3595,15 @@ function renderDimList(){
   if (!dimList) return;
   const L = cur();
   dimList.innerHTML = '';
-  if (!L || !Array.isArray(L.dims)) return;
+  if (!L || !Array.isArray(L.dims) || !L.dims.length) return;
 
   L.dims.forEach((d, idx) => {
-    const li = document.createElement('div');
-    li.className = 'lc-item nav' + (state.selectedDimId === d.id ? ' selected' : '');
+    const row = document.createElement('div');
+    row.className = 'lc-item nav' + (state.selectedDimId === d.id ? ' selected' : '');
+
+    // Main line: label text
+    const line = document.createElement('span');
+    line.className = 'lc-line';
 
     const dx = d.x2 - d.x1;
     const dy = d.y2 - d.y1;
@@ -3588,9 +3611,45 @@ function renderDimList(){
     const angDeg = (Math.atan2(d.y2 - d.y1, d.x2 - d.x1) * 180 / Math.PI + 360) % 180;
     const orientation = (angDeg < 45 || angDeg > 135) ? 'Horiz' : 'Vert';
 
-    li.textContent = `Dim ${idx+1}: ${dist.toFixed(2)}" (${orientation})`;
+    line.innerHTML = `<strong>Dim ${idx+1}</strong> · ${dist.toFixed(2)}" (${orientation})`;
+    row.appendChild(line);
 
-    li.addEventListener('click', () => {
+    // Actions: tiny trash icon like Pieces
+    const actions = document.createElement('div');
+    actions.style.display = 'flex';
+    actions.style.gap = '6px';
+
+    const btnDel = document.createElement('button');
+    btnDel.type = 'button';
+    btnDel.className = 'lc-btn red lc-iconbtn';
+    btnDel.title = 'Delete';
+    btnDel.innerHTML = '<svg class="lc-icon" viewBox="0 0 24 24"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m-1 0v14a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2V6h10z" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+
+    btnDel.addEventListener('click', (e) => {
+      e.stopPropagation(); // don’t also select the row
+
+      const Lcur = cur();
+      if (!Lcur || !Array.isArray(Lcur.dims)) return;
+
+      const i = Lcur.dims.findIndex(dd => dd.id === d.id);
+      if (i === -1) return;
+
+      Lcur.dims.splice(i, 1);
+      if (state.selectedDimId === d.id) {
+        state.selectedDimId = null;
+      }
+
+      renderDimList();
+      draw();
+      scheduleSave();
+      pushHistory();
+    });
+
+    actions.appendChild(btnDel);
+    row.appendChild(actions);
+
+    // Clicking the row (not the button) selects the dim
+    row.addEventListener('click', () => {
       state.selectedDimId = d.id;
       state.selectedId = null;
       renderDimList();
@@ -3598,9 +3657,11 @@ function renderDimList(){
       draw();
     });
 
-    dimList.appendChild(li);
+    dimList.appendChild(row);
   });
 }
+
+
 
 
 
@@ -4031,6 +4092,36 @@ if(btnAddLayout){
       draw(); // smooth (no snapping here)
     });
 
+    svg.addEventListener('pointermove', (e) => {
+      // If Dim Tool is off, or we’re dragging a dim line, hide the marker
+      if (!state.dimTool || dimDrag) {
+        if (dimSnapMarker) dimSnapMarker.style.display = 'none';
+        return;
+      }
+      if (!dimSnapMarker) return;
+
+      const pt = svgPoint(e);
+      if (!pt) return;
+
+      // Convert to inches
+      const raw = { x: p2i(pt.x), y: p2i(pt.y) };
+      const snap = snapDimPoint(raw) || raw; // grid/corner snap or raw point
+
+      // Back to px
+      const cx = i2p(snap.x);
+      const cy = i2p(snap.y);
+
+      dimSnapMarker.setAttribute('cx', cx);
+      dimSnapMarker.setAttribute('cy', cy);
+      dimSnapMarker.style.display = 'block';
+    });
+    
+    svg.addEventListener('pointerleave', () => {
+      if (dimSnapMarker) dimSnapMarker.style.display = 'none';
+    });
+
+
+
       // --- Deselect all when clicking blank canvas (no drag) ---
       // Place this AFTER the pointermove handler and AFTER your endDrag wiring.
       let blankDown = null;
@@ -4047,6 +4138,9 @@ if(btnAddLayout){
 
         if (svg) {
           svg.style.cursor = on ? 'crosshair' : '';
+        }
+        if (dimSnapMarker) {
+          dimSnapMarker.style.display = on ? dimSnapMarker.style.display : 'none';
         }
       }
 
@@ -4090,6 +4184,8 @@ if(btnAddLayout){
 
       // --- Manual dimensions tool ---
       let dimTempStart = null;  // { x, y } in inches for first click
+      let dimSnapMarker = null; // floating snap indicator circle
+
 
       svg.addEventListener('click', (e) => {
         // Only when Dim Tool is active
