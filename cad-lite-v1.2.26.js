@@ -1485,12 +1485,13 @@
       };
 
       // ===== Canvas Toggle Buttons =====
-      function setToggle(btn, on, label){
+      // --- Toggle helper (buttons gray/white like other toggles) ---
+      function setToggle(btn, on) {
         if (!btn) return;
-        btn.classList.toggle('alt',   on);    // ON = filled (selected)
-        btn.classList.toggle('ghost', !on);   // OFF = outline
-        btn.textContent = (on ? `Hide ${label}` : `Show ${label}`);
+        btn.classList.toggle('btn-secondary', !!on);          // filled / "on"
+        btn.classList.toggle('btn-outline-secondary', !on);   // hollow / "off"
       }
+
 
       function syncTopBar(){
         if (btnUndoTop) btnUndoTop.disabled = !canUndo();
@@ -2869,6 +2870,15 @@ function restore(){
       // ------- Drawing -------
       function draw(){
         const Wpx = i2p(state.cw), Hpx = i2p(state.ch);
+        // Fall back to global flags if a layout flag is missing
+        const showGrid        = L ? (L.showGrid        ?? state.showGrid)        : state.showGrid;
+        const showSlabs       = L ? (L.showSlabs       ?? true)                  : true;
+        const showPieces      = L ? (L.showPieces      ?? true)                  : true;
+        const showPieceDims   = L ? (L.showPieceDims   ?? state.showDims)        : state.showDims;
+        const showManualDims  = L ? (L.showManualDims  ?? state.showManualDims)  : state.showManualDims;
+        const showCornerRadii = L ? (L.showCornerRadii ?? true)                  : true;
+        const showLabels      = L ? (L.showLabels      ?? state.showLabels)      : state.showLabels;
+        const showEdges       = L ? (L.showEdgeProfiles ?? state.showEdgeProfiles) : state.showEdgeProfiles;
         svg.setAttribute('width', Wpx);
         svg.setAttribute('height', Hpx);
         svg.setAttribute('viewBox', `0 0 ${Wpx} ${Hpx}`);
@@ -2883,7 +2893,7 @@ function restore(){
         // overlays above background, below grid/pieces
         drawOverlays();
 
-        if(state.showGrid){
+        if(showGrid){
           const g = document.createElementNS('http://www.w3.org/2000/svg','g');
           const stepPx = i2p(state.grid);
           for(let x=0; x<=Wpx+0.5; x+=stepPx){
@@ -3164,8 +3174,10 @@ function restore(){
             labelsG.setAttribute('class', 'edge-profiles');
             labelsG.setAttribute('pointer-events', 'none');
 
-            function addEdgeLabel(text, x, y, anchor, baseline) {
-              if (!text || text === 'flat') return;
+            // Add rotation support
+            function addEdgeLabel(text, x, y, rotationDeg, anchor, baseline) {
+              if (!text || text === 'none' || text === 'flat') return;
+
               const t = document.createElementNS(svgNS, 'text');
               t.setAttribute('x', x);
               t.setAttribute('y', y);
@@ -3174,49 +3186,62 @@ function restore(){
               t.setAttribute('font-size', '11');
               t.setAttribute('fill', '#111');
               t.textContent = text;
+
+              if (rotationDeg !== 0) {
+                t.setAttribute(
+                  'transform',
+                  `rotate(${rotationDeg}, ${x}, ${y})`
+                );
+              }
+
               labelsG.appendChild(t);
             }
 
-            const MARGIN = 16; // px away from piece edge
+            const MARGIN = -6; // negative pushes INSIDE the piece
 
-            // Top edge label
+            // TOP → upside-down (180°)
             addEdgeLabel(
               edges.top,
               cx,
               (cy - H0/2) - MARGIN,
+              180,           // rotation
               'middle',
               'baseline'
             );
 
-            // Bottom edge label
+            // BOTTOM → normal (0°)
             addEdgeLabel(
               edges.bottom,
               cx,
               (cy + H0/2) + MARGIN,
+              0,             // rotation
               'middle',
               'hanging'
             );
 
-            // Left edge label
+            // LEFT → 90° (text runs top-to-bottom)
             addEdgeLabel(
               edges.left,
               (cx - W0/2) - MARGIN,
               cy,
-              'end',
+              90,            // rotation
+              'middle',
               'middle'
             );
 
-            // Right edge label
+            // RIGHT → 270° (or -90°)
             addEdgeLabel(
               edges.right,
               (cx + W0/2) + MARGIN,
               cy,
-              'start',
+              270,           // rotation
+              'middle',
               'middle'
             );
 
             gg.appendChild(labelsG);
           }
+
 
 
           // selection / drag
@@ -3391,6 +3416,42 @@ function restore(){
 
 
         meta.textContent = `Canvas: ${state.cw}" × ${state.ch}" · Grid ${state.grid}" · Scale ${state.scale}px/in`;
+      }
+
+      // --- Canvas visibility toggle buttons ---
+      const btnToggleGrid        = document.getElementById('btnToggleGrid');
+      const btnToggleSlabs       = document.getElementById('btnToggleSlabs');
+      const btnTogglePieces      = document.getElementById('btnTogglePieces');
+      const btnTogglePieceDims   = document.getElementById('btnTogglePieceDims');   // auto per-piece dims
+      const btnToggleManualDims  = document.getElementById('btnToggleManualDims');  // manual dims
+      const btnToggleCornerRadii = document.getElementById('btnToggleCornerRadii');
+      const btnToggleLabels      = document.getElementById('btnToggleLabels');
+      const btnToggleEdges       = document.getElementById('btnToggleEdges');       // edge profiles
+
+      function syncVisibilityToggles() {
+        const L = cur();
+        if (!L) return;
+
+        setToggle(btnToggleGrid,        L.showGrid        ?? true);
+        setToggle(btnToggleSlabs,       L.showSlabs       ?? true);
+        setToggle(btnTogglePieces,      L.showPieces      ?? true);
+        setToggle(btnTogglePieceDims,   L.showPieceDims   ?? true);
+        setToggle(btnToggleManualDims,  L.showManualDims  ?? true);
+        setToggle(btnToggleCornerRadii, L.showCornerRadii ?? true);
+        setToggle(btnToggleLabels,      L.showLabels      ?? true);
+        setToggle(btnToggleEdges,       L.showEdgeProfiles ?? true);
+      }
+
+      // Ensure new layouts have sane defaults
+      function ensureLayoutVisibilityDefaults(L) {
+        if (!('showGrid'         in L)) L.showGrid         = true;
+        if (!('showSlabs'        in L)) L.showSlabs        = true;
+        if (!('showPieces'       in L)) L.showPieces       = true;
+        if (!('showPieceDims'    in L)) L.showPieceDims    = true;
+        if (!('showManualDims'   in L)) L.showManualDims   = true;
+        if (!('showCornerRadii'  in L)) L.showCornerRadii  = true;
+        if (!('showLabels'       in L)) L.showLabels       = true;
+        if (!('showEdgeProfiles' in L)) L.showEdgeProfiles = true;
       }
 
 
@@ -3756,176 +3817,344 @@ if(btnAddLayout){
         }
 
       function updateInspector(){
-        const p = state.pieces.find(x=>x.id===state.selectedId);
-        if(!p){ inspector.className='lc-small'; inspector.textContent='Select a piece from the canvas or list.'; return; }
-        inspector.className=''; inspector.innerHTML='';
-        const wrap = document.createElement('div'); wrap.className='lc-item selected';
+        const p = state.pieces.find(x => x.id === state.selectedId);
+        if (!p) {
+          inspector.className = 'lc-small';
+          inspector.textContent = 'Select a piece from the canvas or list.';
+          return;
+        }
+        inspector.className = '';
+        inspector.innerHTML = '';
 
-        const row1 = document.createElement('div'); row1.className='lc-row';
-        const nameL = document.createElement('label'); nameL.className='lc-label'; nameL.textContent='Name';
-        const nameI = document.createElement('input'); nameI.className='lc-input'; nameI.value=p.name||'';
-        nameI.oninput = ()=>{ p.name=nameI.value; renderList(); draw(); };
-        nameI.onblur  = ()=>{ scheduleSave(); pushHistory(); }; // record on commit
-        nameL.appendChild(nameI);
+        const root = document.createElement('div');
+        root.className = 'lc-item selected';
 
-        // ==== Fill controls: No Fill + Opacity ====
-        const rowFill = document.createElement('div');
-        rowFill.className = 'lc-row';
-        rowFill.style.marginTop = '8px';
+        // Helper to make little gray outlined sections
+        function makeSection(title){
+          const sec = document.createElement('div');
+          sec.className = 'lc-subcard';
 
-        // Left: Fill Opacity slider with % label
-        const fillL = document.createElement('label');
-        fillL.className = 'lc-label';
-        fillL.innerHTML = `
-          Fill opacity
-          <input id="insp-fill" type="range" min="0" max="100" step="5"
-                class="lc-input" value="${Math.round((p.fillOpacity ?? 1) * 100)}">
+          const label = document.createElement('div');
+          label.className = 'lc-subcard-label lc-small';
+          label.textContent = title;
+          sec.appendChild(label);
+
+          const body = document.createElement('div');
+          body.className = 'lc-subcard-body';
+          sec.appendChild(body);
+
+          root.appendChild(sec);
+          return body;
+        }
+
+        // --- 1) Piece Info -------------------------------------------------------
+        const pieceBody = makeSection('Piece Info');
+
+        // Row 1: name (2/3) + copy/delete (1/3)
+        const r1 = document.createElement('div');
+        r1.className = 'lc-row';
+        r1.style.display = 'grid';
+        r1.style.gridTemplateColumns = '2fr 1fr';
+        r1.style.gap = '8px';
+
+        const nameWrap = document.createElement('label');
+        nameWrap.className = 'lc-label';
+        nameWrap.textContent = 'Name';
+        const nameInput = document.createElement('input');
+        nameInput.className = 'lc-input';
+        nameInput.value = p.name || '';
+        nameInput.oninput = () => {
+          p.name = nameInput.value;
+          renderList();
+          draw();
+        };
+        nameInput.onblur = () => {
+          scheduleSave();
+          pushHistory();
+        };
+        nameWrap.appendChild(nameInput);
+
+        const actions = document.createElement('div');
+        actions.style.display = 'flex';
+        actions.style.justifyContent = 'flex-end';
+        actions.style.gap = '6px';
+
+        // Duplicate button
+        const btnDup = document.createElement('button');
+        btnDup.className = 'lc-btn ghost lc-iconbtn';
+        btnDup.title = 'Duplicate';
+        btnDup.innerHTML = '<svg class="lc-icon" viewBox="0 0 24 24"><path d="M9 9V5a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-4M5 9a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V9z" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+        btnDup.onclick = (e) => {
+          e.preventDefault();
+          const rs = realSize(p);
+          const np = JSON.parse(JSON.stringify(p));
+          np.id = uid();
+          np.name = (p.name || 'Piece') + ' Copy';
+          np.x = clamp(snap(p.x + state.grid, state.grid), 0, state.cw - rs.w);
+          np.y = clamp(snap(p.y + state.grid, state.grid), 0, state.ch - rs.h);
+          state.pieces.push(np);
+          state.selectedId = np.id;
+          renderList();
+          updateInspector();
+          sinksUI?.refresh?.();
+          draw();
+          scheduleSave();
+          pushHistory();
+        };
+
+        // Delete button
+        const btnDel = document.createElement('button');
+        btnDel.className = 'lc-btn red lc-iconbtn';
+        btnDel.title = 'Delete';
+        btnDel.innerHTML = '<svg class="lc-icon" viewBox="0 0 24 24"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m-1 0v14a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2V6h10z" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+        btnDel.onclick = (e) => {
+          e.preventDefault();
+          const idx = state.pieces.findIndex(x => x.id === p.id);
+          if (idx >= 0) {
+            state.pieces.splice(idx, 1);
+            setSelection([]);
+            state.selectedId = null;
+            renderList();
+            inspector.className = 'lc-small';
+            inspector.textContent = 'Select a piece from the canvas or list.';
+            draw();
+            scheduleSave();
+            pushHistory();
+          }
+        };
+
+        actions.appendChild(btnDup);
+        actions.appendChild(btnDel);
+
+        r1.appendChild(nameWrap);
+        r1.appendChild(actions);
+        pieceBody.appendChild(r1);
+
+        // Row 2: Width, Height, Rotation
+        const r2 = document.createElement('div');
+        r2.className = 'lc-row';
+        r2.style.marginTop = '6px';
+        r2.style.display = 'grid';
+        r2.style.gridTemplateColumns = 'repeat(3, minmax(0, 1fr))';
+        r2.style.gap = '6px';
+
+        function makeNumField(label, value, id, step, onChange){
+          const lab = document.createElement('label');
+          lab.className = 'lc-label';
+          lab.textContent = label;
+          const input = document.createElement('input');
+          input.id = id;
+          input.type = 'number';
+          input.className = 'lc-input';
+          input.step = String(step);
+          input.value = value;
+          input.addEventListener('change', () => onChange(parseFloat(input.value) || 0));
+          lab.appendChild(input);
+          return lab;
+        }
+
+        const wField = makeNumField('Width (in)', p.w, 'insp-w', 0.25, (v) => {
+          p.w = Math.max(0.25, v);
+          draw();
+          scheduleSave();
+          pushHistory();
+        });
+        const hField = makeNumField('Height (in)', p.h, 'insp-h', 0.25, (v) => {
+          p.h = Math.max(0.25, v);
+          draw();
+          scheduleSave();
+          pushHistory();
+        });
+        const rotField = makeNumField('Rotation (°)', p.rotation || 0, 'insp-rot', 1, (v) => {
+          const r = ((v % 360) + 360) % 360;
+          p.rotation = r;
+          draw();
+          scheduleSave();
+          pushHistory();
+        });
+
+        r2.appendChild(wField);
+        r2.appendChild(hField);
+        r2.appendChild(rotField);
+        pieceBody.appendChild(r2);
+
+        // --- 2) Canvas Appearance -------------------------------------------------
+        const appBody = makeSection('Canvas Appearance');
+
+        // Row A: color swatch, Fill On/Off, opacity slider
+        const rowA = document.createElement('div');
+        rowA.className = 'lc-row';
+        rowA.style.display = 'grid';
+        rowA.style.gridTemplateColumns = 'minmax(0, 1fr) minmax(0, 1fr) 1.2fr';
+        rowA.style.gap = '6px';
+
+        // Color swatch
+        const colorCol = document.createElement('label');
+        colorCol.className = 'lc-label';
+        colorCol.textContent = 'Color';
+        const cs = colorStack(p.color, (val) => {
+          p.color = val;
+          renderList();
+          draw();
+          scheduleSave();
+          pushHistory();
+        });
+        colorCol.appendChild(cs.wrap);
+
+        // Fill On/Off
+        const fillToggleCol = document.createElement('div');
+        fillToggleCol.className = 'lc-label';
+        fillToggleCol.textContent = 'Fill';
+        const btnFill = document.createElement('button');
+        btnFill.type = 'button';
+        btnFill.className = 'lc-btn ghost sm';
+        fillToggleCol.appendChild(btnFill);
+
+        // Opacity slider
+        const opacityCol = document.createElement('label');
+        opacityCol.className = 'lc-label';
+        opacityCol.textContent = 'Opacity';
+        opacityCol.innerHTML += `
+          <input id="insp-fill" type="range" min="0" max="100" step="5" class="lc-input" value="${Math.round((p.fillOpacity ?? 1) * 100)}">
           <span id="insp-fill-pct" class="lc-small">${Math.round((p.fillOpacity ?? 1) * 100)}%</span>
         `;
 
-        // Right: No Fill toggle button
-        const noFillWrap = document.createElement('div');
-        const btnNoFill = document.createElement('button');
-        btnNoFill.type = 'button';
-        btnNoFill.className = 'lc-btn ghost sm';
-        btnNoFill.textContent = (p.noFill ? 'No Fill: On' : 'No Fill: Off');
-        if (p.noFill){ btnNoFill.classList.remove('ghost'); btnNoFill.classList.add('alt'); }
-        noFillWrap.appendChild(btnNoFill);
+        rowA.appendChild(colorCol);
+        rowA.appendChild(fillToggleCol);
+        rowA.appendChild(opacityCol);
+        appBody.appendChild(rowA);
 
-        rowFill.appendChild(fillL);
-        rowFill.appendChild(noFillWrap);
-        wrap.appendChild(rowFill);
-
-        // Wire up slider + button
-        const inFill = fillL.querySelector('#insp-fill');
-        const lblPct = fillL.querySelector('#insp-fill-pct');
+        const inFill = opacityCol.querySelector('#insp-fill');
+        const lblPct = opacityCol.querySelector('#insp-fill-pct');
 
         function syncFillControls(){
           const pct = Math.round(getFillOpacity(p) * 100);
           inFill.value = String(pct);
           lblPct.textContent = pct + '%';
-          // disable slider if No Fill
           inFill.disabled = !!p.noFill;
-          btnNoFill.textContent = (p.noFill ? 'No Fill: On' : 'No Fill: Off');
-          btnNoFill.classList.toggle('alt', !!p.noFill);
-          btnNoFill.classList.toggle('ghost', !p.noFill);
+          const on = !p.noFill;
+          btnFill.textContent = on ? 'Fill: On' : 'Fill: Off';
+          btnFill.classList.toggle('alt', on);
+          btnFill.classList.toggle('ghost', !on);
         }
 
-        inFill.oninput = (e)=>{
-          p.fillOpacity = Math.max(0, Math.min(1, (Number(e.target.value)||0) / 100));
-          lblPct.textContent = Math.round(p.fillOpacity*100) + '%';
-          draw(); // live preview
-        };
-        inFill.onchange = ()=>{
-          scheduleSave(); pushHistory();
-        };
+        inFill.addEventListener('input', () => {
+          const pct = parseFloat(inFill.value) || 0;
+          p.fillOpacity = Math.max(0, Math.min(1, pct / 100));
+          draw();
+        });
+        inFill.addEventListener('change', () => {
+          scheduleSave();
+          pushHistory();
+        });
 
-        btnNoFill.onclick = ()=>{
+        btnFill.addEventListener('click', () => {
           p.noFill = !p.noFill;
           syncFillControls();
-          draw(); scheduleSave(); pushHistory();
-        };
+          draw();
+          scheduleSave();
+          pushHistory();
+        });
 
         syncFillControls();
 
+        // Row B: Backward, Forward, Layer #
+        const rowB = document.createElement('div');
+        rowB.className = 'lc-row';
+        rowB.style.marginTop = '6px';
+        rowB.style.display = 'grid';
+        rowB.style.gridTemplateColumns = 'repeat(3, minmax(0, 1fr))';
+        rowB.style.gap = '6px';
 
-        const colorL = document.createElement('label'); colorL.className='lc-label'; colorL.textContent='Color';
-        const cs = colorStack(p.color, (val)=>{
-          p.color=val; renderList(); draw(); scheduleSave(); pushHistory();
-        });
-        colorL.appendChild(cs.wrap);
-        row1.appendChild(nameL); row1.appendChild(colorL); wrap.appendChild(row1);
-
-        const row2 = document.createElement('div'); row2.className='lc-row'; row2.style.marginTop='8px';
-        row2.innerHTML = `
-          <label class="lc-label">Width (in)<input id="insp-w" type="number" class="lc-input" step="0.25" value="${p.w}"></label>
-          <label class="lc-label">Height (in)<input id="insp-h" type="number" class="lc-input" step="0.25" value="${p.h}"></label>`;
-        wrap.appendChild(row2);
-
-        // ==== Actions row: Backward / Forward (2-up) ====
-        const row3 = document.createElement('div');
-        row3.className = 'lc-row2';
-        row3.style.marginTop = '8px';
-
-        const bBack = mkBtn('Backward','ghost sm', ()=> {
-          sendBackward(p);
-          renderList(); updateInspector(); sinksUI?.refresh(); draw(); scheduleSave(); pushHistory();
-        });
-        const bFwd  = mkBtn('Forward','ghost sm', ()=> {
-          bringForward(p);
-          renderList(); updateInspector(); sinksUI?.refresh(); draw(); scheduleSave(); pushHistory();
-        });
-
-        row3.append(bBack, bFwd);
-        wrap.appendChild(row3);
-
-        // ==== Rotation + Corner Radius row (2-up) ====
-        const row4 = document.createElement('div');
-        row4.className = 'lc-row2';
-        row4.style.marginTop = '8px';
-
-        // Left column: Rotation number input (0–360)
-        const rotCol = document.createElement('label');
-        rotCol.className = 'lc-label';
-        rotCol.innerHTML = `
-          Rotation (°)
-          <input id="insp-rot" type="number" min="0" max="360" step="1" class="lc-input" value="${p.rotation||0}">
-        `;
-        row4.appendChild(rotCol);
-
-        // Right column: Corner radius buttons
-        const cornersCol = document.createElement('div');
-        const cornersTitle = document.createElement('div');
-        cornersTitle.className='lc-label';
-        cornersTitle.textContent='Corner Radius (toggle corners)';
-
-        const grid = document.createElement('div');
-        grid.className='lc-corner-grid';
-
-        var bTL = cornerButton('tl', p.rTL);
-        var bTR = cornerButton('tr', p.rTR);
-        var bBL = cornerButton('bl', p.rBL);
-        var bBR = cornerButton('br', p.rBR);
-        function toggle(btn, key){
-          return ()=>{ p[key]=!p[key]; btn.classList.toggle('active', p[key]); draw(); scheduleSave(); pushHistory(); };
+        function mkBtn(label, cls, handler){
+          const b = document.createElement('button');
+          b.type = 'button';
+          b.className = 'lc-btn ' + cls;
+          b.textContent = label;
+          b.onclick = handler;
+          return b;
         }
-        bTL.onclick = toggle(bTL,'rTL');
-        bTR.onclick = toggle(bTR,'rTR');
-        bBL.onclick = toggle(bBL,'rBL');
-        bBR.onclick = toggle(bBR,'rBR');
 
-        grid.appendChild(bTL); grid.appendChild(bTR);
-        grid.appendChild(bBL); grid.appendChild(bBR);
+        const bBack = mkBtn('Backward', 'ghost sm', () => {
+          sendBackward(p);
+          renderList();
+          updateInspector();
+          sinksUI?.refresh?.();
+          draw();
+          scheduleSave();
+          pushHistory();
+        });
 
-        cornersCol.appendChild(cornersTitle);
-        cornersCol.appendChild(grid);
+        const bFwd = mkBtn('Forward', 'ghost sm', () => {
+          bringForward(p);
+          renderList();
+          updateInspector();
+          sinksUI?.refresh?.();
+          draw();
+          scheduleSave();
+          pushHistory();
+        });
 
-        row4.appendChild(cornersCol);
-        wrap.appendChild(row4);
+        const layerWrap = document.createElement('div');
+        layerWrap.className = 'lc-label';
+        layerWrap.textContent = 'Layer';
 
-        // --- Edge Profiles (4 sides) ---
+        const layerBadge = document.createElement('button');
+        layerBadge.type = 'button';
+        layerBadge.textContent = String(p.layer ?? 0);
+        layerBadge.disabled = true;
+        Object.assign(layerBadge.style, {
+          width: '28px',
+          height: '28px',
+          borderRadius: '9999px',
+          display: 'inline-flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          fontSize: '11px',
+          fontWeight: '600',
+          lineHeight: '1',
+          border: '1px solid var(--border, #ddd)',
+          background: 'var(--muted, #f3f4f6)',
+          color: 'var(--text, #111)',
+          userSelect: 'none',
+          pointerEvents: 'none'
+        });
+        layerWrap.appendChild(layerBadge);
+
+        rowB.appendChild(bBack);
+        rowB.appendChild(bFwd);
+        rowB.appendChild(layerWrap);
+        appBody.appendChild(rowB);
+
+        // --- 3) Edge Options ------------------------------------------------------
+        const edgeBody = makeSection('Edge Options');
+
+        const edgeRow = document.createElement('div');
+        edgeRow.className = 'lc-row';
+        edgeRow.style.display = 'grid';
+        edgeRow.style.gridTemplateColumns = '1.2fr 1fr';
+        edgeRow.style.gap = '8px';
+
+        // Left: Edge profiles
         if (!p.edgeProfiles) {
           p.edgeProfiles = { top: 'flat', right: 'flat', bottom: 'flat', left: 'flat' };
         }
 
-        const edgeRow = document.createElement('div');
-        edgeRow.className = 'lc-row';
-        edgeRow.style.marginTop = '8px';
-
+        const edgesCol = document.createElement('div');
         const edgesLabel = document.createElement('div');
         edgesLabel.className = 'lc-label';
         edgesLabel.textContent = 'Edge profiles';
+        edgesCol.appendChild(edgesLabel);
 
         const edgeOptions = [
-          { v: '',      t: 'None' },
-          { v: 'seam',      t: 'Seam' },
           { v: 'flat',      t: 'Flat' },
           { v: 'quarter',   t: 'Quarter' },
           { v: 'bevel',     t: 'Bevel' },
-          { v: 'HB',        t: 'Half Bull' },
-          { v: 'FB',        t: 'Full Bull' },
-          { v: 'OG',        t: 'Ogee' },
-          { v: 'miter',     t: 'Miter' }
+          { v: 'half-bull', t: 'Half bull' },
+          { v: 'full-bull', t: 'Full bull' },
+          { v: 'ogee',      t: 'Ogee' },
+          { v: 'miter',     t: 'Miter' },
+          { v: 'seam',      t: 'Seam' }
         ];
 
         function makeEdgeSelect(sideKey, labelText) {
@@ -3960,109 +4189,63 @@ if(btnAddLayout){
 
         const edgesGrid = document.createElement('div');
         edgesGrid.style.display = 'grid';
-        edgesGrid.style.gridTemplateColumns = 'repeat(2, minmax(0, 1fr))';
+        edgesGrid.style.gridTemplateColumns = 'repeat(2, minmax(0,1fr))';
         edgesGrid.style.gap = '6px';
-
         edgesGrid.appendChild(makeEdgeSelect('top', 'Top'));
         edgesGrid.appendChild(makeEdgeSelect('bottom', 'Bottom'));
         edgesGrid.appendChild(makeEdgeSelect('left', 'Left'));
         edgesGrid.appendChild(makeEdgeSelect('right', 'Right'));
 
-        edgeRow.appendChild(edgesLabel);
-        edgeRow.appendChild(edgesGrid);
-        wrap.appendChild(edgeRow);
+        edgesCol.appendChild(edgesGrid);
 
-        // Bind rotation input
-        const rotInput = wrap.querySelector('#insp-rot');
-        rotInput.oninput = (e)=>{
-          p.rotation = clamp(Math.round(Number(e.target.value)||0), 0, 360);
-          clampToCanvas(p);
-          draw();
-        };
-        rotInput.onchange = ()=>{ scheduleSave(); pushHistory(); };
+        // Right: Corner Radius
+        const cornersCol = document.createElement('div');
+        const cornersTitle = document.createElement('div');
+        cornersTitle.className = 'lc-label';
+        cornersTitle.textContent = 'Corner Radius';
 
-        const inW = wrap.querySelector('#insp-w');
-        const inH = wrap.querySelector('#insp-h');
-        inW.onchange = e => { p.w = Math.max(0.25, Number(e.target.value||0)); clampToCanvas(p); renderList(); draw(); scheduleSave(); pushHistory(); };
-        inH.onchange = e => { p.h = Math.max(0.25, Number(e.target.value||0)); clampToCanvas(p); renderList(); draw(); scheduleSave(); pushHistory(); };
+        const grid = document.createElement('div');
+        grid.className = 'lc-corner-grid';
 
-        // ===== Actions row (icon buttons): Undo, Redo, Layer badge, Duplicate, Delete =====
-        const actions = document.createElement('div');
-        actions.style.display='flex';
-        actions.style.gap='6px';
-        actions.style.alignItems='center';
+        const bTL = cornerButton('tl', p.rTL);
+        const bTR = cornerButton('tr', p.rTR);
+        const bBL = cornerButton('bl', p.rBL);
+        const bBR = cornerButton('br', p.rBR);
 
-        // Undo
-        const btnUndoI = document.createElement('button');
-        btnUndoI.className = 'lc-btn ghost lc-iconbtn';
-        btnUndoI.title = 'Undo (Ctrl+Z)';
-        btnUndoI.innerHTML = '<svg class="lc-icon" viewBox="0 0 24 24"><path d="M9 14H6a4 4 0 1 1 0-8h11a4 4 0 1 1 0 8h-1" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M9 14l-3-3l3-3" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
-        btnUndoI.disabled = !canUndo();
-        btnUndoI.onclick = (e)=>{ e.preventDefault(); undo(); };
+        function toggleCorner(btn, key){
+          return () => {
+            p[key] = !p[key];
+            btn.classList.toggle('active', p[key]);
+            draw();
+            scheduleSave();
+            pushHistory();
+          };
+        }
+        bTL.onclick = toggleCorner(bTL, 'rTL');
+        bTR.onclick = toggleCorner(bTR, 'rTR');
+        bBL.onclick = toggleCorner(bBL, 'rBL');
+        bBR.onclick = toggleCorner(bBR, 'rBR');
 
-        // Redo
-        const btnRedoI = document.createElement('button');
-        btnRedoI.className = 'lc-btn ghost lc-iconbtn';
-        btnRedoI.title = 'Redo (Ctrl+Y or Ctrl+Shift+Z)';
-        btnRedoI.innerHTML = '<svg class="lc-icon" viewBox="0 0 24 24"><path d="M15 14h3a4 4 0 1 0 0-8H7a4 4 0 1 0 0 8h1" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M15 14l3-3l-3-3" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
-        btnRedoI.disabled = !canRedo();
-        btnRedoI.onclick = (e)=>{ e.preventDefault(); redo(); };
+        grid.appendChild(bTL);
+        grid.appendChild(bTR);
+        grid.appendChild(bBL);
+        grid.appendChild(bBR);
 
-        // Layer badge (tiny circle)
-        const layerBadge = document.createElement('button');
-        layerBadge.type = 'button';
-        layerBadge.title = `Layer ${p.layer ?? 0} (0 = back)`;
-        layerBadge.textContent = (p.layer ?? 0);
-        layerBadge.disabled = true;
-        Object.assign(layerBadge.style, {
-          width: '28px', height: '28px', borderRadius: '9999px',
-          display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-          fontSize: '11px', fontWeight: '600', lineHeight: '1',
-          border: '1px solid var(--border, #ddd)',
-          background: 'var(--muted, #f3f4f6)', color: 'var(--text, #111)',
-          userSelect: 'none', pointerEvents: 'none',
+        cornersCol.appendChild(cornersTitle);
+        cornersCol.appendChild(grid);
+
+        edgeRow.appendChild(edgesCol);
+        edgeRow.appendChild(cornersCol);
+        edgeBody.appendChild(edgeRow);
+
+        inspector.appendChild(root);
+
+        // lock the inspector height
+        requestAnimationFrame(() => {
+          lockInspectorHeight(inspector.scrollHeight);
         });
-
-        const btnDupI = document.createElement('button');
-        btnDupI.className = 'lc-btn ghost lc-iconbtn';
-        btnDupI.title = 'Duplicate';
-        btnDupI.innerHTML = '<svg class="lc-icon" viewBox="0 0 24 24"><path d="M9 9V5a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-4M5 9a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2z" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
-        btnDupI.onclick = (e)=>{
-          e.preventDefault();
-          const rs = realSize(p);
-          const np = JSON.parse(JSON.stringify(p));
-          np.id = uid(); np.name = (p.name||'Piece')+' Copy';
-          np.x = clamp(snap(p.x + state.grid, state.grid), 0, state.cw - rs.w);
-          np.y = clamp(snap(p.y + state.grid, state.grid), 0, state.ch - rs.h);
-          state.pieces.push(np);
-          state.selectedId = np.id;
-          renderList(); updateInspector(); sinksUI?.refresh(); draw(); scheduleSave(); pushHistory();
-        };
-
-        const btnDelI = document.createElement('button');
-        btnDelI.className = 'lc-btn red lc-iconbtn';
-        btnDelI.title = 'Delete';
-        btnDelI.innerHTML = '<svg class="lc-icon" viewBox="0 0 24 24"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m-1 0v14a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2V6h10z" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
-        btnDelI.onclick = (e)=>{
-          e.preventDefault();
-          const idx = state.pieces.findIndex(x=>x.id===p.id);
-          if(idx>-1){
-            state.pieces.splice(idx,1);
-            setSelection([]);
-            state.selectedId = null;
-            renderList(); updateInspector(); sinksUI?.refresh(); draw(); scheduleSave(); pushHistory();
-          }
-        };
-
-        // Order: [Undo] [Redo] [Layer badge] [Duplicate] [Delete]
-        actions.append(btnUndoI, btnRedoI, layerBadge, btnDupI, btnDelI);
-        wrap.appendChild(actions);
-
-        inspector.appendChild(wrap);
-
-        // lock the inspector height based on the populated content (only when there is a selection)
-        requestAnimationFrame(()=>{ lockInspectorHeight(inspector.scrollHeight); });
-      }   
+      }
+   
 
       // ------- Canvas interactions -------
       svg.addEventListener('pointermove', (e) => {
