@@ -2847,6 +2847,52 @@ function restore(){
 
 
 
+      // ------- Direct piece dimension editing -------
+      function parseDimInches(raw){
+        const s = String(raw ?? '').trim().replace(/["']/g, '');
+        if (!s) return null;
+        const mixed = s.match(/^(-?\d+)\s+(\d+)\/(\d+)$/);
+        if (mixed) {
+          const whole = Number(mixed[1]);
+          const den = Number(mixed[3]);
+          if (!den) return null;
+          const frac = Number(mixed[2]) / den;
+          return whole < 0 ? whole - frac : whole + frac;
+        }
+        const fraction = s.match(/^(-?)(\d+)\/(\d+)$/);
+        if (fraction) {
+          const den = Number(fraction[3]);
+          if (!den) return null;
+          return (fraction[1] === '-' ? -1 : 1) * Number(fraction[2]) / den;
+        }
+        const n = Number(s);
+        return Number.isFinite(n) ? n : null;
+      }
+
+      function enablePieceDimEdit(textEl, piece, prop, promptLabel){
+        textEl.style.cursor = 'text';
+        textEl.setAttribute('pointer-events', 'all');
+        textEl.addEventListener('pointerdown', e => e.stopPropagation());
+        textEl.addEventListener('dblclick', e => {
+          e.preventDefault();
+          e.stopPropagation();
+          const raw = window.prompt(promptLabel, fmt3(piece[prop]));
+          if (raw == null) return;
+          const next = parseDimInches(raw);
+          if (!(next > 0)) {
+            window.alert('Enter a positive dimension, such as 96, 94.5, or 94 1/2.');
+            return;
+          }
+          piece[prop] = round3(next);
+          clampToCanvas(piece);
+          draw();
+          updateInspector();
+          sinksUI?.refresh?.();
+          scheduleSave();
+          pushHistory();
+        });
+      }
+
       // ------- Drawing -------
       function draw(){
         const Wpx = i2p(state.cw), Hpx = i2p(state.ch);
@@ -3099,6 +3145,7 @@ function restore(){
             wT.setAttribute('font-size','12');
             wT.setAttribute('fill','#111');
             wT.textContent = (typeof fmt3 === 'function' ? `${fmt3(p.w)}` : `${p.w}`) + '"';
+            enablePieceDimEdit(wT, p, 'w', 'Piece width (inches)');
 
             // HEIGHT (left of unrotated rect)
             const xLeft = (cx - W0/2) - off;
@@ -3131,6 +3178,7 @@ function restore(){
             hT.setAttribute('font-size','12');
             hT.setAttribute('fill','#111');
             hT.textContent = (typeof fmt3 === 'function' ? `${fmt3(p.h)}` : `${p.h}`) + '"';
+            enablePieceDimEdit(hT, p, 'h', 'Piece depth / height (inches)');
 
             // append to rotated group so ticks/labels rotate with the piece
             dims.append(wLine, wt1, wt2, wT, hLine, ht1, ht2, hT);
