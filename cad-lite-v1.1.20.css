@@ -1007,25 +1007,14 @@
   margin:0 0 4px;
 }
 
-/* CAD Lite UX: editable dimensions + smart alignment guides */
-#lc-canvas .lc-editable-dim,
-.lite-cad svg .lc-editable-dim{
-  cursor:text;
-  font-weight:600;
-  paint-order:stroke;
-  stroke:#fff;
-  stroke-width:3px;
-  stroke-linejoin:round;
-}
-#lc-canvas .lc-editable-dim:hover,
-.lite-cad svg .lc-editable-dim:hover{
-  fill:#0284c7;
-  text-decoration:underline;
-}
-.lite-cad svg .lc-smart-guide{
-  stroke:#0ea5e9;
-  stroke-width:1.25;
-  stroke-dasharray:5 4;
-  vector-effect:non-scaling-stroke;
-  opacity:.9;
+
+/* CAD UX additions */
+.lite-cad svg .lc-editable-dim { cursor: text; }
+.lite-cad svg .lc-editable-dim:hover { fill: #0284c7; text-decoration: underline; }
+.lite-cad svg .lc-smart-guide {
+  stroke: #0ea5e9;
+  stroke-width: 1.25;
+  stroke-dasharray: 5 4;
+  vector-effect: non-scaling-stroke;
+  pointer-events: none;
 }
