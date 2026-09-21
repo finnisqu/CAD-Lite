@@ -12,6 +12,7 @@
         selectedIds: [],
         lastSelIndex: -1,
         drag: null,
+        smartGuides: [],
         showDims: false,        // per-piece dims
         showManualDims: true,   // NEW: manual dims visibility
         showEdgeProfiles: true,  // NEW: edge profiles visibility
@@ -916,6 +917,25 @@
       const togGrid     = document.getElementById('lc-toggle-grid');
       const btnDimTool = document.getElementById('lc-dim-tool');
 
+      // Dim snap marker
+      function initDimSnapMarker(){
+        if (!svg || dimSnapMarker) return;
+        const svgNS = 'http://www.w3.org/2000/svg';
+        const c = document.createElementNS(svgNS, 'circle');
+        c.setAttribute('r', 4);
+        c.setAttribute('fill', '#111'); // dark dot
+        c.setAttribute('stroke', '#fff');
+        c.setAttribute('stroke-width', 1.2);
+        c.setAttribute('vector-effect', 'non-scaling-stroke');
+        c.setAttribute('opacity', '0.9');
+        c.style.pointerEvents = 'none';
+        c.style.display = 'none';
+        c.classList.add('dim-snap-marker');
+        dimSnapMarker = c;
+        svg.appendChild(c);
+      }
+
+
       // Accordion toggle for Slab Overlay
       const accBtn  = document.getElementById('ov-acc-toggle');
       const accBody = document.getElementById('ov-acc-body');
@@ -1466,12 +1486,13 @@
       };
 
       // ===== Canvas Toggle Buttons =====
-      function setToggle(btn, on, label){
+      // --- Toggle helper (buttons gray/white like other toggles) ---
+      function setToggle(btn, on) {
         if (!btn) return;
-        btn.classList.toggle('alt',   on);    // ON = filled (selected)
-        btn.classList.toggle('ghost', !on);   // OFF = outline
-        btn.textContent = (on ? `Hide ${label}` : `Show ${label}`);
+        btn.classList.toggle('btn-secondary', !!on);          // filled / "on"
+        btn.classList.toggle('btn-outline-secondary', !on);   // hollow / "off"
       }
+
 
       function syncTopBar(){
         if (btnUndoTop) btnUndoTop.disabled = !canUndo();
@@ -1578,6 +1599,7 @@
             piece.y = snap(piece.y, state.grid);
           });
           state.drag = null;
+          state.smartGuides = [];
           changed = true;
         }
 
@@ -2847,9 +2869,85 @@ function restore(){
 
 
 
+      // ------- Direct dimension editing + smart alignment -------
+      function promptInches(label, current){
+        const raw = window.prompt(label, fmt3(current));
+        if (raw == null) return null;
+        const cleaned = String(raw).trim().replace(/\"/g,'');
+        // Accept decimals, whole numbers, or simple fractions such as 94 1/2 or 1/2.
+        let value;
+        const m = cleaned.match(/^(-?\d+)(?:\s+(\d+)\/(\d+))?$/);
+        const f = cleaned.match(/^(-?)(\d+)\/(\d+)$/);
+        if (m) value = Number(m[1]) + (m[2] ? Math.sign(Number(m[1]) || 1) * Number(m[2])/Number(m[3]) : 0);
+        else if (f) value = (f[1] === '-' ? -1 : 1) * Number(f[2])/Number(f[3]);
+        else value = Number(cleaned);
+        return Number.isFinite(value) ? round3(value) : null;
+      }
+
+      function makeEditableDimText(textEl, piece, prop, label){
+        textEl.classList.add('lc-editable-dim');
+        textEl.setAttribute('pointer-events','all');
+        textEl.style.cursor = 'text';
+        textEl.addEventListener('pointerdown', e => e.stopPropagation());
+        textEl.addEventListener('click', e => {
+          e.stopPropagation();
+          const next = promptInches(label, piece[prop]);
+          if (next == null || next <= 0) return;
+          piece[prop] = next;
+          clampToCanvas(piece);
+          draw(); updateInspector(); sinksUI?.refresh?.(); scheduleSave(); pushHistory();
+        });
+      }
+
+      function makeEditableSinkCL(textEl, piece, sink){
+        textEl.classList.add('lc-editable-dim');
+        textEl.setAttribute('pointer-events','all');
+        textEl.style.cursor = 'text';
+        textEl.addEventListener('pointerdown', e => e.stopPropagation());
+        textEl.addEventListener('click', e => {
+          e.stopPropagation();
+          const max = (sink.side === 'left' || sink.side === 'right') ? piece.h : piece.w;
+          const next = promptInches('Sink centerline (in)', sink.centerline || 0);
+          if (next == null) return;
+          sink.centerline = clamp(next, 0, max);
+          draw(); sinksUI?.refresh?.(); scheduleSave(); pushHistory();
+        });
+      }
+
+      function smartSnapDrag(rawDx, rawDy, drag, altKey){
+        state.smartGuides = [];
+        if (altKey || !drag?.group?.length) return {dx:rawDx, dy:rawDy};
+        const movingIds = new Set(drag.group.map(g=>g.id));
+        const others = state.pieces.filter(p=>!movingIds.has(p.id));
+        if (!others.length) return {dx:rawDx, dy:rawDy};
+        const minX=Math.min(...drag.group.map(g=>g.x0)), minY=Math.min(...drag.group.map(g=>g.y0));
+        const maxX=Math.max(...drag.group.map(g=>g.x0+g.rs.w)), maxY=Math.max(...drag.group.map(g=>g.y0+g.rs.h));
+        const movingX=[minX+rawDx,(minX+maxX)/2+rawDx,maxX+rawDx];
+        const movingY=[minY+rawDy,(minY+maxY)/2+rawDy,maxY+rawDy];
+        const targetX=[], targetY=[];
+        others.forEach(p=>{ const r=realSize(p); targetX.push(p.x,p.x+r.w/2,p.x+r.w); targetY.push(p.y,p.y+r.h/2,p.y+r.h); });
+        const threshold=Math.max(.25, Math.min(1, (state.grid||.25)*2));
+        let bestX=null,bestY=null;
+        movingX.forEach(mx=>targetX.forEach(tx=>{const d=tx-mx;if(Math.abs(d)<=threshold && (!bestX||Math.abs(d)<Math.abs(bestX.d)))bestX={d,v:tx};}));
+        movingY.forEach(my=>targetY.forEach(ty=>{const d=ty-my;if(Math.abs(d)<=threshold && (!bestY||Math.abs(d)<Math.abs(bestY.d)))bestY={d,v:ty};}));
+        const dx=rawDx+(bestX?.d||0), dy=rawDy+(bestY?.d||0);
+        if(bestX) state.smartGuides.push({axis:'x',v:bestX.v});
+        if(bestY) state.smartGuides.push({axis:'y',v:bestY.v});
+        return {dx,dy};
+      }
+
       // ------- Drawing -------
       function draw(){
         const Wpx = i2p(state.cw), Hpx = i2p(state.ch);
+        // Fall back to global flags if a layout flag is missing
+        const showGrid        = L ? (L.showGrid        ?? state.showGrid)        : state.showGrid;
+        const showSlabs       = L ? (L.showSlabs       ?? true)                  : true;
+        const showPieces      = L ? (L.showPieces      ?? true)                  : true;
+        const showPieceDims   = L ? (L.showPieceDims   ?? state.showDims)        : state.showDims;
+        const showManualDims  = L ? (L.showManualDims  ?? state.showManualDims)  : state.showManualDims;
+        const showCornerRadii = L ? (L.showCornerRadii ?? true)                  : true;
+        const showLabels      = L ? (L.showLabels      ?? state.showLabels)      : state.showLabels;
+        const showEdges       = L ? (L.showEdgeProfiles ?? state.showEdgeProfiles) : state.showEdgeProfiles;
         svg.setAttribute('width', Wpx);
         svg.setAttribute('height', Hpx);
         svg.setAttribute('viewBox', `0 0 ${Wpx} ${Hpx}`);
@@ -2864,7 +2962,7 @@ function restore(){
         // overlays above background, below grid/pieces
         drawOverlays();
 
-        if(state.showGrid){
+        if(showGrid){
           const g = document.createElementNS('http://www.w3.org/2000/svg','g');
           const stepPx = i2p(state.grid);
           for(let x=0; x<=Wpx+0.5; x+=stepPx){
@@ -2880,6 +2978,20 @@ function restore(){
             g.appendChild(h);
           }
           svg.appendChild(g);
+        }
+
+        // Temporary smart-alignment guides while dragging.
+        if (state.smartGuides?.length) {
+          const guides = document.createElementNS(svgNS,'g');
+          guides.setAttribute('class','lc-smart-guides');
+          guides.setAttribute('pointer-events','none');
+          state.smartGuides.forEach(gd=>{
+            const line=document.createElementNS(svgNS,'line');
+            if(gd.axis==='x'){ line.setAttribute('x1',i2p(gd.v)); line.setAttribute('x2',i2p(gd.v)); line.setAttribute('y1',0); line.setAttribute('y2',Hpx); }
+            else { line.setAttribute('y1',i2p(gd.v)); line.setAttribute('y2',i2p(gd.v)); line.setAttribute('x1',0); line.setAttribute('x2',Wpx); }
+            line.setAttribute('class','lc-smart-guide'); guides.appendChild(line);
+          });
+          svg.appendChild(guides);
         }
 
         // sort by layer
@@ -3002,6 +3114,7 @@ function restore(){
                     fill: '#111'
                   });
                   clLabel.textContent = `${fmt3(sxIn)}" CL`;
+                  makeEditableSinkCL(clLabel, p, sink);
 
                   gg.append(line, t1, t2, clLabel);
                 } else {
@@ -3021,6 +3134,7 @@ function restore(){
                     fill: '#111'
                   });
                   clLabel.textContent = `${fmt3(syIn)}" CL`;
+                  makeEditableSinkCL(clLabel, p, sink);
 
                   gg.append(line, t1, t2, clLabel);
                 }
@@ -3099,6 +3213,7 @@ function restore(){
             wT.setAttribute('font-size','12');
             wT.setAttribute('fill','#111');
             wT.textContent = (typeof fmt3 === 'function' ? `${fmt3(p.w)}` : `${p.w}`) + '"';
+            makeEditableDimText(wT, p, 'w', 'Piece width (in)');
 
             // HEIGHT (left of unrotated rect)
             const xLeft = (cx - W0/2) - off;
@@ -3131,6 +3246,7 @@ function restore(){
             hT.setAttribute('font-size','12');
             hT.setAttribute('fill','#111');
             hT.textContent = (typeof fmt3 === 'function' ? `${fmt3(p.h)}` : `${p.h}`) + '"';
+            makeEditableDimText(hT, p, 'h', 'Piece depth / height (in)');
 
             // append to rotated group so ticks/labels rotate with the piece
             dims.append(wLine, wt1, wt2, wT, hLine, ht1, ht2, hT);
@@ -3145,8 +3261,10 @@ function restore(){
             labelsG.setAttribute('class', 'edge-profiles');
             labelsG.setAttribute('pointer-events', 'none');
 
-            function addEdgeLabel(text, x, y, anchor, baseline) {
-              if (!text || text === 'flat') return;
+            // Add rotation support
+            function addEdgeLabel(text, x, y, rotationDeg, anchor, baseline) {
+              if (!text || text === 'none' || text === 'flat') return;
+
               const t = document.createElementNS(svgNS, 'text');
               t.setAttribute('x', x);
               t.setAttribute('y', y);
@@ -3155,49 +3273,62 @@ function restore(){
               t.setAttribute('font-size', '11');
               t.setAttribute('fill', '#111');
               t.textContent = text;
+
+              if (rotationDeg !== 0) {
+                t.setAttribute(
+                  'transform',
+                  `rotate(${rotationDeg}, ${x}, ${y})`
+                );
+              }
+
               labelsG.appendChild(t);
             }
 
-            const MARGIN = 16; // px away from piece edge
+            const MARGIN = -6; // negative pushes INSIDE the piece
 
-            // Top edge label
+            // TOP → upside-down (180°)
             addEdgeLabel(
               edges.top,
               cx,
               (cy - H0/2) - MARGIN,
+              180,           // rotation
               'middle',
               'baseline'
             );
 
-            // Bottom edge label
+            // BOTTOM → normal (0°)
             addEdgeLabel(
               edges.bottom,
               cx,
               (cy + H0/2) + MARGIN,
+              0,             // rotation
               'middle',
               'hanging'
             );
 
-            // Left edge label
+            // LEFT → 90° (text runs top-to-bottom)
             addEdgeLabel(
               edges.left,
               (cx - W0/2) - MARGIN,
               cy,
-              'end',
+              90,            // rotation
+              'middle',
               'middle'
             );
 
-            // Right edge label
+            // RIGHT → 270° (or -90°)
             addEdgeLabel(
               edges.right,
               (cx + W0/2) + MARGIN,
               cy,
-              'start',
+              270,           // rotation
+              'middle',
               'middle'
             );
 
             gg.appendChild(labelsG);
           }
+
 
 
           // selection / drag
@@ -3372,6 +3503,42 @@ function restore(){
 
 
         meta.textContent = `Canvas: ${state.cw}" × ${state.ch}" · Grid ${state.grid}" · Scale ${state.scale}px/in`;
+      }
+
+      // --- Canvas visibility toggle buttons ---
+      const btnToggleGrid        = document.getElementById('btnToggleGrid');
+      const btnToggleSlabs       = document.getElementById('btnToggleSlabs');
+      const btnTogglePieces      = document.getElementById('btnTogglePieces');
+      const btnTogglePieceDims   = document.getElementById('btnTogglePieceDims');   // auto per-piece dims
+      const btnToggleManualDims  = document.getElementById('btnToggleManualDims');  // manual dims
+      const btnToggleCornerRadii = document.getElementById('btnToggleCornerRadii');
+      const btnToggleLabels      = document.getElementById('btnToggleLabels');
+      const btnToggleEdges       = document.getElementById('btnToggleEdges');       // edge profiles
+
+      function syncVisibilityToggles() {
+        const L = cur();
+        if (!L) return;
+
+        setToggle(btnToggleGrid,        L.showGrid        ?? true);
+        setToggle(btnToggleSlabs,       L.showSlabs       ?? true);
+        setToggle(btnTogglePieces,      L.showPieces      ?? true);
+        setToggle(btnTogglePieceDims,   L.showPieceDims   ?? true);
+        setToggle(btnToggleManualDims,  L.showManualDims  ?? true);
+        setToggle(btnToggleCornerRadii, L.showCornerRadii ?? true);
+        setToggle(btnToggleLabels,      L.showLabels      ?? true);
+        setToggle(btnToggleEdges,       L.showEdgeProfiles ?? true);
+      }
+
+      // Ensure new layouts have sane defaults
+      function ensureLayoutVisibilityDefaults(L) {
+        if (!('showGrid'         in L)) L.showGrid         = true;
+        if (!('showSlabs'        in L)) L.showSlabs        = true;
+        if (!('showPieces'       in L)) L.showPieces       = true;
+        if (!('showPieceDims'    in L)) L.showPieceDims    = true;
+        if (!('showManualDims'   in L)) L.showManualDims   = true;
+        if (!('showCornerRadii'  in L)) L.showCornerRadii  = true;
+        if (!('showLabels'       in L)) L.showLabels       = true;
+        if (!('showEdgeProfiles' in L)) L.showEdgeProfiles = true;
       }
 
 
@@ -3576,11 +3743,15 @@ function renderDimList(){
   if (!dimList) return;
   const L = cur();
   dimList.innerHTML = '';
-  if (!L || !Array.isArray(L.dims)) return;
+  if (!L || !Array.isArray(L.dims) || !L.dims.length) return;
 
   L.dims.forEach((d, idx) => {
-    const li = document.createElement('div');
-    li.className = 'lc-item nav' + (state.selectedDimId === d.id ? ' selected' : '');
+    const row = document.createElement('div');
+    row.className = 'lc-item nav' + (state.selectedDimId === d.id ? ' selected' : '');
+
+    // Main line: label text
+    const line = document.createElement('span');
+    line.className = 'lc-line';
 
     const dx = d.x2 - d.x1;
     const dy = d.y2 - d.y1;
@@ -3588,9 +3759,45 @@ function renderDimList(){
     const angDeg = (Math.atan2(d.y2 - d.y1, d.x2 - d.x1) * 180 / Math.PI + 360) % 180;
     const orientation = (angDeg < 45 || angDeg > 135) ? 'Horiz' : 'Vert';
 
-    li.textContent = `Dim ${idx+1}: ${dist.toFixed(2)}" (${orientation})`;
+    line.innerHTML = `<strong>Dim ${idx+1}</strong> · ${dist.toFixed(2)}" (${orientation})`;
+    row.appendChild(line);
 
-    li.addEventListener('click', () => {
+    // Actions: tiny trash icon like Pieces
+    const actions = document.createElement('div');
+    actions.style.display = 'flex';
+    actions.style.gap = '6px';
+
+    const btnDel = document.createElement('button');
+    btnDel.type = 'button';
+    btnDel.className = 'lc-btn red lc-iconbtn';
+    btnDel.title = 'Delete';
+    btnDel.innerHTML = '<svg class="lc-icon" viewBox="0 0 24 24"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m-1 0v14a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2V6h10z" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+
+    btnDel.addEventListener('click', (e) => {
+      e.stopPropagation(); // don’t also select the row
+
+      const Lcur = cur();
+      if (!Lcur || !Array.isArray(Lcur.dims)) return;
+
+      const i = Lcur.dims.findIndex(dd => dd.id === d.id);
+      if (i === -1) return;
+
+      Lcur.dims.splice(i, 1);
+      if (state.selectedDimId === d.id) {
+        state.selectedDimId = null;
+      }
+
+      renderDimList();
+      draw();
+      scheduleSave();
+      pushHistory();
+    });
+
+    actions.appendChild(btnDel);
+    row.appendChild(actions);
+
+    // Clicking the row (not the button) selects the dim
+    row.addEventListener('click', () => {
       state.selectedDimId = d.id;
       state.selectedId = null;
       renderDimList();
@@ -3598,9 +3805,11 @@ function renderDimList(){
       draw();
     });
 
-    dimList.appendChild(li);
+    dimList.appendChild(row);
   });
 }
+
+
 
 
 
@@ -3695,435 +3904,402 @@ if(btnAddLayout){
         }
 
       function updateInspector(){
-        const p = state.pieces.find(x => x.id === state.selectedId);
-        if (!p) {
-            inspector.className = 'lc-small';
-            inspector.textContent = 'Select a piece from the canvas or list.';
-            return;
-        }
-        inspector.className = '';
-        inspector.innerHTML = '';
+  const p = state.pieces.find(x => x.id === state.selectedId);
+  if (!p){
+    inspector.className = 'lc-small';
+    inspector.textContent = 'Select a piece from the canvas or list.';
+    return;
+  }
+  inspector.className = '';
+  inspector.innerHTML = '';
 
-        const root = document.createElement('div');
-        root.className = 'lc-item selected';
+  // helper: mini-card sections (append directly to inspector)
+function makeSection(title){
+  const sec = document.createElement('div');
+  sec.className = 'lc-subcard';
 
-        // Helper to make little gray outlined sections
-        function makeSection(title){
-            const sec = document.createElement('div');
-            sec.className = 'lc-subcard';
+  const lbl = document.createElement('div');
+  lbl.className = 'lc-subcard-label lc-small';
+  lbl.textContent = title;
+  sec.appendChild(lbl);
 
-            const label = document.createElement('div');
-            label.className = 'lc-subcard-label lc-small';
-            label.textContent = title;
-            sec.appendChild(label);
+  const body = document.createElement('div');
+  body.className = 'lc-subcard-body';
+  sec.appendChild(body);
 
-            const body = document.createElement('div');
-            body.className = 'lc-subcard-body';
-            sec.appendChild(body);
+  inspector.appendChild(sec);
+  return body;
+}
 
-            root.appendChild(sec);
-            return body;
-        }
 
-        // --- 1) Piece Info -------------------------------------------------------
-        const pieceBody = makeSection('Piece Info');
+  // === 1) Piece Info =======================================================
+  const pieceBody = makeSection('Piece Info');
 
-        // Row 1: name (2/3) + copy/delete (1/3)
-        const r1 = document.createElement('div');
-        r1.className = 'lc-row';
-        r1.style.display = 'grid';
-        r1.style.gridTemplateColumns = '2fr 1fr';
-        r1.style.gap = '8px';
+  // Row 1: name (2/3) + copy/delete (1/3) INLINE
+  const rowName = document.createElement('div');
+  rowName.className = 'lc-row';
+  rowName.style.display = 'grid';
+  rowName.style.gridTemplateColumns = '2fr 1fr';
+  rowName.style.gap = '6px';
+  rowName.style.alignItems = 'end';
 
-        const nameWrap = document.createElement('label');
-        nameWrap.className = 'lc-label';
-        nameWrap.textContent = 'Name';
-        const nameInput = document.createElement('input');
-        nameInput.className = 'lc-input';
-        nameInput.value = p.name || '';
-        nameInput.oninput = () => {
-            p.name = nameInput.value;
-            renderList();
-            draw();
-        };
-        nameInput.onblur = () => {
-            scheduleSave();
-            pushHistory();
-        };
-        nameWrap.appendChild(nameInput);
+  const nameWrap = document.createElement('label');
+  nameWrap.className = 'lc-label';
+  nameWrap.textContent = 'Name';
+  const nameInput = document.createElement('input');
+  nameInput.className = 'lc-input';
+  nameInput.value = p.name || '';
+  nameInput.oninput = () => {
+    p.name = nameInput.value;
+    renderList();
+    draw();
+  };
+  nameInput.onblur = () => {
+    scheduleSave();
+    pushHistory();
+  };
+  nameWrap.appendChild(nameInput);
 
-        const actions = document.createElement('div');
-        actions.style.display = 'flex';
-        actions.style.justifyContent = 'flex-end';
-        actions.style.gap = '6px';
+  const actions = document.createElement('div');
+  actions.style.display = 'flex';
+  actions.style.justifyContent = 'flex-end';
+  actions.style.gap = '6px';
 
-        // Duplicate button
-        const btnDup = document.createElement('button');
-        btnDup.className = 'lc-btn ghost lc-iconbtn';
-        btnDup.title = 'Duplicate';
-        btnDup.innerHTML = '<svg class="lc-icon" viewBox="0 0 24 24"><path d="M9 9V5a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-4M5 9a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V9z" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
-        btnDup.onclick = (e) => {
-            e.preventDefault();
-            const rs = realSize(p);
-            const np = JSON.parse(JSON.stringify(p));
-            np.id = uid();
-            np.name = (p.name || 'Piece') + ' Copy';
-            np.x = clamp(snap(p.x + state.grid, state.grid), 0, state.cw - rs.w);
-            np.y = clamp(snap(p.y + state.grid, state.grid), 0, state.ch - rs.h);
-            state.pieces.push(np);
-            state.selectedId = np.id;
-            renderList();
-            updateInspector();
-            sinksUI?.refresh?.();
-            draw();
-            scheduleSave();
-            pushHistory();
-        };
+  // Duplicate
+  const btnDup = document.createElement('button');
+  btnDup.type = 'button';
+  btnDup.className = 'lc-btn ghost sm lc-iconbtn';
+  btnDup.title = 'Duplicate';
+  btnDup.innerHTML = '<svg class="lc-icon" viewBox="0 0 24 24"><path d="M9 9V5a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-4M5 9a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V9z" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+  btnDup.onclick = (ev) => {
+    ev.preventDefault();
+    const rs = realSize(p);
+    const np = JSON.parse(JSON.stringify(p));
+    np.id = uid();
+    np.name = (p.name || 'Piece') + ' Copy';
+    np.x = clamp(snap(p.x + state.grid, state.grid), 0, state.cw - rs.w);
+    np.y = clamp(snap(p.y + state.grid, state.grid), 0, state.ch - rs.h);
+    state.pieces.push(np);
+    state.selectedId = np.id;
+    renderList();
+    updateInspector();
+    sinksUI?.refresh?.();
+    draw();
+    scheduleSave();
+    pushHistory();
+  };
 
-        // Delete button
-        const btnDel = document.createElement('button');
-        btnDel.className = 'lc-btn red lc-iconbtn';
-        btnDel.title = 'Delete';
-        btnDel.innerHTML = '<svg class="lc-icon" viewBox="0 0 24 24"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m-1 0v14a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2V6h10z" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
-        btnDel.onclick = (e) => {
-            e.preventDefault();
-            const idx = state.pieces.findIndex(x => x.id === p.id);
-            if (idx >= 0) {
-            state.pieces.splice(idx, 1);
-            setSelection([]);
-            state.selectedId = null;
-            renderList();
-            inspector.className = 'lc-small';
-            inspector.textContent = 'Select a piece from the canvas or list.';
-            draw();
-            scheduleSave();
-            pushHistory();
-            }
-        };
+  // Delete
+  const btnDel = document.createElement('button');
+  btnDel.type = 'button';
+  btnDel.className = 'lc-btn red sm lc-iconbtn';
+  btnDel.title = 'Delete';
+  btnDel.innerHTML = '<svg class="lc-icon" viewBox="0 0 24 24"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m-1 0v14a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2V6h10z" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+  btnDel.onclick = (ev) => {
+    ev.preventDefault();
+    const idx = state.pieces.findIndex(x => x.id === p.id);
+    if (idx >= 0){
+      state.pieces.splice(idx, 1);
+      setSelection([]);
+      state.selectedId = null;
+      renderList();
+      inspector.className = 'lc-small';
+      inspector.textContent = 'Select a piece from the canvas or list.';
+      draw();
+      scheduleSave();
+      pushHistory();
+    }
+  };
 
-        actions.appendChild(btnDup);
-        actions.appendChild(btnDel);
+  actions.appendChild(btnDup);
+  actions.appendChild(btnDel);
 
-        r1.appendChild(nameWrap);
-        r1.appendChild(actions);
-        pieceBody.appendChild(r1);
+  rowName.appendChild(nameWrap);
+  rowName.appendChild(actions);
+  pieceBody.appendChild(rowName);
 
-        // Row 2: Width, Height, Rotation
-        const r2 = document.createElement('div');
-        r2.className = 'lc-row';
-        r2.style.marginTop = '6px';
-        r2.style.display = 'grid';
-        r2.style.gridTemplateColumns = 'repeat(3, minmax(0, 1fr))';
-        r2.style.gap = '6px';
+  // Row 2: Width / Height / Rotation (3 cols)
+  const rowSize = document.createElement('div');
+  rowSize.className = 'lc-row';
+  rowSize.style.display = 'grid';
+  rowSize.style.gridTemplateColumns = 'repeat(3, minmax(0,1fr))';
+  rowSize.style.gap = '6px';
 
-        function makeNumField(label, value, id, step, onChange){
-            const lab = document.createElement('label');
-            lab.className = 'lc-label';
-            lab.textContent = label;
-            const input = document.createElement('input');
-            input.id = id;
-            input.type = 'number';
-            input.className = 'lc-input';
-            input.step = String(step);
-            input.value = value;
-            input.addEventListener('change', () => onChange(parseFloat(input.value) || 0));
-            lab.appendChild(input);
-            return lab;
-        }
+  function numField(label, value, step, onChange){
+    const lab = document.createElement('label');
+    lab.className = 'lc-label';
+    lab.textContent = label;
+    const input = document.createElement('input');
+    input.type = 'number';
+    input.className = 'lc-input';
+    input.step = String(step);
+    input.value = value;
+    input.addEventListener('change', () => {
+      const v = parseFloat(input.value);
+      onChange(isNaN(v) ? 0 : v);
+    });
+    lab.appendChild(input);
+    return lab;
+  }
 
-        const wField = makeNumField('Width (in)', p.w, 'insp-w', 0.25, (v) => {
-            p.w = Math.max(0.25, v);
-            draw();
-            scheduleSave();
-            pushHistory();
-        });
-        const hField = makeNumField('Height (in)', p.h, 'insp-h', 0.25, (v) => {
-            p.h = Math.max(0.25, v);
-            draw();
-            scheduleSave();
-            pushHistory();
-        });
-        const rotField = makeNumField('Rotation (°)', p.rotation || 0, 'insp-rot', 1, (v) => {
-            const r = ((v % 360) + 360) % 360;
-            p.rotation = r;
-            draw();
-            scheduleSave();
-            pushHistory();
-        });
+  rowSize.appendChild(numField('Width (in)',  p.w,           0.25, v => { p.w = Math.max(0.25, v); draw(); scheduleSave(); pushHistory(); }));
+  rowSize.appendChild(numField('Height (in)', p.h,           0.25, v => { p.h = Math.max(0.25, v); draw(); scheduleSave(); pushHistory(); }));
+  rowSize.appendChild(numField('Rotation (°)', p.rotation||0, 1,    v => { p.rotation = ((v%360)+360)%360; draw(); scheduleSave(); pushHistory(); }));
 
-        r2.appendChild(wField);
-        r2.appendChild(hField);
-        r2.appendChild(rotField);
-        pieceBody.appendChild(r2);
+  pieceBody.appendChild(rowSize);
 
-        // --- 2) Canvas Appearance -------------------------------------------------
-        const appBody = makeSection('Canvas Appearance');
+  // === 2) Canvas Appearance ================================================
+  const appBody = makeSection('Canvas Appearance');
 
-        // Row A: color swatch, Fill On/Off, opacity slider
-        const rowA = document.createElement('div');
-        rowA.className = 'lc-row';
-        rowA.style.display = 'grid';
-        rowA.style.gridTemplateColumns = 'minmax(0, 1fr) minmax(0, 1fr) 1.2fr';
-        rowA.style.gap = '6px';
+  const rowA = document.createElement('div');
+  rowA.className = 'lc-row';
+  rowA.style.display = 'grid';
+  rowA.style.gridTemplateColumns = 'minmax(0,1fr) minmax(0,1fr) minmax(0,1.3fr)';
+  rowA.style.gap = '6px';
 
-        // Color swatch
-        const colorCol = document.createElement('label');
-        colorCol.className = 'lc-label';
-        colorCol.textContent = 'Color';
-        const cs = colorStack(p.color, (val) => {
-            p.color = val;
-            renderList();
-            draw();
-            scheduleSave();
-            pushHistory();
-        });
-        colorCol.appendChild(cs.wrap);
+  // Color swatch (smaller)
+  const colorCol = document.createElement('div');
+  const colorLabel = document.createElement('div');
+  colorLabel.className = 'lc-small';
+  colorLabel.textContent = 'Color';
+  colorCol.appendChild(colorLabel);
+  const cs = colorStack(p.color, (val)=>{
+    p.color = val;
+    renderList();
+    draw();
+    scheduleSave();
+    pushHistory();
+  });
+  colorCol.appendChild(cs.wrap);
 
-        // Fill On/Off
-        const fillToggleCol = document.createElement('div');
-        fillToggleCol.className = 'lc-label';
-        fillToggleCol.textContent = 'Fill';
-        const btnFill = document.createElement('button');
-        btnFill.type = 'button';
-        btnFill.className = 'lc-btn ghost sm';
-        fillToggleCol.appendChild(btnFill);
+  // Fill On/Off (button under label)
+  const fillCol = document.createElement('div');
+  fillCol.className = 'lc-fill-wrap';
+  const fillLabel = document.createElement('div');
+  fillLabel.className = 'lc-small';
+  fillLabel.textContent = 'Fill';
+  const btnFill = document.createElement('button');
+  btnFill.type = 'button';
+  btnFill.className = 'lc-btn ghost sm lc-fill-toggle';
+  fillCol.appendChild(fillLabel);
+  fillCol.appendChild(btnFill);
 
-        // Opacity slider
-        const opacityCol = document.createElement('label');
-        opacityCol.className = 'lc-label';
-        opacityCol.textContent = 'Opacity';
-        opacityCol.innerHTML += `
-            <input id="insp-fill" type="range" min="0" max="100" step="5" class="lc-input" value="${Math.round((p.fillOpacity ?? 1) * 100)}">
-            <span id="insp-fill-pct" class="lc-small">${Math.round((p.fillOpacity ?? 1) * 100)}%</span>
-        `;
+  // Opacity (label + % inline, slider below)
+  const opCol = document.createElement('div');
+  const opHead = document.createElement('div');
+  opHead.className = 'lc-opacity-head';
+  const opLabel = document.createElement('span');
+  opLabel.textContent = 'Opacity';
+  const opPct = document.createElement('span');
+  opPct.className = 'lc-small';
+  opHead.appendChild(opLabel);
+  opHead.appendChild(opPct);
 
-        rowA.appendChild(colorCol);
-        rowA.appendChild(fillToggleCol);
-        rowA.appendChild(opacityCol);
-        appBody.appendChild(rowA);
+  const opInput = document.createElement('input');
+  opInput.type = 'range';
+  opInput.min = '0';
+  opInput.max = '100';
+  opInput.step = '5';
+  opInput.className = 'lc-input';
+  opInput.value = String(Math.round(getFillOpacity(p)*100));
 
-        const inFill = opacityCol.querySelector('#insp-fill');
-        const lblPct = opacityCol.querySelector('#insp-fill-pct');
+  opCol.appendChild(opHead);
+  opCol.appendChild(opInput);
 
-        function syncFillControls(){
-            const pct = Math.round(getFillOpacity(p) * 100);
-            inFill.value = String(pct);
-            lblPct.textContent = pct + '%';
-            inFill.disabled = !!p.noFill;
-            const on = !p.noFill;
-            btnFill.textContent = on ? 'Fill: On' : 'Fill: Off';
-            btnFill.classList.toggle('alt', on);
-            btnFill.classList.toggle('ghost', !on);
-        }
+  rowA.appendChild(colorCol);
+  rowA.appendChild(fillCol);
+  rowA.appendChild(opCol);
+  appBody.appendChild(rowA);
 
-        inFill.addEventListener('input', () => {
-            const pct = parseFloat(inFill.value) || 0;
-            p.fillOpacity = Math.max(0, Math.min(1, pct / 100));
-            draw();
-        });
-        inFill.addEventListener('change', () => {
-            scheduleSave();
-            pushHistory();
-        });
+  function syncFill(){
+    const pct = Math.round(getFillOpacity(p)*100);
+    opInput.value = String(pct);
+    opPct.textContent = pct + '%';
+    const on = !p.noFill;
+    opInput.disabled = !on;
+    btnFill.textContent = on ? 'Fill: On' : 'Fill: Off';
+    btnFill.classList.toggle('alt', on);
+    btnFill.classList.toggle('ghost', !on);
+  }
 
-        btnFill.addEventListener('click', () => {
-            p.noFill = !p.noFill;
-            syncFillControls();
-            draw();
-            scheduleSave();
-            pushHistory();
-        });
+  opInput.addEventListener('input', () => {
+    const pct = parseFloat(opInput.value) || 0;
+    p.fillOpacity = Math.max(0, Math.min(1, pct/100));
+    syncFill();
+    draw();
+  });
+  opInput.addEventListener('change', () => {
+    scheduleSave();
+    pushHistory();
+  });
 
-        syncFillControls();
+  btnFill.addEventListener('click', () => {
+    p.noFill = !p.noFill;
+    syncFill();
+    draw();
+    scheduleSave();
+    pushHistory();
+  });
 
-        // Row B: Backward, Forward, Layer #
-        const rowB = document.createElement('div');
-        rowB.className = 'lc-row';
-        rowB.style.marginTop = '6px';
-        rowB.style.display = 'grid';
-        rowB.style.gridTemplateColumns = 'repeat(3, minmax(0, 1fr))';
-        rowB.style.gap = '6px';
+  syncFill();
 
-        function mkBtn(label, cls, handler){
-            const b = document.createElement('button');
-            b.type = 'button';
-            b.className = 'lc-btn ' + cls;
-            b.textContent = label;
-            b.onclick = handler;
-            return b;
-        }
+  // Row B: Backward / Forward / Layer (no layer label)
+  const rowB = document.createElement('div');
+  rowB.className = 'lc-row';
+  rowB.style.display = 'grid';
+  rowB.style.gridTemplateColumns = 'repeat(3, minmax(0,1fr))';
+  rowB.style.gap = '6px';
 
-        const bBack = mkBtn('Backward', 'ghost sm', () => {
-            sendBackward(p);
-            renderList();
-            updateInspector();
-            sinksUI?.refresh?.();
-            draw();
-            scheduleSave();
-            pushHistory();
-        });
+  function mkBtn(label, handler){
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'lc-btn ghost sm';
+    b.textContent = label;
+    b.onclick = handler;
+    return b;
+  }
 
-        const bFwd = mkBtn('Forward', 'ghost sm', () => {
-            bringForward(p);
-            renderList();
-            updateInspector();
-            sinksUI?.refresh?.();
-            draw();
-            scheduleSave();
-            pushHistory();
-        });
+  const bBack = mkBtn('Backward', () => {
+    sendBackward(p);
+    renderList();
+    updateInspector();
+    sinksUI?.refresh?.();
+    draw();
+    scheduleSave();
+    pushHistory();
+  });
+  const bFwd = mkBtn('Forward', () => {
+    bringForward(p);
+    renderList();
+    updateInspector();
+    sinksUI?.refresh?.();
+    draw();
+    scheduleSave();
+    pushHistory();
+  });
 
-        const layerWrap = document.createElement('div');
-        layerWrap.className = 'lc-label';
-        layerWrap.textContent = 'Layer';
+  const layerBadge = document.createElement('div');
+  layerBadge.className = 'lc-layer-badge';
+  layerBadge.textContent = String(p.layer || 0);
 
-        const layerBadge = document.createElement('button');
-        layerBadge.type = 'button';
-        layerBadge.textContent = String(p.layer ?? 0);
-        layerBadge.disabled = true;
-        Object.assign(layerBadge.style, {
-            width: '28px',
-            height: '28px',
-            borderRadius: '9999px',
-            display: 'inline-flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            fontSize: '11px',
-            fontWeight: '600',
-            lineHeight: '1',
-            border: '1px solid var(--border, #ddd)',
-            background: 'var(--muted, #f3f4f6)',
-            color: 'var(--text, #111)',
-            userSelect: 'none',
-            pointerEvents: 'none'
-        });
-        layerWrap.appendChild(layerBadge);
+  rowB.appendChild(bBack);
+  rowB.appendChild(bFwd);
+  rowB.appendChild(layerBadge);
+  appBody.appendChild(rowB);
 
-        rowB.appendChild(bBack);
-        rowB.appendChild(bFwd);
-        rowB.appendChild(layerWrap);
-        appBody.appendChild(rowB);
+  // === 3) Edge Options =====================================================
+  const edgeBody = makeSection('Edge Options');
 
-        // --- 3) Edge Options ------------------------------------------------------
-        const edgeBody = makeSection('Edge Options');
+  const edgeRow = document.createElement('div');
+  edgeRow.className = 'lc-row';
+  edgeRow.style.display = 'grid';
+  edgeRow.style.gridTemplateColumns = '2fr 1fr'; // 2/3 vs 1/3
+  edgeRow.style.gap = '8px';
 
-        const edgeRow = document.createElement('div');
-        edgeRow.className = 'lc-row';
-        edgeRow.style.display = 'grid';
-        edgeRow.style.gridTemplateColumns = '1.2fr 1fr';
-        edgeRow.style.gap = '8px';
+  // Left: edge profiles (2/3)
+  if (!p.edgeProfiles){
+    p.edgeProfiles = { top:'flat', right:'flat', bottom:'flat', left:'flat' };
+  }
+  const edgesCol = document.createElement('div');
+  const edgesLabel = document.createElement('div');
+  edgesLabel.className = 'lc-small';
+  edgesLabel.textContent = 'Edge profiles';
+  edgesCol.appendChild(edgesLabel);
 
-        // Left: Edge profiles
-        if (!p.edgeProfiles) {
-            p.edgeProfiles = { top: 'flat', right: 'flat', bottom: 'flat', left: 'flat' };
-        }
+  const edgeOptions = [
+    { v: 'flat',      t: 'Flat' },
+    { v: 'quarter',   t: 'Quarter' },
+    { v: 'bevel',     t: 'Bevel' },
+    { v: 'half-bull', t: 'Half bull' },
+    { v: 'full-bull', t: 'Full bull' },
+    { v: 'ogee',      t: 'Ogee' },
+    { v: 'miter',     t: 'Miter' },
+    { v: 'seam',      t: 'Seam' }
+  ];
 
-        const edgesCol = document.createElement('div');
-        const edgesLabel = document.createElement('div');
-        edgesLabel.className = 'lc-label';
-        edgesLabel.textContent = 'Edge profiles';
-        edgesCol.appendChild(edgesLabel);
+  function edgeSelect(sideKey, labelText){
+    const wrap = document.createElement('label');
+    wrap.className = 'lc-label lc-edge-field';
+    const cap = document.createElement('div');
+    cap.className = 'lc-small';
+    cap.textContent = labelText;
+    const sel = document.createElement('select');
+    sel.className = 'lc-input';
+    edgeOptions.forEach(opt => {
+      const o = document.createElement('option');
+      o.value = opt.v;
+      o.textContent = opt.t;
+      sel.appendChild(o);
+    });
+    sel.value = p.edgeProfiles[sideKey] || 'flat';
+    sel.addEventListener('change', () => {
+      p.edgeProfiles[sideKey] = sel.value;
+      draw();
+      scheduleSave();
+      pushHistory();
+    });
+    wrap.appendChild(cap);
+    wrap.appendChild(sel);
+    return wrap;
+  }
 
-        const edgeOptions = [
-            { v: 'flat',      t: 'Flat' },
-            { v: 'quarter',   t: 'Quarter' },
-            { v: 'bevel',     t: 'Bevel' },
-            { v: 'half-bull', t: 'Half bull' },
-            { v: 'full-bull', t: 'Full bull' },
-            { v: 'ogee',      t: 'Ogee' },
-            { v: 'miter',     t: 'Miter' },
-            { v: 'seam',      t: 'Seam' }
-        ];
+  const edgesGrid = document.createElement('div');
+  edgesGrid.style.display = 'grid';
+  edgesGrid.style.gridTemplateColumns = 'repeat(2, minmax(0,1fr))';
+  edgesGrid.style.gap = '6px';
+  edgesGrid.appendChild(edgeSelect('top','Top'));
+  edgesGrid.appendChild(edgeSelect('bottom','Bottom'));
+  edgesGrid.appendChild(edgeSelect('left','Left'));
+  edgesGrid.appendChild(edgeSelect('right','Right'));
+  edgesCol.appendChild(edgesGrid);
 
-        function makeEdgeSelect(sideKey, labelText) {
-            const wrap = document.createElement('label');
-            wrap.className = 'lc-label lc-edge-field';
+  // Right: Corner Radius (1/3)
+  const cornersCol = document.createElement('div');
+  const cornersLabel = document.createElement('div');
+  cornersLabel.className = 'lc-small';
+  cornersLabel.textContent = 'Corner Radius';
 
-            const cap = document.createElement('div');
-            cap.className = 'lc-small';
-            cap.textContent = labelText;
-            wrap.appendChild(cap);
+  const grid = document.createElement('div');
+  grid.className = 'lc-corner-grid';
 
-            const sel = document.createElement('select');
-            sel.className = 'lc-input';
-            edgeOptions.forEach(opt => {
-            const o = document.createElement('option');
-            o.value = opt.v;
-            o.textContent = opt.t;
-            sel.appendChild(o);
-            });
-            sel.value = p.edgeProfiles[sideKey] || 'flat';
+  const bTL = cornerButton('tl', p.rTL);
+  const bTR = cornerButton('tr', p.rTR);
+  const bBL = cornerButton('bl', p.rBL);
+  const bBR = cornerButton('br', p.rBR);
 
-            sel.addEventListener('change', () => {
-            p.edgeProfiles[sideKey] = sel.value;
-            draw();
-            scheduleSave();
-            pushHistory();
-            });
+  function toggleCorner(btn, key){
+    return () => {
+      p[key] = !p[key];
+      btn.classList.toggle('active', p[key]);
+      draw();
+      scheduleSave();
+      pushHistory();
+    };
+  }
 
-            wrap.appendChild(sel);
-            return wrap;
-        }
+  bTL.onclick = toggleCorner(bTL,'rTL');
+  bTR.onclick = toggleCorner(bTR,'rTR');
+  bBL.onclick = toggleCorner(bBL,'rBL');
+  bBR.onclick = toggleCorner(bBR,'rBR');
 
-        const edgesGrid = document.createElement('div');
-        edgesGrid.style.display = 'grid';
-        edgesGrid.style.gridTemplateColumns = 'repeat(2, minmax(0,1fr))';
-        edgesGrid.style.gap = '6px';
-        edgesGrid.appendChild(makeEdgeSelect('top', 'Top'));
-        edgesGrid.appendChild(makeEdgeSelect('bottom', 'Bottom'));
-        edgesGrid.appendChild(makeEdgeSelect('left', 'Left'));
-        edgesGrid.appendChild(makeEdgeSelect('right', 'Right'));
+  grid.appendChild(bTL);
+  grid.appendChild(bTR);
+  grid.appendChild(bBL);
+  grid.appendChild(bBR);
 
-        edgesCol.appendChild(edgesGrid);
+  cornersCol.appendChild(cornersLabel);
+  cornersCol.appendChild(grid);
 
-        // Right: Corner Radius
-        const cornersCol = document.createElement('div');
-        const cornersTitle = document.createElement('div');
-        cornersTitle.className = 'lc-label';
-        cornersTitle.textContent = 'Corner Radius';
+  edgeRow.appendChild(edgesCol);
+  edgeRow.appendChild(cornersCol);
+  edgeBody.appendChild(edgeRow);
 
-        const grid = document.createElement('div');
-        grid.className = 'lc-corner-grid';
+  requestAnimationFrame(() => {
+    lockInspectorHeight(inspector.scrollHeight);
+  });
+}
 
-        const bTL = cornerButton('tl', p.rTL);
-        const bTR = cornerButton('tr', p.rTR);
-        const bBL = cornerButton('bl', p.rBL);
-        const bBR = cornerButton('br', p.rBR);
-
-        function toggleCorner(btn, key){
-            return () => {
-            p[key] = !p[key];
-            btn.classList.toggle('active', p[key]);
-            draw();
-            scheduleSave();
-            pushHistory();
-            };
-        }
-        bTL.onclick = toggleCorner(bTL, 'rTL');
-        bTR.onclick = toggleCorner(bTR, 'rTR');
-        bBL.onclick = toggleCorner(bBL, 'rBL');
-        bBR.onclick = toggleCorner(bBR, 'rBR');
-
-        grid.appendChild(bTL);
-        grid.appendChild(bTR);
-        grid.appendChild(bBL);
-        grid.appendChild(bBR);
-
-        cornersCol.appendChild(cornersTitle);
-        cornersCol.appendChild(grid);
-
-        edgeRow.appendChild(edgesCol);
-        edgeRow.appendChild(cornersCol);
-        edgeBody.appendChild(edgeRow);
-
-        inspector.appendChild(root);
-
-        // lock the inspector height
-        requestAnimationFrame(() => {
-            lockInspectorHeight(inspector.scrollHeight);
-        });
-        }
-  
+   
 
       // ------- Canvas interactions -------
       svg.addEventListener('pointermove', (e) => {
@@ -4136,8 +4312,9 @@ if(btnAddLayout){
       const { dxMin, dxMax, dyMin, dyMax } = state.drag.limits;
 
       // clamp the whole group's delta so no member crosses the canvas edge
-      const dx = Math.max(dxMin, Math.min(dxMax, rawDx));
-      const dy = Math.max(dyMin, Math.min(dyMax, rawDy));
+      const snapped = smartSnapDrag(rawDx, rawDy, state.drag, e.altKey);
+      const dx = Math.max(dxMin, Math.min(dxMax, snapped.dx));
+      const dy = Math.max(dyMin, Math.min(dyMax, snapped.dy));
 
       // OPTIONAL: end the drag immediately when a limit is hit
       // const END_ON_LIMIT = true;
@@ -4152,6 +4329,36 @@ if(btnAddLayout){
 
       draw(); // smooth (no snapping here)
     });
+
+    svg.addEventListener('pointermove', (e) => {
+      // If Dim Tool is off, or we’re dragging a dim line, hide the marker
+      if (!state.dimTool || dimDrag) {
+        if (dimSnapMarker) dimSnapMarker.style.display = 'none';
+        return;
+      }
+      if (!dimSnapMarker) return;
+
+      const pt = svgPoint(e);
+      if (!pt) return;
+
+      // Convert to inches
+      const raw = { x: p2i(pt.x), y: p2i(pt.y) };
+      const snap = snapDimPoint(raw) || raw; // grid/corner snap or raw point
+
+      // Back to px
+      const cx = i2p(snap.x);
+      const cy = i2p(snap.y);
+
+      dimSnapMarker.setAttribute('cx', cx);
+      dimSnapMarker.setAttribute('cy', cy);
+      dimSnapMarker.style.display = 'block';
+    });
+    
+    svg.addEventListener('pointerleave', () => {
+      if (dimSnapMarker) dimSnapMarker.style.display = 'none';
+    });
+
+
 
       // --- Deselect all when clicking blank canvas (no drag) ---
       // Place this AFTER the pointermove handler and AFTER your endDrag wiring.
@@ -4169,6 +4376,9 @@ if(btnAddLayout){
 
         if (svg) {
           svg.style.cursor = on ? 'crosshair' : '';
+        }
+        if (dimSnapMarker) {
+          dimSnapMarker.style.display = on ? dimSnapMarker.style.display : 'none';
         }
       }
 
@@ -4212,6 +4422,8 @@ if(btnAddLayout){
 
       // --- Manual dimensions tool ---
       let dimTempStart = null;  // { x, y } in inches for first click
+      let dimSnapMarker = null; // floating snap indicator circle
+
 
       svg.addEventListener('click', (e) => {
         // Only when Dim Tool is active
