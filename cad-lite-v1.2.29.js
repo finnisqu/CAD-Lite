@@ -2869,71 +2869,94 @@ function restore(){
 
 
 
-      // ------- Direct dimension editing + smart alignment -------
-      function promptInches(label, current){
-        const raw = window.prompt(label, fmt3(current));
+      // ------- CAD UX helpers: direct dimensions + alignment snapping -------
+      function parseInchesInput(raw){
         if (raw == null) return null;
-        const cleaned = String(raw).trim().replace(/\"/g,'');
-        // Accept decimals, whole numbers, or simple fractions such as 94 1/2 or 1/2.
-        let value;
-        const m = cleaned.match(/^(-?\d+)(?:\s+(\d+)\/(\d+))?$/);
-        const f = cleaned.match(/^(-?)(\d+)\/(\d+)$/);
-        if (m) value = Number(m[1]) + (m[2] ? Math.sign(Number(m[1]) || 1) * Number(m[2])/Number(m[3]) : 0);
-        else if (f) value = (f[1] === '-' ? -1 : 1) * Number(f[2])/Number(f[3]);
-        else value = Number(cleaned);
-        return Number.isFinite(value) ? round3(value) : null;
+        const str = String(raw).trim().replace(/[\"”]/g, '');
+        if (!str) return null;
+        let m = str.match(/^(-?\d+)\s+(\d+)\/(\d+)$/);
+        if (m) {
+          const whole = Number(m[1]), den = Number(m[3]);
+          if (!den) return null;
+          const frac = Number(m[2]) / den;
+          return round3(whole < 0 ? whole - frac : whole + frac);
+        }
+        m = str.match(/^(-?)(\d+)\/(\d+)$/);
+        if (m) {
+          const den = Number(m[3]);
+          if (!den) return null;
+          return round3((m[1] === '-' ? -1 : 1) * Number(m[2]) / den);
+        }
+        const n = Number(str);
+        return Number.isFinite(n) ? round3(n) : null;
       }
 
-      function makeEditableDimText(textEl, piece, prop, label){
+      function askForInches(label, current){
+        const raw = window.prompt(label, fmt3(current));
+        return parseInchesInput(raw);
+      }
+
+      function enablePieceDimEdit(textEl, piece, prop, label){
         textEl.classList.add('lc-editable-dim');
-        textEl.setAttribute('pointer-events','all');
-        textEl.style.cursor = 'text';
+        textEl.setAttribute('pointer-events', 'all');
         textEl.addEventListener('pointerdown', e => e.stopPropagation());
-        textEl.addEventListener('click', e => {
-          e.stopPropagation();
-          const next = promptInches(label, piece[prop]);
+        textEl.addEventListener('dblclick', e => {
+          e.preventDefault(); e.stopPropagation();
+          const next = askForInches(label, piece[prop]);
           if (next == null || next <= 0) return;
           piece[prop] = next;
           clampToCanvas(piece);
+          draw(); renderList(); updateInspector(); sinksUI?.refresh?.(); scheduleSave(); pushHistory();
+        });
+      }
+
+      function enableSinkCLEdit(textEl, piece, sink){
+        textEl.classList.add('lc-editable-dim');
+        textEl.setAttribute('pointer-events', 'all');
+        textEl.addEventListener('pointerdown', e => e.stopPropagation());
+        textEl.addEventListener('dblclick', e => {
+          e.preventDefault(); e.stopPropagation();
+          const axisMax = (sink.side === 'left' || sink.side === 'right') ? piece.h : piece.w;
+          const next = askForInches('Sink centerline (in)', sink.centerline ?? 0);
+          if (next == null) return;
+          sink.centerline = clamp(next, 0, axisMax);
           draw(); updateInspector(); sinksUI?.refresh?.(); scheduleSave(); pushHistory();
         });
       }
 
-      function makeEditableSinkCL(textEl, piece, sink){
-        textEl.classList.add('lc-editable-dim');
-        textEl.setAttribute('pointer-events','all');
-        textEl.style.cursor = 'text';
-        textEl.addEventListener('pointerdown', e => e.stopPropagation());
-        textEl.addEventListener('click', e => {
-          e.stopPropagation();
-          const max = (sink.side === 'left' || sink.side === 'right') ? piece.h : piece.w;
-          const next = promptInches('Sink centerline (in)', sink.centerline || 0);
-          if (next == null) return;
-          sink.centerline = clamp(next, 0, max);
-          draw(); sinksUI?.refresh?.(); scheduleSave(); pushHistory();
-        });
-      }
-
-      function smartSnapDrag(rawDx, rawDy, drag, altKey){
+      function getSmartSnap(rawDx, rawDy, drag, disableSnap){
         state.smartGuides = [];
-        if (altKey || !drag?.group?.length) return {dx:rawDx, dy:rawDy};
-        const movingIds = new Set(drag.group.map(g=>g.id));
-        const others = state.pieces.filter(p=>!movingIds.has(p.id));
-        if (!others.length) return {dx:rawDx, dy:rawDy};
-        const minX=Math.min(...drag.group.map(g=>g.x0)), minY=Math.min(...drag.group.map(g=>g.y0));
-        const maxX=Math.max(...drag.group.map(g=>g.x0+g.rs.w)), maxY=Math.max(...drag.group.map(g=>g.y0+g.rs.h));
-        const movingX=[minX+rawDx,(minX+maxX)/2+rawDx,maxX+rawDx];
-        const movingY=[minY+rawDy,(minY+maxY)/2+rawDy,maxY+rawDy];
-        const targetX=[], targetY=[];
-        others.forEach(p=>{ const r=realSize(p); targetX.push(p.x,p.x+r.w/2,p.x+r.w); targetY.push(p.y,p.y+r.h/2,p.y+r.h); });
-        const threshold=Math.max(.25, Math.min(1, (state.grid||.25)*2));
-        let bestX=null,bestY=null;
-        movingX.forEach(mx=>targetX.forEach(tx=>{const d=tx-mx;if(Math.abs(d)<=threshold && (!bestX||Math.abs(d)<Math.abs(bestX.d)))bestX={d,v:tx};}));
-        movingY.forEach(my=>targetY.forEach(ty=>{const d=ty-my;if(Math.abs(d)<=threshold && (!bestY||Math.abs(d)<Math.abs(bestY.d)))bestY={d,v:ty};}));
-        const dx=rawDx+(bestX?.d||0), dy=rawDy+(bestY?.d||0);
-        if(bestX) state.smartGuides.push({axis:'x',v:bestX.v});
-        if(bestY) state.smartGuides.push({axis:'y',v:bestY.v});
-        return {dx,dy};
+        if (disableSnap || !drag || !Array.isArray(drag.group) || !drag.group.length) return { dx:rawDx, dy:rawDy };
+        const moving = new Set(drag.group.map(g => g.id));
+        const others = state.pieces.filter(p => !moving.has(p.id));
+        if (!others.length) return { dx:rawDx, dy:rawDy };
+
+        const minX = Math.min(...drag.group.map(g => g.x0));
+        const minY = Math.min(...drag.group.map(g => g.y0));
+        const maxX = Math.max(...drag.group.map(g => g.x0 + g.rs.w));
+        const maxY = Math.max(...drag.group.map(g => g.y0 + g.rs.h));
+        const movingX = [minX + rawDx, (minX + maxX)/2 + rawDx, maxX + rawDx];
+        const movingY = [minY + rawDy, (minY + maxY)/2 + rawDy, maxY + rawDy];
+        const targetX = [], targetY = [];
+        others.forEach(p => {
+          const r = realSize(p);
+          targetX.push(p.x, p.x + r.w/2, p.x + r.w);
+          targetY.push(p.y, p.y + r.h/2, p.y + r.h);
+        });
+
+        const threshold = 0.5; // inches
+        let bx = null, by = null;
+        movingX.forEach(mx => targetX.forEach(tx => {
+          const d = tx - mx;
+          if (Math.abs(d) <= threshold && (!bx || Math.abs(d) < Math.abs(bx.d))) bx = { d, v:tx };
+        }));
+        movingY.forEach(my => targetY.forEach(ty => {
+          const d = ty - my;
+          if (Math.abs(d) <= threshold && (!by || Math.abs(d) < Math.abs(by.d))) by = { d, v:ty };
+        }));
+        if (bx) state.smartGuides.push({ axis:'x', v:bx.v });
+        if (by) state.smartGuides.push({ axis:'y', v:by.v });
+        return { dx:rawDx + (bx ? bx.d : 0), dy:rawDy + (by ? by.d : 0) };
       }
 
       // ------- Drawing -------
@@ -2980,18 +3003,24 @@ function restore(){
           svg.appendChild(g);
         }
 
-        // Temporary smart-alignment guides while dragging.
-        if (state.smartGuides?.length) {
-          const guides = document.createElementNS(svgNS,'g');
-          guides.setAttribute('class','lc-smart-guides');
-          guides.setAttribute('pointer-events','none');
-          state.smartGuides.forEach(gd=>{
-            const line=document.createElementNS(svgNS,'line');
-            if(gd.axis==='x'){ line.setAttribute('x1',i2p(gd.v)); line.setAttribute('x2',i2p(gd.v)); line.setAttribute('y1',0); line.setAttribute('y2',Hpx); }
-            else { line.setAttribute('y1',i2p(gd.v)); line.setAttribute('y2',i2p(gd.v)); line.setAttribute('x1',0); line.setAttribute('x2',Wpx); }
-            line.setAttribute('class','lc-smart-guide'); guides.appendChild(line);
+        // Temporary alignment guides while a piece is being dragged.
+        if (state.smartGuides.length) {
+          const guideG = document.createElementNS(svgNS, 'g');
+          guideG.setAttribute('class', 'lc-smart-guides');
+          guideG.setAttribute('pointer-events', 'none');
+          state.smartGuides.forEach(gd => {
+            const line = document.createElementNS(svgNS, 'line');
+            line.setAttribute('class', 'lc-smart-guide');
+            if (gd.axis === 'x') {
+              line.setAttribute('x1', i2p(gd.v)); line.setAttribute('x2', i2p(gd.v));
+              line.setAttribute('y1', 0); line.setAttribute('y2', Hpx);
+            } else {
+              line.setAttribute('y1', i2p(gd.v)); line.setAttribute('y2', i2p(gd.v));
+              line.setAttribute('x1', 0); line.setAttribute('x2', Wpx);
+            }
+            guideG.appendChild(line);
           });
-          svg.appendChild(guides);
+          svg.appendChild(guideG);
         }
 
         // sort by layer
@@ -3114,7 +3143,7 @@ function restore(){
                     fill: '#111'
                   });
                   clLabel.textContent = `${fmt3(sxIn)}" CL`;
-                  makeEditableSinkCL(clLabel, p, sink);
+                  enableSinkCLEdit(clLabel, p, sink);
 
                   gg.append(line, t1, t2, clLabel);
                 } else {
@@ -3134,7 +3163,7 @@ function restore(){
                     fill: '#111'
                   });
                   clLabel.textContent = `${fmt3(syIn)}" CL`;
-                  makeEditableSinkCL(clLabel, p, sink);
+                  enableSinkCLEdit(clLabel, p, sink);
 
                   gg.append(line, t1, t2, clLabel);
                 }
@@ -3213,7 +3242,7 @@ function restore(){
             wT.setAttribute('font-size','12');
             wT.setAttribute('fill','#111');
             wT.textContent = (typeof fmt3 === 'function' ? `${fmt3(p.w)}` : `${p.w}`) + '"';
-            makeEditableDimText(wT, p, 'w', 'Piece width (in)');
+            enablePieceDimEdit(wT, p, 'w', 'Piece width (in)');
 
             // HEIGHT (left of unrotated rect)
             const xLeft = (cx - W0/2) - off;
@@ -3246,7 +3275,7 @@ function restore(){
             hT.setAttribute('font-size','12');
             hT.setAttribute('fill','#111');
             hT.textContent = (typeof fmt3 === 'function' ? `${fmt3(p.h)}` : `${p.h}`) + '"';
-            makeEditableDimText(hT, p, 'h', 'Piece depth / height (in)');
+            enablePieceDimEdit(hT, p, 'h', 'Piece depth / height (in)');
 
             // append to rotated group so ticks/labels rotate with the piece
             dims.append(wLine, wt1, wt2, wT, hLine, ht1, ht2, hT);
@@ -4311,10 +4340,11 @@ function makeSection(title){
       const rawDy = curI.y - state.drag.startI.y;
       const { dxMin, dxMax, dyMin, dyMax } = state.drag.limits;
 
+      // smart alignment snap first; Alt temporarily disables it
+      const snappedMove = getSmartSnap(rawDx, rawDy, state.drag, e.altKey);
       // clamp the whole group's delta so no member crosses the canvas edge
-      const snapped = smartSnapDrag(rawDx, rawDy, state.drag, e.altKey);
-      const dx = Math.max(dxMin, Math.min(dxMax, snapped.dx));
-      const dy = Math.max(dyMin, Math.min(dyMax, snapped.dy));
+      const dx = Math.max(dxMin, Math.min(dxMax, snappedMove.dx));
+      const dy = Math.max(dyMin, Math.min(dyMax, snappedMove.dy));
 
       // OPTIONAL: end the drag immediately when a limit is hit
       // const END_ON_LIMIT = true;
