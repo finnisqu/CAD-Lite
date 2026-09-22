@@ -2585,7 +2585,8 @@ if (window.svg2pdf) {
           canvas: { w: state.cw, h: state.ch },
           grid: state.grid, scale: state.scale, showGrid: state.showGrid,
           pieces: state.pieces,
-          dims: cur().dims || []  
+          dims: cur().dims || [],
+          lines: cur().lines || []
         };
       }
 
@@ -3954,7 +3955,7 @@ function updateSidebarCounts(){
   setCount(list,state.pieces?.length||0);
   setCount(noteList,Array.isArray(L?.notes)?L.notes.length:0);
   setCount(dimList,Array.isArray(L?.dims)?L.dims.length:0);
-  setCount(lineList,Array.isArray(L?.seams)?L.lines.length:0);
+  setCount(lineList,Array.isArray(L?.lines)?L.lines.length:0);
 }
 function renderEmptyState(listEl,text){
   if(!listEl||listEl.children.length)return;
@@ -5878,6 +5879,18 @@ if(btnAddLayout){
 
             return p;
           });
+        }
+
+        const importedLayout=cur();
+        if(importedLayout){
+          importedLayout.dims=Array.isArray(parsed.dims)?parsed.dims.map(d=>({...d,id:d.id||uid()})):[];
+          importedLayout.lines=Array.isArray(parsed.lines)?parsed.lines.map(lineObj=>({
+            ...lineObj,
+            id:lineObj.id||uid(),
+            style:lineObj.style==='dashed'?'dashed':'solid',
+            color:/^#[0-9a-f]{6}$/i.test(String(lineObj.color||''))?lineObj.color:'#111111',
+            thickness:round3(clamp(Number(lineObj.thickness)||2,0.5,12))
+          })):[];
         }
 
         state.selectedId = null;
