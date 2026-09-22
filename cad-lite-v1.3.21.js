@@ -743,6 +743,7 @@
 
         draw();
         renderDimList();
+        updateInspector();
         scheduleSave();
         pushHistory();
 
@@ -761,7 +762,7 @@
         if(!L||!Array.isArray(L.notes))return;
         const noteId=state.selectedNoteId;
         if(!deleteNoteAndLeaders(noteId,L))return;
-        renderNoteList();renderLineList();draw();scheduleSave();pushHistory();
+        renderNoteList();renderLineList();draw();scheduleSave();pushHistory();updateInspector();
         e.preventDefault();
       });
 
@@ -3989,8 +3990,7 @@ function restore(){
           const BW  = i2p(rs.w), BH = i2p(rs.h);
           const W0  = i2p(p.w),  H0 = i2p(p.h);            // unrotated piece size (px)
           const cx  = x + BW/2,  cy = y + BH/2;            // center of rotation
-          const rIn = i2p(1);
-          const r   = { tl: p.rTL? rIn:0, tr: p.rTR? rIn:0, br: p.rBR? rIn:0, bl: p.rBL? rIn:0 };
+          const r   = pieceCornerPixels(p);
 
           let rotRaw = Number(p.rotation||0);
           if (!Number.isFinite(rotRaw)) rotRaw = 0;
@@ -6004,6 +6004,7 @@ if(btnAddLayout){
 
         const wField = makeNumField('Width (in)', p.w, 'insp-w', 0.25, (v) => {
             p.w = Math.max(0.25, v);
+            migratePieceGeometry(p);
             clampPieceSeams(p);
             draw();
             scheduleSave();
@@ -6011,6 +6012,7 @@ if(btnAddLayout){
         });
         const hField = makeNumField('Height (in)', p.h, 'insp-h', 0.25, (v) => {
             p.h = Math.max(0.25, v);
+            migratePieceGeometry(p);
             clampPieceSeams(p);
             draw();
             scheduleSave();
@@ -6969,7 +6971,7 @@ if(btnAddLayout){
         if(e.key!=='Delete'&&e.key!=='Backspace')return;
         const L=cur();if(!L||!state.selectedLineId)return;
         const idx=L.lines.findIndex(lineObj=>lineObj.id===state.selectedLineId);if(idx<0)return;
-        L.lines.splice(idx,1);state.selectedLineId=null;draw();renderLineList();renderNoteList();scheduleSave();pushHistory();e.preventDefault();
+        L.lines.splice(idx,1);state.selectedLineId=null;draw();renderLineList();renderNoteList();scheduleSave();pushHistory();updateInspector();e.preventDefault();
       });
 
       // --- Manual dimensions tool ---
@@ -7024,6 +7026,7 @@ if(btnAddLayout){
 
           draw();
           renderDimList();
+          updateInspector();
           scheduleSave();
           pushHistory();
         }
