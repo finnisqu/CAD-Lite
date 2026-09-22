@@ -5766,7 +5766,11 @@ if(btnAddLayout){
           addSink.textContent='+';
           addSink.title='Add Sink';
           addSink.setAttribute('aria-label','Add Sink');
-          addSink.onclick=e=>{e.preventDefault();e.stopPropagation();sinksUI?.add?.();};
+          addSink.onclick=e=>{
+            e.preventDefault();e.stopPropagation();
+            sinksOpen=true;inspectorSectionOpen.sinks=true;syncSinks();
+            sinksUI?.add?.();
+          };
 
           const sinksArrow=document.createElement('span');
           sinksArrow.className='lc-head-arrow';
@@ -5798,14 +5802,16 @@ if(btnAddLayout){
         clampPieceSeams(p);
 
         const seamRows=document.createElement('div');
+        seamRows.className='lc-seam-list';
         seamRows.style.display='grid';
-        seamRows.style.gap='8px';
+        seamRows.style.gap='4px';
 
         p.pieceSeams.forEach((ps,idx)=>{
             const card=document.createElement('div');
+            card.className='lc-seam-row';
             card.style.border='1px solid var(--border, #ddd)';
-            card.style.borderRadius='6px';
-            card.style.padding='8px';
+            card.style.borderRadius='3px';
+            card.style.padding='5px';
 
             const head=document.createElement('div');
             head.style.display='flex';
@@ -5838,8 +5844,8 @@ if(btnAddLayout){
             const fields=document.createElement('div');
             fields.style.display='grid';
             fields.style.gridTemplateColumns='repeat(3, minmax(0, 1fr))';
-            fields.style.gap='6px';
-            fields.style.marginTop='6px';
+            fields.style.gap='4px';
+            fields.style.marginTop='4px';
 
             const dirLab=document.createElement('label');
             dirLab.className='lc-label';
@@ -5921,7 +5927,7 @@ if(btnAddLayout){
         addSeam.type='button';
         addSeam.className='lc-btn ghost sm';
         addSeam.textContent='+ Add Seam';
-        addSeam.style.marginTop='8px';
+        addSeam.style.marginTop='4px';
         addSeam.onclick=e=>{
           e.preventDefault();
           migratePieceSeams(p);
