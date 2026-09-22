@@ -5219,6 +5219,9 @@ if(btnAddLayout){
       function drawLines(){
         const L=cur(); if(!L||!Array.isArray(L.lines)) return;
         L.lines.forEach(lineObj=>{
+          // A leader is part of its Note annotation, so Hide Notes hides the leader too.
+          if(lineObj.attachedNoteId&&!state.showNotes)return;
+
           if(lineObj.attachedNoteId&&Array.isArray(L.notes)){
             const attachedNote=L.notes.find(note=>note.id===lineObj.attachedNoteId);
             if(attachedNote){
