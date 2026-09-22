@@ -4862,6 +4862,27 @@ if(btnAddLayout){
         });
       }
 
+      function clearNonNoteCanvasSelectionVisuals(){
+        // Notes can be selected without rebuilding the SVG so double-click editing
+        // remains reliable. Clear any previously-painted selection chrome manually.
+        svg.querySelectorAll('g.dim-line.selected').forEach(g=>{
+          g.classList.remove('selected');
+          g.querySelectorAll('line').forEach(line=>line.setAttribute('stroke-width','1'));
+          g.querySelectorAll('circle').forEach(handle=>handle.remove());
+        });
+
+        svg.querySelectorAll('g[data-seam-id]').forEach(g=>{
+          g.querySelectorAll('line').forEach(line=>{
+            if(line.getAttribute('stroke')==='#111') line.setAttribute('stroke-width','2');
+          });
+          g.querySelectorAll('circle').forEach(handle=>handle.remove());
+        });
+
+        svg.querySelectorAll('g[data-id] path').forEach(path=>{
+          if(path.getAttribute('stroke')==='#0ea5e9') path.remove();
+        });
+      }
+
       function drawNotes(){
         const L=cur();
         if(!state.showNotes||!L||!Array.isArray(L.notes))return;
@@ -4943,6 +4964,7 @@ if(btnAddLayout){
             renderSeamList();
             renderNoteList();
             updateInspector();
+            clearNonNoteCanvasSelectionVisuals();
 
             // Show selection immediately without rebuilding the SVG so double-click remains reliable.
             svg.querySelectorAll('g[data-note-id] text').forEach(el=>el.setAttribute('fill','#111'));
