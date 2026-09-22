@@ -1175,7 +1175,7 @@
         row.style.fontSize='13px';
         row.style.cursor='pointer';
         row.textContent=label;
-        row.onmouseenter=()=>row.style.background='#f3f4f6';
+        row.onmouseenter=()=>{row.style.background='#f3f4f6';closeViewSubmenus?.();};
         row.onmouseleave=()=>row.style.background='transparent';
         row.onclick=()=>{
           onClick();
@@ -1307,7 +1307,7 @@
         panel.className='lc-view-submenu';
         Object.assign(panel.style,{
           position:'absolute',
-          left:'calc(100% - 3px)',
+          right:'calc(100% - 3px)',
           top:'-8px',
           width:'250px',
           maxWidth:'min(250px, 82vw)',
@@ -1534,6 +1534,7 @@
         });
 
         const setOpen=open=>{
+          if(open)setViewMenuOpen(false);
           toolbarMenus.forEach(item=>{
             if(item.menu!==menu){
               item.menu.hidden=true;
@@ -1570,7 +1571,10 @@
         });
         item.onmouseenter=()=>item.style.background='#f3f4f6';
         item.onmouseleave=()=>item.style.background='transparent';
-        item.onclick=()=>onClick();
+        item.onclick=()=>{
+          onClick();
+          toolbarMenus.forEach(entry=>entry.setOpen(false));
+        };
         menu.appendChild(item);
         return item;
       };
