@@ -573,8 +573,12 @@
           slabW: 126, slabH: 63, x:0, y:0, opacity:1, visible:true
         };
         L.overlays.push(o);
+        state.selectedDimId=null;
+        state.selectedLineId=null;
+        state.selectedNoteId=null;
+        if(typeof setSelection==='function')setSelection([]);
         L.ovSel = L.overlays.length - 1;
-        renderOverlayList(); syncOverlayUI(); draw(); scheduleSave(); pushHistory();
+        renderOverlayList(); syncOverlayUI(); draw(); updateInspector?.(); scheduleSave(); pushHistory();
       }
 
       function loadOverlayFromFileToLayout(file){
@@ -626,6 +630,8 @@
       const L = ensureOverlaysOnLayout(activeLayout());
       const arr = L?.overlays || [];
       const sel = L?.ovSel ?? -1;
+      const overlayTitle=document.getElementById('lc-overlays-title');
+      if(overlayTitle)overlayTitle.textContent=`Overlays (${arr.length})`;
 
       // Enforce/reflect limit
       const atLimit = arr.length >= 2;
@@ -685,8 +691,6 @@
         row.addEventListener('click', (e)=>{
           if ((e.target).closest('button')) return;
           selectOverlay(idx);
-          setOverlayAccordion?.(true);
-          syncOverlayUI?.();
           renderOverlayList(); // refresh selected style
         });
 
@@ -697,6 +701,7 @@
           draw(); scheduleSave(); pushHistory();
           renderOverlayList();  // rebuild icon/title
           syncOverlayUI?.();
+          if(idx===L.ovSel)updateInspector?.();
         });
 
         // Delete
@@ -707,6 +712,7 @@
           draw(); scheduleSave(); pushHistory();
           renderOverlayList();
           syncOverlayUI?.();
+          updateInspector?.();
         });
 
         row.append(eye, name, actions);
@@ -6053,6 +6059,7 @@ if(btnAddLayout){
 
       function updateInspector(){
         if(renderAnnotationInspector())return;
+        if(renderOverlayInspector())return;
         const p = state.pieces.find(x => x.id === state.selectedId);
         if (!p) {
             inspector.className = 'lc-small';
