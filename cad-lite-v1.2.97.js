@@ -4068,9 +4068,6 @@ function renderDimList(){
     rename.textContent='✎';
     rename.onclick=e=>{
       e.stopPropagation();
-      state.selectedDimId=d.id;
-      state.selectedSeamId=null;
-      state.selectedId=null;
       beginListRename(title,d,`Dim ${idx+1}`,renderDimList);
     };
 
@@ -4151,9 +4148,6 @@ function renderSeamList(){
     rename.textContent='✎';
     rename.onclick=e=>{
       e.stopPropagation();
-      state.selectedSeamId=seam.id;
-      state.selectedDimId=null;
-      clearSelection();
       beginListRename(title,seam,`Seam ${idx+1}`,renderSeamList);
     };
 
