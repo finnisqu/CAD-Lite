@@ -4790,7 +4790,7 @@ function restore(){
                 const up=()=>{window.removeEventListener('pointermove',move,true);window.removeEventListener('pointerup',up,true);window.removeEventListener('pointercancel',up,true);if(moved){d.offsetPx=lastOff;draw();scheduleSave();pushHistory();}else{renderDimList();updateInspector();dimLabelClickTimer=setTimeout(()=>{dimLabelClickTimer=null;draw();},350);}};
                 window.addEventListener('pointermove',move,true);window.addEventListener('pointerup',up,true);window.addEventListener('pointercancel',up,true);
               });
-              t.addEventListener('dblclick',ev=>{ev.preventDefault();ev.stopPropagation();if(dimLabelClickTimer){clearTimeout(dimLabelClickTimer);dimLabelClickTimer=null;}openInlineDimEditor(t,distIn.toFixed(2),raw=>{const next=parseDimInches(raw);if(!(next>0))return false;const vx=d.x2-d.x1,vy=d.y2-d.y1,oldLen=Math.sqrt(vx*vx+vy*vy)||1;d.x2=round3(d.x1+(vx/oldLen)*next);d.y2=round3(d.y1+(vy/oldLen)*next);draw();renderDimList();scheduleSave();pushHistory();return true;});});
+              t.addEventListener('dblclick',ev=>{ev.preventDefault();ev.stopPropagation();if(dimLabelClickTimer){clearTimeout(dimLabelClickTimer);dimLabelClickTimer=null;}openInlineDimEditor(t,distIn.toFixed(2),raw=>{const next=parseDimInches(raw);if(!(next>0))return false;const vx=d.x2-d.x1,vy=d.y2-d.y1,oldLen=Math.sqrt(vx*vx+vy*vy)||1;d.x2=round3(d.x1+(vx/oldLen)*next);d.y2=round3(d.y1+(vy/oldLen)*next);draw();renderDimList();updateInspector();scheduleSave();pushHistory();return true;});});
 
               // angle in inches space (for upright text)
               let angleDeg = Math.atan2(d.y2 - d.y1, d.x2 - d.x1) * 180 / Math.PI;
@@ -4798,7 +4798,7 @@ function restore(){
               t.setAttribute('transform', `rotate(${angleDeg}, ${lx}, ${ly})`);
 
               g.append(ext1, ext2, dl, t);
-              const makeDimHandle=(which,x,y)=>{const h=document.createElementNS(svgNS,'circle');h.setAttribute('cx',x);h.setAttribute('cy',y);h.setAttribute('r','5');h.setAttribute('fill','#fff');h.setAttribute('stroke','#2563eb');h.setAttribute('stroke-width','2');h.setAttribute('vector-effect','non-scaling-stroke');h.style.cursor='crosshair';h.addEventListener('pointerdown',ev=>{ev.preventDefault();ev.stopPropagation();state.selectedDimId=d.id;state.selectedLineId=null;state.selectedNoteId=null;clearSelection();renderDimList();renderLineList();renderNoteList();const move=mv=>{const q=svgPoint(mv),raw={x:p2i(q.x),y:p2i(q.y)};let sn=snapDimPoint(raw);const fixed=which===1?{x:d.x2,y:d.y2}:{x:d.x1,y:d.y1};sn=constrainDrawPoint(fixed,sn,!!mv.shiftKey||drawShiftHeld);if(which===1){d.x1=round3(sn.x);d.y1=round3(sn.y);}else{d.x2=round3(sn.x);d.y2=round3(sn.y);}draw();const tol=.001;state.pieces.forEach(p=>{const rs=realSize(p),xs=[p.x,p.x+rs.w],ys=[p.y,p.y+rs.h];xs.forEach(v=>{if(Math.abs(sn.x-v)<tol)svg.appendChild(svgEl('line',{x1:i2p(v),y1:0,x2:i2p(v),y2:i2p(state.ch),stroke:'#2563eb','stroke-width':1,'stroke-dasharray':'5 4','vector-effect':'non-scaling-stroke','pointer-events':'none'}));});ys.forEach(v=>{if(Math.abs(sn.y-v)<tol)svg.appendChild(svgEl('line',{x1:0,y1:i2p(v),x2:i2p(state.cw),y2:i2p(v),stroke:'#2563eb','stroke-width':1,'stroke-dasharray':'5 4','vector-effect':'non-scaling-stroke','pointer-events':'none'}));});});};const up=()=>{svg.removeEventListener('pointermove',move);svg.removeEventListener('pointerup',up);svg.removeEventListener('pointercancel',up);renderDimList();scheduleSave();pushHistory();};svg.addEventListener('pointermove',move);svg.addEventListener('pointerup',up);svg.addEventListener('pointercancel',up);});g.appendChild(h);};if(state.selectedDimId===d.id){makeDimHandle(1,x1px,y1px);makeDimHandle(2,x2px,y2px);}
+              const makeDimHandle=(which,x,y)=>{const h=document.createElementNS(svgNS,'circle');h.setAttribute('cx',x);h.setAttribute('cy',y);h.setAttribute('r','5');h.setAttribute('fill','#fff');h.setAttribute('stroke','#2563eb');h.setAttribute('stroke-width','2');h.setAttribute('vector-effect','non-scaling-stroke');h.style.cursor='crosshair';h.addEventListener('pointerdown',ev=>{ev.preventDefault();ev.stopPropagation();state.selectedDimId=d.id;state.selectedLineId=null;state.selectedNoteId=null;clearSelection();renderDimList();renderLineList();renderNoteList();const move=mv=>{const q=svgPoint(mv),raw={x:p2i(q.x),y:p2i(q.y)};let sn=snapDimPoint(raw);const fixed=which===1?{x:d.x2,y:d.y2}:{x:d.x1,y:d.y1};sn=constrainDrawPoint(fixed,sn,!!mv.shiftKey||drawShiftHeld);if(which===1){d.x1=round3(sn.x);d.y1=round3(sn.y);}else{d.x2=round3(sn.x);d.y2=round3(sn.y);}draw();const tol=.001;state.pieces.forEach(p=>{const rs=realSize(p),xs=[p.x,p.x+rs.w],ys=[p.y,p.y+rs.h];xs.forEach(v=>{if(Math.abs(sn.x-v)<tol)svg.appendChild(svgEl('line',{x1:i2p(v),y1:0,x2:i2p(v),y2:i2p(state.ch),stroke:'#2563eb','stroke-width':1,'stroke-dasharray':'5 4','vector-effect':'non-scaling-stroke','pointer-events':'none'}));});ys.forEach(v=>{if(Math.abs(sn.y-v)<tol)svg.appendChild(svgEl('line',{x1:0,y1:i2p(v),x2:i2p(state.cw),y2:i2p(v),stroke:'#2563eb','stroke-width':1,'stroke-dasharray':'5 4','vector-effect':'non-scaling-stroke','pointer-events':'none'}));});});};const up=()=>{svg.removeEventListener('pointermove',move);svg.removeEventListener('pointerup',up);svg.removeEventListener('pointercancel',up);renderDimList();updateInspector();scheduleSave();pushHistory();};svg.addEventListener('pointermove',move);svg.addEventListener('pointerup',up);svg.addEventListener('pointercancel',up);});g.appendChild(h);};if(state.selectedDimId===d.id){makeDimHandle(1,x1px,y1px);makeDimHandle(2,x2px,y2px);}
               gAll.appendChild(g);
             });
 
@@ -6007,6 +6007,7 @@ if(btnAddLayout){
             migratePieceGeometry(p);
             clampPieceSeams(p);
             draw();
+            updateInspector();
             scheduleSave();
             pushHistory();
         });
@@ -6015,6 +6016,7 @@ if(btnAddLayout){
             migratePieceGeometry(p);
             clampPieceSeams(p);
             draw();
+            updateInspector();
             scheduleSave();
             pushHistory();
         });
@@ -6638,7 +6640,7 @@ if(btnAddLayout){
               document.removeEventListener('pointermove',move,true);
               document.removeEventListener('pointerup',up,true);
               document.removeEventListener('pointercancel',up,true);
-              if(moved){renderLineList();scheduleSave();pushHistory();}
+              if(moved){renderLineList();updateInspector();scheduleSave();pushHistory();}
             };
             document.addEventListener('pointermove',move,true);
             document.addEventListener('pointerup',up,true);
