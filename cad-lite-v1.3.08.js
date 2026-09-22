@@ -6116,11 +6116,18 @@ if(btnAddLayout){
               state.projectDate = parsed.project?.date  || todayISO();
               state.notes       = parsed.project?.notes || '';
 
+              if(parsed.ui){
+                if('showLines' in parsed.ui) state.showLines=!!parsed.ui.showLines;
+                if('showNotes' in parsed.ui) state.showNotes=!!parsed.ui.showNotes;
+              }
+
               if (inProject) inProject.value = state.projectName;
               if (inDate)    inDate.value    = state.projectDate;
               if (inNotes)   inNotes.value   = state.notes;
 
               syncToolbarFromLayout();
+              syncShowNotesUI?.();
+              syncShowLinesUI?.();
               renderLayouts(); renderList(); updateInspector();
               sinksUI?.refresh?.(); draw();
               renderOverlayList?.(); syncOverlayUI?.();
