@@ -3691,7 +3691,7 @@ function restore(){
               if (state.selectedDimId === d.id) g.classList.add('selected');
 
               // --- select dimension; offset dragging is handled by the number label ---
-              g.addEventListener('pointerdown',(ev)=>{if(state.dimTool)return;ev.stopPropagation();state.selectedDimId=d.id;state.selectedId=null;renderDimList();updateInspector();draw();});
+              g.addEventListener('pointerdown',(ev)=>{if(state.dimTool)return;ev.stopPropagation();state.selectedDimId=d.id;state.selectedSeamId=null;state.selectedNoteId=null;clearSelection();renderDimList();updateInspector();draw();});
 
               // --- extension lines ---
               const makeExt = (x, y) => {
@@ -3743,7 +3743,7 @@ function restore(){
               let dimLabelClickTimer=null;
               t.addEventListener('pointerdown',ev=>{
                 if(state.dimTool)return;
-                ev.preventDefault();ev.stopPropagation();state.selectedDimId=d.id;state.selectedId=null;
+                ev.preventDefault();ev.stopPropagation();state.selectedDimId=d.id;state.selectedSeamId=null;state.selectedNoteId=null;clearSelection();
                 const start=svgPoint(ev),startOff=(typeof d.offsetPx==='number'?d.offsetPx:12);let moved=false,lastOff=startOff,raf=0;
                 const move=mv=>{const q=svgPoint(mv);if(Math.hypot(q.x-start.x,q.y-start.y)<=3&&!moved)return;moved=true;if(dimLabelClickTimer){clearTimeout(dimLabelClickTimer);dimLabelClickTimer=null;}lastOff=Math.max(-300,Math.min(300,startOff+(q.x-start.x)*nx+(q.y-start.y)*ny));if(!raf)raf=requestAnimationFrame(()=>{raf=0;d.offsetPx=lastOff;draw();});};
                 const up=()=>{window.removeEventListener('pointermove',move,true);window.removeEventListener('pointerup',up,true);window.removeEventListener('pointercancel',up,true);if(moved){d.offsetPx=lastOff;draw();scheduleSave();pushHistory();}else{renderDimList();updateInspector();dimLabelClickTimer=setTimeout(()=>{dimLabelClickTimer=null;draw();},350);}};
@@ -3757,7 +3757,7 @@ function restore(){
               t.setAttribute('transform', `rotate(${angleDeg}, ${lx}, ${ly})`);
 
               g.append(ext1, ext2, dl, t);
-              const makeDimHandle=(which,x,y)=>{const h=document.createElementNS(svgNS,'circle');h.setAttribute('cx',x);h.setAttribute('cy',y);h.setAttribute('r','5');h.setAttribute('fill','#fff');h.setAttribute('stroke','#2563eb');h.setAttribute('stroke-width','2');h.setAttribute('vector-effect','non-scaling-stroke');h.style.cursor='crosshair';h.addEventListener('pointerdown',ev=>{ev.preventDefault();ev.stopPropagation();state.selectedDimId=d.id;renderDimList();const move=mv=>{const q=svgPoint(mv),raw={x:p2i(q.x),y:p2i(q.y)};let sn=snapDimPoint(raw);const fixed=which===1?{x:d.x2,y:d.y2}:{x:d.x1,y:d.y1};sn=constrainDrawPoint(fixed,sn,!!mv.shiftKey||drawShiftHeld);if(which===1){d.x1=round3(sn.x);d.y1=round3(sn.y);}else{d.x2=round3(sn.x);d.y2=round3(sn.y);}draw();const tol=.001;state.pieces.forEach(p=>{const rs=realSize(p),xs=[p.x,p.x+rs.w],ys=[p.y,p.y+rs.h];xs.forEach(v=>{if(Math.abs(sn.x-v)<tol)svg.appendChild(svgEl('line',{x1:i2p(v),y1:0,x2:i2p(v),y2:i2p(state.ch),stroke:'#2563eb','stroke-width':1,'stroke-dasharray':'5 4','vector-effect':'non-scaling-stroke','pointer-events':'none'}));});ys.forEach(v=>{if(Math.abs(sn.y-v)<tol)svg.appendChild(svgEl('line',{x1:0,y1:i2p(v),x2:i2p(state.cw),y2:i2p(v),stroke:'#2563eb','stroke-width':1,'stroke-dasharray':'5 4','vector-effect':'non-scaling-stroke','pointer-events':'none'}));});});};const up=()=>{svg.removeEventListener('pointermove',move);svg.removeEventListener('pointerup',up);svg.removeEventListener('pointercancel',up);renderDimList();scheduleSave();pushHistory();};svg.addEventListener('pointermove',move);svg.addEventListener('pointerup',up);svg.addEventListener('pointercancel',up);});g.appendChild(h);};if(state.selectedDimId===d.id){makeDimHandle(1,x1px,y1px);makeDimHandle(2,x2px,y2px);}
+              const makeDimHandle=(which,x,y)=>{const h=document.createElementNS(svgNS,'circle');h.setAttribute('cx',x);h.setAttribute('cy',y);h.setAttribute('r','5');h.setAttribute('fill','#fff');h.setAttribute('stroke','#2563eb');h.setAttribute('stroke-width','2');h.setAttribute('vector-effect','non-scaling-stroke');h.style.cursor='crosshair';h.addEventListener('pointerdown',ev=>{ev.preventDefault();ev.stopPropagation();state.selectedDimId=d.id;state.selectedSeamId=null;state.selectedNoteId=null;clearSelection();renderDimList();renderSeamList();renderNoteList();const move=mv=>{const q=svgPoint(mv),raw={x:p2i(q.x),y:p2i(q.y)};let sn=snapDimPoint(raw);const fixed=which===1?{x:d.x2,y:d.y2}:{x:d.x1,y:d.y1};sn=constrainDrawPoint(fixed,sn,!!mv.shiftKey||drawShiftHeld);if(which===1){d.x1=round3(sn.x);d.y1=round3(sn.y);}else{d.x2=round3(sn.x);d.y2=round3(sn.y);}draw();const tol=.001;state.pieces.forEach(p=>{const rs=realSize(p),xs=[p.x,p.x+rs.w],ys=[p.y,p.y+rs.h];xs.forEach(v=>{if(Math.abs(sn.x-v)<tol)svg.appendChild(svgEl('line',{x1:i2p(v),y1:0,x2:i2p(v),y2:i2p(state.ch),stroke:'#2563eb','stroke-width':1,'stroke-dasharray':'5 4','vector-effect':'non-scaling-stroke','pointer-events':'none'}));});ys.forEach(v=>{if(Math.abs(sn.y-v)<tol)svg.appendChild(svgEl('line',{x1:0,y1:i2p(v),x2:i2p(state.cw),y2:i2p(v),stroke:'#2563eb','stroke-width':1,'stroke-dasharray':'5 4','vector-effect':'non-scaling-stroke','pointer-events':'none'}));});});};const up=()=>{svg.removeEventListener('pointermove',move);svg.removeEventListener('pointerup',up);svg.removeEventListener('pointercancel',up);renderDimList();scheduleSave();pushHistory();};svg.addEventListener('pointermove',move);svg.addEventListener('pointerup',up);svg.addEventListener('pointercancel',up);});g.appendChild(h);};if(state.selectedDimId===d.id){makeDimHandle(1,x1px,y1px);makeDimHandle(2,x2px,y2px);}
               gAll.appendChild(g);
             });
 
@@ -4832,7 +4832,7 @@ if(btnAddLayout){
           g.addEventListener('pointerdown',ev=>{
             if(state.dimTool||state.seamTool)return;
             ev.preventDefault();ev.stopPropagation();
-            state.selectedSeamId=seam.id;state.selectedDimId=null;clearSelection();renderSeamList();renderDimList();draw();
+            state.selectedSeamId=seam.id;state.selectedDimId=null;state.selectedNoteId=null;clearSelection();renderSeamList();renderDimList();renderNoteList();draw();
             const p0=svgPoint(ev),sx=p2i(p0.x),sy=p2i(p0.y);
             const x1=seam.x1,y1=seam.y1,x2=seam.x2,y2=seam.y2;
             let moved=false;
@@ -5115,7 +5115,7 @@ if(btnAddLayout){
           const cdx=end.x-seamTempStart.x,cdy=end.y-seamTempStart.y;
           if(Math.hypot(cdx,cdy)<0.25){e.stopPropagation();return;}
           const seam={id:uid(),x1:seamTempStart.x,y1:seamTempStart.y,x2:end.x,y2:end.y};
-          L.seams.push(seam);state.selectedSeamId=seam.id;seamTempStart=null;toolPreview=null;state.seamTool=false;syncSeamToolUI();draw();renderSeamList();scheduleSave();pushHistory();
+          L.seams.push(seam);state.selectedSeamId=seam.id;state.selectedDimId=null;state.selectedNoteId=null;clearSelection();seamTempStart=null;toolPreview=null;state.seamTool=false;syncSeamToolUI();draw();renderSeamList();scheduleSave();pushHistory();
         }
         e.stopPropagation();
       });
@@ -5220,6 +5220,10 @@ if(btnAddLayout){
         if(!Array.isArray(L.notes)) L.notes=[];
         const note={id:uid(),x:round3(p2i(pt.x)),y:round3(p2i(pt.y)),text:'Note'};
         L.notes.push(note);
+        state.selectedNoteId=note.id;
+        state.selectedDimId=null;
+        state.selectedSeamId=null;
+        clearSelection();
         state.noteTool=false; syncNoteToolUI();
         draw(); renderNoteList(); scheduleSave(); pushHistory();
 
