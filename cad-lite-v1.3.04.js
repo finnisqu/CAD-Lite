@@ -5012,7 +5012,7 @@ if(btnAddLayout){
             { v: 'full-bull', t: 'Full bull' },
             { v: 'ogee',      t: 'Ogee' },
             { v: 'miter',     t: 'Miter' },
-            { v: 'line',      t: 'Seam' }
+            { v: 'seam',      t: 'Seam' }
         ];
 
         function makeEdgeSelect(sideKey, labelText) {
