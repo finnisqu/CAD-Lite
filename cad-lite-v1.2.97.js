@@ -3976,7 +3976,6 @@ function installPieceReorder(){
 }
 
 
-const LIST_NAME_MAX=48;
 const NOTE_LIST_TITLE_MAX=48;
 
 function beginListRename(titleEl,item,fallback,rerender){
@@ -3986,7 +3985,6 @@ function beginListRename(titleEl,item,fallback,rerender){
   input.type='text';
   input.className='lc-input';
   input.value=current;
-  input.maxLength=LIST_NAME_MAX;
   input.setAttribute('aria-label','Rename list item');
   Object.assign(input.style,{width:'100%',minWidth:'0',height:'28px',padding:'2px 6px',boxSizing:'border-box'});
   titleEl.replaceChildren(input);
@@ -4065,7 +4063,7 @@ function renderDimList(){
 
     const rename=document.createElement('button');
     rename.type='button';
-    rename.className='lc-btn ghost';
+    rename.className='lc-btn ghost lc-iconbtn';
     rename.title='Rename dimension';
     rename.textContent='✎';
     rename.onclick=e=>{
@@ -4078,7 +4076,7 @@ function renderDimList(){
 
     const del=document.createElement('button');
     del.type='button';
-    del.className='lc-btn ghost';
+    del.className='lc-btn ghost lc-iconbtn';
     del.title='Delete dimension';
     del.textContent='🗑';
     del.onclick=e=>{
@@ -4148,7 +4146,7 @@ function renderSeamList(){
 
     const rename=document.createElement('button');
     rename.type='button';
-    rename.className='lc-btn ghost';
+    rename.className='lc-btn ghost lc-iconbtn';
     rename.title='Rename seam';
     rename.textContent='✎';
     rename.onclick=e=>{
@@ -4161,7 +4159,7 @@ function renderSeamList(){
 
     const del=document.createElement('button');
     del.type='button';
-    del.className='lc-btn ghost';
+    del.className='lc-btn ghost lc-iconbtn';
     del.title='Delete seam';
     del.textContent='🗑';
     del.onclick=e=>{
@@ -4225,7 +4223,7 @@ function renderNoteList(){
 
     const del=document.createElement('button');
     del.type='button';
-    del.className='lc-btn ghost';
+    del.className='lc-btn ghost lc-iconbtn';
     del.title='Delete note';
     del.textContent='🗑';
     del.onclick=e=>{
