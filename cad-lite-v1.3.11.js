@@ -2121,10 +2121,12 @@
         if(!card||!head||head.dataset.toggleReady)return;
         head.dataset.toggleReady='1'; head.style.cursor='pointer'; head.style.userSelect='none';
         const title=head.querySelector('h3');
+        const addThing=label==='Dimensions'?'dimension':label.slice(0,-1).toLowerCase();
         if(title){
           title.dataset.baseLabel=label;
-          title.title=`Press ${shortcut} to add a new ${label==='Dimensions'?'dimension':label.slice(0,-1).toLowerCase()}`;
+          title.title=`Press ${shortcut} to add a new ${addThing}`;
         }
+        head.title=`Press ${shortcut} to add a new ${addThing}`;
 
         const addBtn=document.createElement('button');
         addBtn.type='button';
