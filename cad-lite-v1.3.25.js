@@ -657,7 +657,7 @@
       };
       const ICON_EYE     = 'M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12zm11 3a3 3 0 1 0 0-6 3 3 0 0 0 0 6z';
       const ICON_EYE_OFF = 'M17.94 17.94A10.94 10.94 0 0 1 12 19c-7 0-11-7-11-7a20.57 20.57 0 0 1 5.06-5.94M9.88 9.88A3 3 0 0 0 12 15a3 3 0 0 0 2.12-5.12M1 1l22 22';
-      const ICON_TRASH   = 'M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m-1 0v14a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2V6h10z';
+      const ICON_TRASH   = 'M8 3h8l1 2h4v2H3V5h4l1-2Zm-2 6h12l-1 11H7L6 9Zm3 2v7h2v-7H9Zm4 0v7h2v-7h-2Z';
 
       arr.forEach((o, idx)=>{
         const row = document.createElement('div');
@@ -684,7 +684,10 @@
         del.type = 'button';
         del.className = 'lc-btn red xs lc-iconbtn ov-del';
         del.title = 'Delete overlay';
-        del.appendChild(mkIcon(ICON_TRASH));
+        const trash=mkIcon(ICON_TRASH);
+        const trashPath=trash.querySelector('path');
+        if(trashPath){trashPath.setAttribute('fill','currentColor');trashPath.setAttribute('stroke','none');}
+        del.appendChild(trash);
         actions.appendChild(del);
 
         // Click row to select (like Sinks); ignore clicks on the buttons themselves
@@ -3190,7 +3193,7 @@ if (window.svg2pdf) {
 
             const btnDel = el('button','lc-btn red lc-iconbtn');
             btnDel.title='Delete';
-            btnDel.innerHTML = '<svg class="lc-icon" viewBox="0 0 24 24"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m-1 0v14a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2V6h10z" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+            btnDel.innerHTML = '<svg class="lc-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 3h8l1 2h4v2H3V5h4l1-2Zm-2 6h12l-1 11H7L6 9Zm3 2v7h2v-7H9Zm4 0v7h2v-7h-2Z" fill="currentColor"/></svg>';
             btnDel.onclick = (e)=>{ e.stopPropagation(); piece.sinks.splice(idx,1); openIndex.set(piece.id, Math.max(0, Math.min(open, piece.sinks.length-1))); onStateChange?.(); };
 
             actions.append(btnDup, btnDel);
@@ -4985,7 +4988,7 @@ function restore(){
         const btnDel = document.createElement('button');
         btnDel.className = 'lc-btn red lc-iconbtn';
         btnDel.title = 'Delete';
-        btnDel.innerHTML = '<svg class="lc-icon" viewBox="0 0 24 24"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m-1 0v14a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2V6h10z" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+        btnDel.innerHTML = '<svg class="lc-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 3h8l1 2h4v2H3V5h4l1-2Zm-2 6h12l-1 11H7L6 9Zm3 2v7h2v-7H9Zm4 0v7h2v-7h-2Z" fill="currentColor"/></svg>';
         btnDel.addEventListener('click', (e)=>{
           e.stopPropagation();
           const idx = state.pieces.findIndex(x=>x.id===p.id);
@@ -5231,7 +5234,7 @@ function renderDimList(){
     del.type='button';
     del.className='lc-btn red lc-iconbtn';
     del.title='Delete dimension';
-    del.innerHTML='<svg class="lc-icon" viewBox="0 0 24 24"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m-1 0v14a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2V6h10z" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+    del.innerHTML='<svg class="lc-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 3h8l1 2h4v2H3V5h4l1-2Zm-2 6h12l-1 11H7L6 9Zm3 2v7h2v-7H9Zm4 0v7h2v-7h-2Z" fill="currentColor"/></svg>';
     del.onclick=e=>{
       e.stopPropagation();
       L.dims=L.dims.filter(x=>x.id!==d.id);
@@ -5318,7 +5321,7 @@ function renderLineList(){
     del.type='button';
     del.className='lc-btn red lc-iconbtn';
     del.title='Delete line';
-    del.innerHTML='<svg class="lc-icon" viewBox="0 0 24 24"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m-1 0v14a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2V6h10z" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+    del.innerHTML='<svg class="lc-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 3h8l1 2h4v2H3V5h4l1-2Zm-2 6h12l-1 11H7L6 9Zm3 2v7h2v-7H9Zm4 0v7h2v-7h-2Z" fill="currentColor"/></svg>';
     del.onclick=e=>{
       e.stopPropagation();
       L.lines=L.lines.filter(x=>x.id!==lineObj.id);
@@ -5599,7 +5602,7 @@ function renderNoteList(){
     del.type='button';
     del.className='lc-btn red lc-iconbtn';
     del.title='Delete note';
-    del.innerHTML='<svg class="lc-icon" viewBox="0 0 24 24"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m-1 0v14a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2V6h10z" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+    del.innerHTML='<svg class="lc-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 3h8l1 2h4v2H3V5h4l1-2Zm-2 6h12l-1 11H7L6 9Zm3 2v7h2v-7H9Zm4 0v7h2v-7h-2Z" fill="currentColor"/></svg>';
     del.onclick=e=>{
       e.stopPropagation();
       deleteNoteAndLeaders(n.id,L);
@@ -6173,7 +6176,7 @@ if(btnAddLayout){
         const btnDel = document.createElement('button');
         btnDel.className = 'lc-btn red lc-iconbtn';
         btnDel.title = 'Delete';
-        btnDel.innerHTML = '<svg class="lc-icon" viewBox="0 0 24 24"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m-1 0v14a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2V6h10z" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+        btnDel.innerHTML = '<svg class="lc-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 3h8l1 2h4v2H3V5h4l1-2Zm-2 6h12l-1 11H7L6 9Zm3 2v7h2v-7H9Zm4 0v7h2v-7h-2Z" fill="currentColor"/></svg>';
         btnDel.onclick = (e) => {
             e.preventDefault();
             const idx = state.pieces.findIndex(x => x.id === p.id);
@@ -6499,7 +6502,7 @@ if(btnAddLayout){
             del.type='button';
             del.className='lc-btn red lc-iconbtn';
     del.title='Delete seam';
-    del.innerHTML='<svg class="lc-icon" viewBox="0 0 24 24"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m-1 0v14a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2V6h10z" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+    del.innerHTML='<svg class="lc-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 3h8l1 2h4v2H3V5h4l1-2Zm-2 6h12l-1 11H7L6 9Zm3 2v7h2v-7H9Zm4 0v7h2v-7h-2Z" fill="currentColor"/></svg>';
             del.onclick=e=>{
               e.preventDefault();
               p.pieceSeams=p.pieceSeams.filter(x=>x.id!==ps.id);
