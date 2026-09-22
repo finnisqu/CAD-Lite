@@ -2598,6 +2598,11 @@
 
       const inspector = document.getElementById('lc-inspector');
       const btnAdd = document.getElementById('lc-add');
+      const sinksMountEl = document.getElementById('lc-sinks-card');
+      const sinksLegacyCard = sinksMountEl?.closest('.lc-card');
+      if(sinksMountEl)sinksMountEl.remove();
+      if(sinksLegacyCard)sinksLegacyCard.remove();
+      const inspectorSectionOpen={sinks:false,seams:false};
 
       const btnExportPDFAll = document.getElementById('btn-export-pdf-all');
       const btnExportJSON = document.getElementById('lc-export-json');
@@ -3102,7 +3107,18 @@ if (window.svg2pdf) {
         }
 
       render();
-      return { refresh: render };
+      return {
+        refresh: render,
+        add: ()=>{
+          const piece=getSelectedPiece?.();
+          if(!piece)return;
+          migratePieceForSinks(piece);
+          if(piece.sinks.length>=MAX_SINKS_PER_PIECE)return;
+          piece.sinks.push(createDefaultSink());
+          inspectorSectionOpen.sinks=true;
+          onStateChange?.();
+        }
+      };
     
     }
 
@@ -3112,7 +3128,7 @@ if (window.svg2pdf) {
 
     // Build Sinks UI
     sinksUI = initSinksCard({
-      uiMountEl: document.getElementById('lc-sinks-card'),
+      uiMountEl: sinksMountEl,
       getSelectedPiece: () => state.pieces.find(p => p.id === state.selectedId) || null,
       onStateChange: () => { draw(); scheduleSave?.(); sinksUI.refresh(); }
     });
@@ -5409,20 +5425,44 @@ if(btnAddLayout){
         const root = document.createElement('div');
         root.className = 'lc-item selected';
 
-        // Helper to make little gray outlined sections
-        function makeSection(title){
+        // Compact Inspector sections; selected sections can collapse like property panels.
+        function makeSection(title,{collapsible=false,key=null,collapsed=false}={}){
             const sec = document.createElement('div');
             sec.className = 'lc-subcard';
 
             const label = document.createElement('div');
             label.className = 'lc-subcard-label lc-small';
-            label.textContent = title;
-            sec.appendChild(label);
+            const titleSpan=document.createElement('span');
+            titleSpan.textContent=title;
+            label.appendChild(titleSpan);
 
             const body = document.createElement('div');
             body.className = 'lc-subcard-body';
-            sec.appendChild(body);
 
+            if(collapsible){
+              sec.classList.add('lc-inspector-collapsible');
+              label.classList.add('lc-inspector-section-toggle');
+              const arrow=document.createElement('span');
+              arrow.className='lc-head-arrow';
+              const initial=key&&key in inspectorSectionOpen?!!inspectorSectionOpen[key]:!collapsed;
+              let open=initial;
+              if(key)inspectorSectionOpen[key]=open;
+              const sync=()=>{
+                body.hidden=!open;
+                arrow.textContent=open?'▾':'▸';
+                label.setAttribute('aria-expanded',String(open));
+              };
+              label.appendChild(arrow);
+              label.setAttribute('role','button');
+              label.setAttribute('tabindex','0');
+              label.onclick=()=>{open=!open;if(key)inspectorSectionOpen[key]=open;sync();};
+              label.onkeydown=e=>{
+                if(e.key==='Enter'||e.key===' '){e.preventDefault();open=!open;if(key)inspectorSectionOpen[key]=open;sync();}
+              };
+              sync();
+            }
+
+            sec.append(label,body);
             root.appendChild(sec);
             return body;
         }
@@ -5708,8 +5748,53 @@ if(btnAddLayout){
         rowB.appendChild(layerWrap);
         appBody.appendChild(rowB);
 
-        // --- 3) Piece Seams --------------------------------------------------------
-        const seamBody = makeSection('Seams');
+        // --- 3) Sinks -------------------------------------------------------------
+        if(sinksMountEl){
+          const sinksSec=document.createElement('div');
+          sinksSec.className='lc-subcard lc-inspector-collapsible lc-sinks-section';
+
+          const sinksHead=document.createElement('div');
+          sinksHead.className='lc-subcard-label lc-small lc-inspector-section-toggle';
+          const sinksTitle=document.createElement('span');
+          sinksTitle.textContent='Sinks';
+          const sinksActions=document.createElement('span');
+          sinksActions.className='lc-inspector-section-actions';
+
+          const addSink=document.createElement('button');
+          addSink.type='button';
+          addSink.className='lc-btn ghost lc-iconbtn';
+          addSink.textContent='+';
+          addSink.title='Add Sink';
+          addSink.setAttribute('aria-label','Add Sink');
+          addSink.onclick=e=>{e.preventDefault();e.stopPropagation();sinksUI?.add?.();};
+
+          const sinksArrow=document.createElement('span');
+          sinksArrow.className='lc-head-arrow';
+          sinksActions.append(addSink,sinksArrow);
+          sinksHead.append(sinksTitle,sinksActions);
+
+          const sinksBody=document.createElement('div');
+          sinksBody.className='lc-subcard-body lc-sinks-collapse-body';
+          sinksBody.appendChild(sinksMountEl);
+
+          let sinksOpen=!!inspectorSectionOpen.sinks;
+          const syncSinks=()=>{
+            sinksBody.hidden=!sinksOpen;
+            sinksArrow.textContent=sinksOpen?'▾':'▸';
+            sinksHead.setAttribute('aria-expanded',String(sinksOpen));
+          };
+          sinksHead.setAttribute('role','button');
+          sinksHead.setAttribute('tabindex','0');
+          sinksHead.onclick=e=>{if(e.target.closest('button'))return;sinksOpen=!sinksOpen;inspectorSectionOpen.sinks=sinksOpen;syncSinks();};
+          sinksHead.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();sinksOpen=!sinksOpen;inspectorSectionOpen.sinks=sinksOpen;syncSinks();}};
+          syncSinks();
+
+          sinksSec.append(sinksHead,sinksBody);
+          root.appendChild(sinksSec);
+        }
+
+        // --- 4) Piece Seams --------------------------------------------------------
+        const seamBody = makeSection('Seams',{collapsible:true,key:'seams',collapsed:true});
         clampPieceSeams(p);
 
         const seamRows=document.createElement('div');
@@ -5853,7 +5938,7 @@ if(btnAddLayout){
         };
         seamBody.appendChild(addSeam);
 
-        // --- 4) Edge Options ------------------------------------------------------
+        // --- 5) Edge Options ------------------------------------------------------
         const edgeBody = makeSection('Edge Options');
 
         const edgeRow = document.createElement('div');
