@@ -4299,8 +4299,12 @@ function renderSeamList(){
       color.value=/^#[0-9a-f]{6}$/i.test(String(lineObj.color||''))?lineObj.color:'#111111';
       color.style.height='32px';
       color.style.padding='2px';
-      color.oninput=()=>{lineObj.color=color.value;draw();};
-      color.onchange=()=>{lineObj.color=color.value;scheduleSave();pushHistory();};
+      color.oninput=()=>{
+        lineObj.color=color.value;
+        const visible=svg.querySelector(`g[data-seam-id="${lineObj.id}"] line.lc-free-line-visible`);
+        if(visible)visible.setAttribute('stroke',color.value);
+      };
+      color.onchange=()=>{lineObj.color=color.value;draw();scheduleSave();pushHistory();};
       colorLab.appendChild(color);
 
       const thickLab=document.createElement('label');
