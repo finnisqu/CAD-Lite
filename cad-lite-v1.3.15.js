@@ -2478,14 +2478,31 @@
       function makeListCardToggle(listEl,label,visibilityKey,shortcut,onAdd){
         const card=listEl?.closest('.lc-card'),head=card?.querySelector('.lc-card-head');
         if(!card||!head||head.dataset.toggleReady)return;
-        head.dataset.toggleReady='1'; head.style.cursor='pointer'; head.style.userSelect='none';
+        head.dataset.toggleReady='1';
+        head.classList.add('lc-two-row-head');
+        head.style.userSelect='none';
+
         const title=head.querySelector('h3');
         const addThing=label==='Dimensions'?'dimension':label.slice(0,-1).toLowerCase();
         if(title){
           title.dataset.baseLabel=label;
           title.title=`Press ${shortcut} to add a new ${addThing}`;
         }
-        head.title=`Press ${shortcut} to add a new ${addThing}`;
+
+        const titleRow=document.createElement('div');
+        titleRow.className='lc-head-title-row';
+        titleRow.title=`Press ${shortcut} to add a new ${addThing}`;
+
+        const arrow=document.createElement('span');
+        arrow.className='lc-head-arrow';
+        arrow.textContent='▸';
+        arrow.setAttribute('aria-hidden','true');
+
+        if(title)titleRow.append(title);
+        titleRow.append(arrow);
+
+        const actionsRow=document.createElement('div');
+        actionsRow.className='lc-head-actions-row';
 
         const addBtn=document.createElement('button');
         addBtn.type='button';
@@ -2493,15 +2510,6 @@
         addBtn.textContent='+';
         addBtn.title=`Add ${label==='Dimensions'?'Dimension':label.slice(0,-1)} (${shortcut})`;
         addBtn.setAttribute('aria-label',addBtn.title);
-        Object.assign(addBtn.style,{
-          marginLeft:'auto',
-          minWidth:'34px',
-          height:'28px',
-          padding:'0 10px',
-          fontSize:'20px',
-          lineHeight:'1',
-          fontWeight:'600'
-        });
         addBtn.onclick=e=>{
           e.preventDefault();e.stopPropagation();
           onAdd?.();
@@ -2510,12 +2518,8 @@
         const eye=document.createElement('button');
         eye.type='button';
         eye.className='lc-btn ghost lc-iconbtn';
-        eye.style.marginLeft='6px';
-        eye.style.padding='3px 5px';
-        eye.style.minWidth='28px';
         eye.onclick=e=>{
-          e.preventDefault();
-          e.stopPropagation();
+          e.preventDefault();e.stopPropagation();
           state[visibilityKey]=!state[visibilityKey];
           syncListVisibilityEyes();
           syncViewMenuUI?.();
@@ -2526,53 +2530,72 @@
         };
         listVisibilityEyes.set(listEl,{btn:eye,key:visibilityKey,label,title});
 
-        const arrow=document.createElement('span');
-        arrow.textContent='▸';
-        arrow.style.marginLeft='6px';
-        arrow.style.fontSize='14px';
-        arrow.style.flex='0 0 auto';
-        arrow.setAttribute('aria-hidden','true');
-
-        head.style.display='flex';head.style.alignItems='center';
-        head.append(addBtn,eye,arrow);
+        actionsRow.append(addBtn,eye);
+        head.replaceChildren(titleRow,actionsRow);
 
         let open=false;listEl.style.display='none';
-        const sync=()=>{listEl.style.display=open?'':'none';arrow.textContent=open?'▾':'▸';head.setAttribute('aria-expanded',String(open));};
-        head.addEventListener('click',e=>{if(e.target.closest('button,input,select,textarea'))return;open=!open;sync();});
-        head.setAttribute('role','button');head.setAttribute('tabindex','0');
-        head.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();open=!open;sync();}});
+        const sync=()=>{
+          listEl.style.display=open?'':'none';
+          arrow.textContent=open?'▾':'▸';
+          titleRow.setAttribute('aria-expanded',String(open));
+        };
+        titleRow.addEventListener('click',()=>{open=!open;sync();});
+        titleRow.setAttribute('role','button');
+        titleRow.setAttribute('tabindex','0');
+        titleRow.addEventListener('keydown',e=>{
+          if(e.key==='Enter'||e.key===' '){e.preventDefault();open=!open;sync();}
+        });
         sync();
       }
       makeListCardToggle(dimList,'Dimensions','showManualDims','D',activateDimTool);
       makeListCardToggle(noteList,'Notes','showNotes','N',activateNoteTool);
       makeListCardToggle(lineList,'Lines','showLines','L',activateLineTool);
       syncListVisibilityEyes();
-      // Pieces uses a dedicated full-header toggle because its header also contains Add Piece.
+      // Pieces: title/chevron on row one, Add Piece on row two.
       const piecesCard=list?.closest('.lc-card'),piecesHead=piecesCard?.querySelector('.lc-card-head');
       if(piecesCard&&piecesHead&&!piecesHead.dataset.toggleReady){
-        if(piecesHead.querySelector('h3'))piecesHead.querySelector('h3').dataset.baseLabel='Pieces';
         piecesHead.dataset.toggleReady='1';
-        piecesHead.style.cursor='pointer';piecesHead.style.userSelect='none';
+        piecesHead.classList.add('lc-two-row-head');
+        piecesHead.style.userSelect='none';
+
         const piecesTitle=piecesHead.querySelector('h3');
+        if(piecesTitle)piecesTitle.dataset.baseLabel='Pieces';
         const addPieceBtn=piecesHead.querySelector('#lc-add');
+
+        const titleRow=document.createElement('div');
+        titleRow.className='lc-head-title-row';
         const piecesArrow=document.createElement('span');
-        piecesArrow.textContent='▸';piecesArrow.style.marginLeft='auto';piecesArrow.style.fontSize='14px';piecesArrow.style.flex='0 0 auto';piecesArrow.setAttribute('aria-hidden','true');
-        // Order: Pieces title, Add Piece, arrow. Arrow remains at far right like the other lists.
+        piecesArrow.className='lc-head-arrow';
+        piecesArrow.textContent='▸';
+        piecesArrow.setAttribute('aria-hidden','true');
+        if(piecesTitle)titleRow.append(piecesTitle);
+        titleRow.append(piecesArrow);
+
+        const actionsRow=document.createElement('div');
+        actionsRow.className='lc-head-actions-row';
         if(addPieceBtn){
-          addPieceBtn.style.marginLeft='auto';
-          addPieceBtn.insertAdjacentElement('afterend',piecesArrow);
-          piecesArrow.style.marginLeft='8px';
-        }else piecesHead.appendChild(piecesArrow);
+          addPieceBtn.classList.add('lc-sidebar-add');
+          addPieceBtn.textContent='+ Add Piece';
+          actionsRow.append(addPieceBtn);
+        }
+
+        piecesHead.replaceChildren(titleRow,actionsRow);
+
         let piecesOpen=false;
-        const syncPieces=()=>{list.style.display=piecesOpen?'':'none';piecesArrow.textContent=piecesOpen?'▾':'▸';piecesHead.setAttribute('aria-expanded',String(piecesOpen));};
-        piecesHead.addEventListener('click',e=>{
-          if(e.target.closest('#lc-add,input,select,textarea'))return;
-          piecesOpen=!piecesOpen;syncPieces();
+        const syncPieces=()=>{
+          list.style.display=piecesOpen?'':'none';
+          piecesArrow.textContent=piecesOpen?'▾':'▸';
+          titleRow.setAttribute('aria-expanded',String(piecesOpen));
+        };
+        titleRow.addEventListener('click',()=>{piecesOpen=!piecesOpen;syncPieces();});
+        titleRow.setAttribute('role','button');
+        titleRow.setAttribute('tabindex','0');
+        titleRow.addEventListener('keydown',e=>{
+          if(e.key==='Enter'||e.key===' '){e.preventDefault();piecesOpen=!piecesOpen;syncPieces();}
         });
-        piecesHead.setAttribute('role','button');piecesHead.setAttribute('tabindex','0');
-        piecesHead.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();piecesOpen=!piecesOpen;syncPieces();}});
         syncPieces();
       }
+
       const inspector = document.getElementById('lc-inspector');
       const btnAdd = document.getElementById('lc-add');
 
@@ -2591,6 +2614,52 @@
 
       const inProject = document.getElementById('lc-project');
       const inDate = document.getElementById('lc-date');
+
+      function makeSidebarCardCollapsible(card,{defaultOpen=true,twoRow=false,actionButton=null}={}){
+        const head=card?.querySelector(':scope > .lc-card-head');
+        if(!card||!head||head.dataset.sidebarCollapseReady)return;
+        head.dataset.sidebarCollapseReady='1';
+
+        const title=head.querySelector('h3');
+        const titleRow=document.createElement('div');
+        titleRow.className='lc-head-title-row';
+        const arrow=document.createElement('span');
+        arrow.className='lc-head-arrow';
+        arrow.textContent=defaultOpen?'▾':'▸';
+        if(title)titleRow.append(title);
+        titleRow.append(arrow);
+
+        if(twoRow&&actionButton){
+          const actionsRow=document.createElement('div');
+          actionsRow.className='lc-head-actions-row';
+          actionButton.classList.add('lc-sidebar-add');
+          actionsRow.append(actionButton);
+          head.replaceChildren(titleRow,actionsRow);
+          head.classList.add('lc-two-row-head');
+        }else{
+          head.replaceChildren(titleRow);
+        }
+
+        const bodyEls=Array.from(card.children).filter(el=>el!==head);
+        let open=!!defaultOpen;
+        const sync=()=>{
+          bodyEls.forEach(el=>{el.hidden=!open;});
+          arrow.textContent=open?'▾':'▸';
+          titleRow.setAttribute('aria-expanded',String(open));
+        };
+        titleRow.addEventListener('click',()=>{open=!open;sync();});
+        titleRow.setAttribute('role','button');
+        titleRow.setAttribute('tabindex','0');
+        titleRow.addEventListener('keydown',e=>{
+          if(e.key==='Enter'||e.key===' '){e.preventDefault();open=!open;sync();}
+        });
+        sync();
+      }
+
+      const projectCard=inProject?.closest('.lc-card');
+      makeSidebarCardCollapsible(projectCard,{defaultOpen:true});
+      const layoutsCard=layoutsEl?.closest('.lc-card');
+      makeSidebarCardCollapsible(layoutsCard,{defaultOpen:true,twoRow:true,actionButton:btnAddLayout});
 
       // --- Main workspace order: lists | canvas | inspector ---
       const mm = window.matchMedia('(max-width: 899px)');
