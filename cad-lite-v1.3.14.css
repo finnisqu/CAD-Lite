@@ -1045,11 +1045,12 @@
 
   /* Left and right docks stay compact while the center owns the workspace. */
   .lc-wrap > .lc-col:first-child,
-  .lc-wrap > .lc-col:last-child{
+  .lc-wrap > .lc-col:nth-child(3){
     min-width:0;
   }
 
-  .lc-wrap > .lc-col:last-child{
+  /* JS reorders desktop columns to: left rail | canvas | inspector. */
+  .lc-wrap > .lc-col:nth-child(3){
     max-height:calc(100vh - 24px);
     overflow:auto;
     scrollbar-width:thin;
