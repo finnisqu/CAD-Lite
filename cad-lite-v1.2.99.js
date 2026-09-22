@@ -3743,7 +3743,7 @@ function restore(){
               let dimLabelClickTimer=null;
               t.addEventListener('pointerdown',ev=>{
                 if(state.dimTool)return;
-                ev.preventDefault();ev.stopPropagation();state.selectedDimId=d.id;state.selectedSeamId=null;state.selectedNoteId=null;clearSelection();
+                ev.preventDefault();ev.stopPropagation();state.selectedDimId=d.id;state.selectedSeamId=null;state.selectedNoteId=null;clearSelection();renderDimList();renderSeamList();renderNoteList();
                 const start=svgPoint(ev),startOff=(typeof d.offsetPx==='number'?d.offsetPx:12);let moved=false,lastOff=startOff,raf=0;
                 const move=mv=>{const q=svgPoint(mv);if(Math.hypot(q.x-start.x,q.y-start.y)<=3&&!moved)return;moved=true;if(dimLabelClickTimer){clearTimeout(dimLabelClickTimer);dimLabelClickTimer=null;}lastOff=Math.max(-300,Math.min(300,startOff+(q.x-start.x)*nx+(q.y-start.y)*ny));if(!raf)raf=requestAnimationFrame(()=>{raf=0;d.offsetPx=lastOff;draw();});};
                 const up=()=>{window.removeEventListener('pointermove',move,true);window.removeEventListener('pointerup',up,true);window.removeEventListener('pointercancel',up,true);if(moved){d.offsetPx=lastOff;draw();scheduleSave();pushHistory();}else{renderDimList();updateInspector();dimLabelClickTimer=setTimeout(()=>{dimLabelClickTimer=null;draw();},350);}};
@@ -4080,7 +4080,7 @@ function renderDimList(){
       state.selectedDimId=d.id;
       state.selectedSeamId=null;
       state.selectedNoteId=null;
-      state.selectedId=null;
+      clearSelection();
       renderDimList();
       renderSeamList();
       updateInspector();
@@ -5173,6 +5173,9 @@ if(btnAddLayout){
           };
           L.dims.push(d);
           state.selectedDimId = d.id;
+          state.selectedSeamId = null;
+          state.selectedNoteId = null;
+          clearSelection();
           dimTempStart = null;
           state.dimTool = false;
           syncDimToolUI();
