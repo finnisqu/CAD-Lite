@@ -634,7 +634,7 @@
 
       list.innerHTML = '';
       if (!arr.length){
-        list.innerHTML = '<div class="lc-small" style="opacity:.7;">No overlays yet. Click “Add Overlay”.</div>';
+        list.innerHTML = '<div class="lc-small lc-overlay-empty">No overlays.</div>';
         return;
       }
 
@@ -5704,6 +5704,191 @@ if(btnAddLayout){
         return b;
         }
 
+      function makeInspectorDisclosure(root,title,key){
+        const sec=document.createElement('div');
+        sec.className='lc-subcard lc-inspector-collapsible';
+
+        const head=document.createElement('div');
+        head.className='lc-subcard-label lc-small lc-inspector-section-toggle';
+        const text=document.createElement('span');
+        text.textContent=title;
+        const arrow=document.createElement('span');
+        arrow.className='lc-head-arrow';
+        head.append(text,arrow);
+
+        const body=document.createElement('div');
+        body.className='lc-subcard-body';
+
+        let open=annotationInspectorOpen[key]!==false;
+        const sync=()=>{
+          body.hidden=!open;
+          arrow.textContent=open?'▾':'▸';
+          head.setAttribute('aria-expanded',String(open));
+        };
+        head.onclick=()=>{open=!open;annotationInspectorOpen[key]=open;sync();};
+        head.setAttribute('role','button');
+        head.setAttribute('tabindex','0');
+        head.onkeydown=e=>{
+          if(e.key==='Enter'||e.key===' '){
+            e.preventDefault();
+            open=!open;annotationInspectorOpen[key]=open;sync();
+          }
+        };
+        sync();
+
+        sec.append(head,body);
+        root.appendChild(sec);
+        return body;
+      }
+
+      function inspectorField(labelText,input){
+        const lab=document.createElement('label');
+        lab.className='lc-label';
+        const cap=document.createElement('span');
+        cap.textContent=labelText;
+        lab.append(cap,input);
+        return lab;
+      }
+
+      function inspectorText(value,onCommit){
+        const el=document.createElement('input');
+        el.className='lc-input';
+        el.type='text';
+        el.value=value??'';
+        el.onchange=()=>onCommit(el.value);
+        return el;
+      }
+
+      function inspectorSummary(body,items){
+        const row=document.createElement('div');
+        row.className='lc-annotation-summary';
+        items.forEach(([k,v])=>{
+          const cell=document.createElement('div');
+          const key=document.createElement('span');key.textContent=k;
+          const val=document.createElement('strong');val.textContent=v;
+          cell.append(key,val);row.appendChild(cell);
+        });
+        body.appendChild(row);
+      }
+
+      function inspectorDeleteButton(labelText,onDelete){
+        const b=document.createElement('button');
+        b.type='button';
+        b.className='lc-btn red sm lc-annotation-delete';
+        b.textContent='Delete '+labelText;
+        b.onclick=onDelete;
+        return b;
+      }
+
+      function renderOverlayInspector(){
+        const L=ensureOverlaysOnLayout(activeLayout());
+        const o=currentOverlay();
+        if(!L||!o)return false;
+
+        inspector.className='';
+        inspector.innerHTML='';
+
+        const root=document.createElement('div');
+        root.className='lc-item selected lc-annotation-inspector lc-overlay-inspector';
+        const body=makeInspectorDisclosure(root,'Slab Overlay','overlay');
+
+        const name=inspectorText(String(o.name||''),value=>{
+          o.name=value.trim()||o.name||'Overlay';
+          renderOverlayList();scheduleSave();pushHistory();
+        });
+        body.appendChild(inspectorField('Name',name));
+
+        const sizeGrid=document.createElement('div');
+        sizeGrid.className='lc-inspector-property-grid';
+        const makeNum=(value,step,onChange)=>{
+          const input=document.createElement('input');
+          input.className='lc-input';
+          input.type='number';
+          input.step=String(step);
+          input.value=String(value);
+          input.onchange=()=>{
+            onChange(input);
+            renderOverlayList();
+            draw();scheduleSave();pushHistory();syncOverlayUI?.();
+          };
+          return input;
+        };
+        const w=makeNum(o.slabW??126,0.25,input=>{
+          o.slabW=Math.max(1,Number(input.value)||1);input.value=String(o.slabW);
+        });
+        const h=makeNum(o.slabH??63,0.25,input=>{
+          o.slabH=Math.max(1,Number(input.value)||1);input.value=String(o.slabH);
+        });
+        sizeGrid.append(inspectorField('Width (in)',w),inspectorField('Height (in)',h));
+        body.appendChild(sizeGrid);
+
+        const posGrid=document.createElement('div');
+        posGrid.className='lc-inspector-property-grid';
+        const x=makeNum(o.x??0,0.25,input=>{o.x=Number(input.value)||0;input.value=String(o.x);});
+        const y=makeNum(o.y??0,0.25,input=>{o.y=Number(input.value)||0;input.value=String(o.y);});
+        posGrid.append(inspectorField('X (in)',x),inspectorField('Y (in)',y));
+        body.appendChild(posGrid);
+
+        const opacityWrap=document.createElement('label');
+        opacityWrap.className='lc-label lc-overlay-opacity-field';
+        const opacityHead=document.createElement('div');
+        opacityHead.className='lc-overlay-opacity-head';
+        const opacityLabel=document.createElement('span');opacityLabel.textContent='Opacity';
+        const opacityValue=document.createElement('strong');
+        opacityHead.append(opacityLabel,opacityValue);
+        const opacity=document.createElement('input');
+        opacity.type='range';opacity.min='0.1';opacity.max='1';opacity.step='0.05';
+        opacity.value=String(o.opacity==null?1:o.opacity);
+        const syncOpacity=()=>{opacityValue.textContent=Math.round(Number(opacity.value)*100)+'%';};
+        syncOpacity();
+        opacity.oninput=()=>{
+          o.opacity=clamp(Number(opacity.value)||1,.1,1);
+          syncOpacity();draw();
+        };
+        opacity.onchange=()=>{scheduleSave();pushHistory();syncOverlayUI?.();};
+        opacityWrap.append(opacityHead,opacity);
+        body.appendChild(opacityWrap);
+
+        const toggles=document.createElement('div');
+        toggles.className='lc-overlay-toggle-stack';
+
+        const visibleLabel=document.createElement('label');
+        visibleLabel.className='lc-overlay-check-row';
+        const visible=document.createElement('input');
+        visible.type='checkbox';visible.checked=o.visible!==false;
+        const visibleText=document.createElement('span');visibleText.textContent='Visible';
+        visible.onchange=()=>{
+          o.visible=visible.checked;draw();renderOverlayList();scheduleSave();pushHistory();
+        };
+        visibleLabel.append(visible,visibleText);
+
+        const clipLabel=document.createElement('label');
+        clipLabel.className='lc-overlay-check-row';
+        const clip=document.createElement('input');
+        clip.type='checkbox';clip.checked=!!L.overlayClip;
+        const clipText=document.createElement('span');clipText.textContent='Clip to Pieces';
+        clip.onchange=()=>{
+          L.overlayClip=clip.checked;draw();scheduleSave();pushHistory();syncOverlayUI?.();
+        };
+        clipLabel.append(clip,clipText);
+        toggles.append(visibleLabel,clipLabel);
+        body.appendChild(toggles);
+
+        if(o.natW&&o.natH){
+          inspectorSummary(body,[['Source',o.natW+' × '+o.natH+' px'],['Overlays',String(L.overlays.length)]]);
+        }
+
+        body.appendChild(inspectorDeleteButton('Overlay',()=>{
+          const idx=L.overlays.indexOf(o);
+          if(idx>=0)L.overlays.splice(idx,1);
+          L.ovSel=-1;
+          renderOverlayList();syncOverlayUI?.();draw();scheduleSave();pushHistory();updateInspector();
+        }));
+
+        inspector.appendChild(root);
+        return true;
+      }
+
       function renderAnnotationInspector(){
         const L=cur();
         if(!L)return false;
@@ -5719,70 +5904,17 @@ if(btnAddLayout){
         const root=document.createElement('div');
         root.className='lc-item selected lc-annotation-inspector';
 
-        const section=(title)=>{
-          const sec=document.createElement('div');
-          sec.className='lc-subcard';
-          const head=document.createElement('div');
-          head.className='lc-subcard-label lc-small';
-          head.textContent=title;
-          const body=document.createElement('div');
-          body.className='lc-subcard-body';
-          sec.append(head,body);
-          root.appendChild(sec);
-          return body;
-        };
-
-        const field=(labelText,input)=>{
-          const lab=document.createElement('label');
-          lab.className='lc-label';
-          lab.textContent=labelText;
-          lab.appendChild(input);
-          return lab;
-        };
-
-        const inputText=(value,onCommit)=>{
-          const el=document.createElement('input');
-          el.className='lc-input';
-          el.type='text';
-          el.value=value??'';
-          el.onchange=()=>onCommit(el.value);
-          return el;
-        };
-
-        const summary=(body,items)=>{
-          const row=document.createElement('div');
-          row.className='lc-annotation-summary';
-          items.forEach(([k,v])=>{
-            const cell=document.createElement('div');
-            const key=document.createElement('span');key.textContent=k;
-            const val=document.createElement('strong');val.textContent=v;
-            cell.append(key,val);row.appendChild(cell);
-          });
-          body.appendChild(row);
-        };
-
-        const deleteButton=(labelText,onDelete)=>{
-          const b=document.createElement('button');
-          b.type='button';
-          b.className='lc-btn red sm lc-annotation-delete';
-          b.textContent='Delete '+labelText;
-          b.onclick=onDelete;
-          return b;
-        };
-
         if(d){
-          const body=section('Dimension');
+          const body=makeInspectorDisclosure(root,'Dimension','dimension');
           const dx=d.x2-d.x1,dy=d.y2-d.y1;
           const len=Math.hypot(dx,dy);
           const ang=(Math.atan2(dy,dx)*180/Math.PI+360)%180;
           const orient=ang<=3||ang>=177?'Horizontal':(Math.abs(ang-90)<=3?'Vertical':ang.toFixed(1)+'°');
 
-          const name=inputText(String(d.name||''),value=>{
-            d.name=value.trim();
-            renderDimList();scheduleSave();pushHistory();
-          });
-          body.appendChild(field('Name',name));
-          summary(body,[['Length',fmtCanvasInches(len)],['Orientation',orient]]);
+          body.appendChild(inspectorField('Name',inspectorText(String(d.name||''),value=>{
+            d.name=value.trim();renderDimList();scheduleSave();pushHistory();
+          })));
+          inspectorSummary(body,[['Length',fmtCanvasInches(len)],['Orientation',orient]]);
 
           const off=document.createElement('input');
           off.className='lc-input';off.type='number';off.step='1';
@@ -5792,9 +5924,9 @@ if(btnAddLayout){
             off.value=String(d.offsetPx);
             draw();scheduleSave();pushHistory();
           };
-          body.appendChild(field('Label offset (px)',off));
+          body.appendChild(inspectorField('Label offset (px)',off));
 
-          body.appendChild(deleteButton('Dimension',()=>{
+          body.appendChild(inspectorDeleteButton('Dimension',()=>{
             L.dims=L.dims.filter(x=>x.id!==d.id);
             state.selectedDimId=null;
             renderDimList();draw();scheduleSave();pushHistory();updateInspector();
@@ -5802,35 +5934,24 @@ if(btnAddLayout){
         }
 
         if(lineObj){
-          const body=section('Line');
+          const body=makeInspectorDisclosure(root,'Line','line');
           const dx=lineObj.x2-lineObj.x1,dy=lineObj.y2-lineObj.y1;
           const len=Math.hypot(dx,dy);
           const ang=(Math.atan2(dy,dx)*180/Math.PI+360)%180;
           const orient=ang<=3||ang>=177?'Horizontal':(Math.abs(ang-90)<=3?'Vertical':ang.toFixed(1)+'°');
 
-          const name=inputText(String(lineObj.name||''),value=>{
-            lineObj.name=value.trim();
-            renderLineList();scheduleSave();pushHistory();
-          });
-          body.appendChild(field('Name',name));
-          summary(body,[['Length',fmtCanvasInches(len)],['Orientation',orient]]);
-
-          const grid=document.createElement('div');
-          grid.className='lc-annotation-grid';
+          body.appendChild(inspectorField('Name',inspectorText(String(lineObj.name||''),value=>{
+            lineObj.name=value.trim();renderLineList();scheduleSave();pushHistory();
+          })));
+          inspectorSummary(body,[['Length',fmtCanvasInches(len)],['Orientation',orient]]);
 
           const style=document.createElement('select');
           style.className='lc-input';
           [['solid','Solid'],['dashed','Dashed']].forEach(([v,t])=>{
-            const o=document.createElement('option');o.value=v;o.textContent=t;style.appendChild(o);
+            const opt=document.createElement('option');opt.value=v;opt.textContent=t;style.appendChild(opt);
           });
           style.value=lineObj.style==='dashed'?'dashed':'solid';
           style.onchange=()=>{lineObj.style=style.value;draw();renderLineList();scheduleSave();pushHistory();};
-
-          const color=document.createElement('input');
-          color.className='lc-input';color.type='color';
-          color.value=/^#[0-9a-f]{6}$/i.test(String(lineObj.color||''))?lineObj.color:'#111111';
-          color.oninput=()=>{lineObj.color=color.value;draw();};
-          color.onchange=()=>{renderLineList();scheduleSave();pushHistory();};
 
           const thickness=document.createElement('input');
           thickness.className='lc-input';thickness.type='number';thickness.min='0.5';thickness.max='12';thickness.step='0.5';
@@ -5841,27 +5962,38 @@ if(btnAddLayout){
             draw();renderLineList();scheduleSave();pushHistory();
           };
 
+          const mainGrid=document.createElement('div');
+          mainGrid.className='lc-inspector-property-grid';
+          mainGrid.append(inspectorField('Style',style),inspectorField('Thickness',thickness));
+          body.appendChild(mainGrid);
+
+          const color=document.createElement('input');
+          color.className='lc-input';color.type='color';
+          color.value=/^#[0-9a-f]{6}$/i.test(String(lineObj.color||''))?lineObj.color:'#111111';
+          color.oninput=()=>{lineObj.color=color.value;draw();};
+          color.onchange=()=>{renderLineList();scheduleSave();pushHistory();};
+          body.appendChild(inspectorField('Color',color));
+
           const capField=(key)=>{
             const sel=document.createElement('select');
             sel.className='lc-input';
             [['none','None'],['arrow','Arrow'],['dot','Dot']].forEach(([v,t])=>{
-              const o=document.createElement('option');o.value=v;o.textContent=t;sel.appendChild(o);
+              const opt=document.createElement('option');opt.value=v;opt.textContent=t;sel.appendChild(opt);
             });
             sel.value=['arrow','dot'].includes(lineObj[key])?lineObj[key]:'none';
             sel.onchange=()=>{lineObj[key]=sel.value;draw();renderLineList();scheduleSave();pushHistory();};
             return sel;
           };
 
-          grid.append(
-            field('Style',style),
-            field('Color',color),
-            field('Thickness',thickness),
-            field('Start',capField('startCap')),
-            field('End',capField('endCap'))
+          const endpointStack=document.createElement('div');
+          endpointStack.className='lc-line-endpoint-stack';
+          endpointStack.append(
+            inspectorField('Start',capField('startCap')),
+            inspectorField('End',capField('endCap'))
           );
-          body.appendChild(grid);
+          body.appendChild(endpointStack);
 
-          body.appendChild(deleteButton('Line',()=>{
+          body.appendChild(inspectorDeleteButton('Line',()=>{
             L.lines=L.lines.filter(x=>x.id!==lineObj.id);
             state.selectedLineId=null;
             renderLineList();renderNoteList();draw();scheduleSave();pushHistory();updateInspector();
@@ -5869,23 +6001,23 @@ if(btnAddLayout){
         }
 
         if(note){
-          const body=section('Note');
+          const body=makeInspectorDisclosure(root,'Note','note');
+
           const textArea=document.createElement('textarea');
           textArea.className='lc-input lc-annotation-textarea';
-          textArea.rows=4;
-          textArea.value=String(note.text||'');
+          textArea.rows=4;textArea.value=String(note.text||'');
           textArea.onchange=()=>{
             const next=textArea.value.trim();
             if(next)note.text=next;
             textArea.value=note.text||'';
             renderNoteList();draw();scheduleSave();pushHistory();
           };
-          body.appendChild(field('Text',textArea));
+          body.appendChild(inspectorField('Text',textArea));
 
           const leader=noteLeadersFor(note.id,L)[0]||null;
           const leaderBtn=document.createElement('button');
           leaderBtn.type='button';
-          leaderBtn.className='lc-btn ghost sm';
+          leaderBtn.className='lc-btn ghost sm lc-inspector-full-action';
           leaderBtn.textContent=leader?'Remove Leader':'Add Leader';
           leaderBtn.onclick=()=>{
             if(leader){
@@ -5905,17 +6037,14 @@ if(btnAddLayout){
             }
             renderLineList();renderNoteList();draw();scheduleSave();pushHistory();updateInspector();
           };
+          body.appendChild(leaderBtn);
 
-          const actions=document.createElement('div');
-          actions.className='lc-annotation-actions';
-          actions.append(
-            leaderBtn,
-            deleteButton('Note',()=>{
-              deleteNoteAndLeaders(note.id,L);
-              renderNoteList();renderLineList();draw();scheduleSave();pushHistory();updateInspector();
-            })
-          );
-          body.appendChild(actions);
+          const deleteNote=inspectorDeleteButton('Note',()=>{
+            deleteNoteAndLeaders(note.id,L);
+            renderNoteList();renderLineList();draw();scheduleSave();pushHistory();updateInspector();
+          });
+          deleteNote.classList.add('lc-inspector-full-action');
+          body.appendChild(deleteNote);
         }
 
         inspector.appendChild(root);
@@ -5927,7 +6056,7 @@ if(btnAddLayout){
         const p = state.pieces.find(x => x.id === state.selectedId);
         if (!p) {
             inspector.className = 'lc-small';
-            inspector.textContent = 'Select a piece, dimension, note, or line.';
+            inspector.textContent = 'Select a piece, dimension, note, line, or overlay.';
             return;
         }
         inspector.className = '';
