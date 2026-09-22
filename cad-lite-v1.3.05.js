@@ -4302,8 +4302,10 @@ function renderLineList(){
       color.style.padding='2px';
       color.oninput=()=>{
         lineObj.color=color.value;
-        const visible=svg.querySelector(`g[data-line-id="${lineObj.id}"] line.lc-free-line-visible`);
+        const lineGroup=svg.querySelector(`g[data-line-id="${lineObj.id}"]`);
+        const visible=lineGroup?.querySelector('line.lc-free-line-visible');
         if(visible)visible.setAttribute('stroke',color.value);
+        lineGroup?.querySelectorAll('.lc-line-cap').forEach(cap=>cap.setAttribute('fill',color.value));
       };
       color.onchange=()=>{lineObj.color=color.value;draw();scheduleSave();pushHistory();};
       colorLab.appendChild(color);
@@ -5172,7 +5174,8 @@ if(btnAddLayout){
             const addCap=(kind,x,y,dirX,dirY)=>{
               if(kind==='dot'){
                 g.appendChild(svgEl('circle',{
-                  cx:x,cy:y,r:dotR,fill:color,stroke:'none','pointer-events':'none'
+                  cx:x,cy:y,r:dotR,fill:color,stroke:'none','pointer-events':'none',
+                  class:'lc-line-cap'
                 }));
               }else if(kind==='arrow'){
                 const bx=x-dirX*arrowLen,by=y-dirY*arrowLen;
@@ -5183,7 +5186,8 @@ if(btnAddLayout){
                   `${bx-perpX*arrowHalf},${by-perpY*arrowHalf}`
                 ].join(' ');
                 g.appendChild(svgEl('polygon',{
-                  points,fill:color,stroke:'none','pointer-events':'none'
+                  points,fill:color,stroke:'none','pointer-events':'none',
+                  class:'lc-line-cap'
                 }));
               }
             };
@@ -5227,7 +5231,7 @@ if(btnAddLayout){
 
           if(selected){
             const handle=(which,x,y)=>{
-              const h=svgEl('circle',{cx:i2p(x),cy:i2p(y),r:5,fill:'#fff',stroke:'#2563eb','stroke-width':2,'vector-effect':'non-scaling-stroke'});
+              const h=svgEl('circle',{cx:i2p(x),cy:i2p(y),r:5,fill:'#fff',stroke:'#2563eb','stroke-width':2,'vector-effect':'non-scaling-stroke',class:'lc-line-handle'});
               h.style.cursor='crosshair';
               h.addEventListener('pointerdown',ev=>{
                 if(state.dimTool||state.lineTool)return;
@@ -5275,7 +5279,7 @@ if(btnAddLayout){
         svg.querySelectorAll('g[data-line-id]').forEach(g=>{
           const line=g.querySelector('line.lc-free-line-visible');
           if(line)line.setAttribute('stroke-width',line.getAttribute('data-base-width')||'2');
-          g.querySelectorAll('circle').forEach(handle=>handle.remove());
+          g.querySelectorAll('circle.lc-line-handle').forEach(handle=>handle.remove());
         });
 
         svg.querySelectorAll('g[data-id] path').forEach(path=>{
