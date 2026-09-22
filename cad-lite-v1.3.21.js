@@ -4311,6 +4311,7 @@ function restore(){
         const sorted = [...state.pieces].sort((a,b)=> (a.layer||0) - (b.layer||0));
 
         sorted.forEach((p)=>{
+          migratePieceGeometry(p);
           const rs = realSize(p);
           const x = i2p(p.x), y=i2p(p.y), W=i2p(rs.w), H=i2p(rs.h);
           const fg = pickTextColor(p.color || '#ffffff');
@@ -4611,7 +4612,8 @@ function restore(){
             labelsG.setAttribute('pointer-events', 'none');
 
             function addEdgeLabel(text, x, y, anchor, baseline, rotation) {
-              if (!text || text === 'flat') return;
+              const profile=normalizeEdgeProfile(text);
+              if (profile === 'none') return;
               const t = document.createElementNS(svgNS, 'text');
               t.setAttribute('x', x);
               t.setAttribute('y', y);
@@ -4620,17 +4622,17 @@ function restore(){
               if (rotation) t.setAttribute('transform', `rotate(${rotation} ${x} ${y})`);
               t.setAttribute('font-size', '11');
               t.setAttribute('fill', '#111');
-              t.textContent = text;
+              t.textContent = EDGE_PROFILE_LABELS[profile] || profile;
               labelsG.appendChild(t);
             }
 
             const MARGIN = 8; // px inside from piece edge
 
             // Top: normal reading direction
-            addEdgeLabel(edges.top, cx, (cy - H0/2) + MARGIN, 'middle', 'hanging', 0);
+            addEdgeLabel(edges.top, cx, (cy - H0/2) + MARGIN, 'middle', 'middle', 0);
 
             // Bottom: upside down
-            addEdgeLabel(edges.bottom, cx, (cy + H0/2) - MARGIN, 'middle', 'hanging', 180);
+            addEdgeLabel(edges.bottom, cx, (cy + H0/2) - MARGIN, 'middle', 'middle', 180);
 
             // Left: reads upward
             addEdgeLabel(edges.left, (cx - W0/2) + MARGIN, cy, 'middle', 'middle', -90);
@@ -5150,6 +5152,7 @@ function renderDimList(){
       draw();
       scheduleSave();
       pushHistory();
+      updateInspector();
     };
 
     li.append(label,rename,del);
@@ -5237,6 +5240,7 @@ function renderLineList(){
       draw();
       scheduleSave();
       pushHistory();
+      updateInspector();
     };
 
     top.append(label,rename,del);
@@ -5516,6 +5520,7 @@ function renderNoteList(){
       renderLineList();
       scheduleSave();
       pushHistory();
+      updateInspector();
     };
 
     li.append(label,leaderBtn,edit,del);
@@ -6390,11 +6395,10 @@ if(btnAddLayout){
         edgeRow.style.gap = '5px';
 
         // Spatial edge/corner editor inspired by box-model controls.
-        if (!p.edgeProfiles) {
-            p.edgeProfiles = { top: 'flat', right: 'flat', bottom: 'flat', left: 'flat' };
-        }
+        migratePieceGeometry(p);
 
         const edgeOptions = [
+            { v: 'none',      t: 'None' },
             { v: 'flat',      t: 'Flat' },
             { v: 'quarter',   t: 'Quarter' },
             { v: 'bevel',     t: 'Bevel' },
@@ -6416,12 +6420,16 @@ if(btnAddLayout){
         edgeDiagram.appendChild(piecePreview);
 
         function makeSpatialEdgeSelect(side,labelText){
-          const wrap=document.createElement('label');
+          const wrap=document.createElement('div');
           wrap.className='lc-edge-spatial lc-edge-spatial-'+side;
           wrap.title=labelText+' edge profile';
 
+          const display=document.createElement('button');
+          display.type='button';
+          display.className='lc-edge-profile-display lc-edge-profile-display-'+side;
+
           const sel=document.createElement('select');
-          sel.className='lc-input';
+          sel.className='lc-edge-picker';
           sel.setAttribute('aria-label',labelText+' edge profile');
           edgeOptions.forEach(opt=>{
             const o=document.createElement('option');
@@ -6429,12 +6437,30 @@ if(btnAddLayout){
             o.textContent=opt.t;
             sel.appendChild(o);
           });
-          sel.value=p.edgeProfiles[side]||'flat';
+
+          const sync=()=>{
+            const value=normalizeEdgeProfile(p.edgeProfiles[side]);
+            p.edgeProfiles[side]=value;
+            sel.value=value;
+            display.textContent=EDGE_PROFILE_LABELS[value]||'None';
+          };
+          sync();
+
           sel.onchange=()=>{
-            p.edgeProfiles[side]=sel.value;
+            p.edgeProfiles[side]=normalizeEdgeProfile(sel.value);
+            sync();
             draw();scheduleSave();pushHistory();
           };
-          wrap.appendChild(sel);
+
+          display.onclick=e=>{
+            e.preventDefault();e.stopPropagation();
+            try{
+              if(typeof sel.showPicker==='function')sel.showPicker();
+              else{sel.focus();sel.click();}
+            }catch(_err){sel.focus();sel.click();}
+          };
+
+          wrap.append(display,sel);
           return wrap;
         }
 
@@ -6445,29 +6471,42 @@ if(btnAddLayout){
           makeSpatialEdgeSelect('left','Left')
         );
 
-        function spatialCorner(pos,key,titleText){
-          const btn=cornerButton(pos,p[key]);
-          btn.classList.add('lc-edge-corner','lc-edge-corner-'+pos);
-          btn.title=titleText;
-          btn.setAttribute('aria-label',titleText);
-          btn.onclick=()=>{
-            p[key]=!p[key];
-            btn.classList.toggle('active',p[key]);
+        const maxRadius=Math.max(0,Math.min(Number(p.w)||0,Number(p.h)||0)/2);
+        function spatialCornerRadius(pos,key,titleText){
+          const wrap=document.createElement('label');
+          wrap.className='lc-edge-radius lc-edge-radius-'+pos;
+          wrap.title=titleText;
+
+          const input=document.createElement('input');
+          input.type='number';
+          input.className='lc-input';
+          input.min='0';
+          input.max=String(round3(maxRadius));
+          input.step='0.25';
+          input.value=String(p.cornerRadii[key]||0);
+          input.setAttribute('aria-label',titleText+' radius in inches');
+
+          input.onchange=()=>{
+            p.cornerRadii[key]=round3(clamp(Number(input.value)||0,0,maxRadius));
+            input.value=String(p.cornerRadii[key]);
+            migratePieceGeometry(p);
             draw();scheduleSave();pushHistory();
           };
-          return btn;
+
+          wrap.appendChild(input);
+          return wrap;
         }
 
         edgeDiagram.append(
-          spatialCorner('tl','rTL','Toggle top-left corner radius'),
-          spatialCorner('tr','rTR','Toggle top-right corner radius'),
-          spatialCorner('bl','rBL','Toggle bottom-left corner radius'),
-          spatialCorner('br','rBR','Toggle bottom-right corner radius')
+          spatialCornerRadius('tl','tl','Top-left'),
+          spatialCornerRadius('tr','tr','Top-right'),
+          spatialCornerRadius('bl','bl','Bottom-left'),
+          spatialCornerRadius('br','br','Bottom-right')
         );
 
         const edgeHint=document.createElement('div');
         edgeHint.className='lc-small lc-edge-diagram-hint';
-        edgeHint.textContent='Edge profiles surround the piece. Click a corner to toggle its radius.';
+        edgeHint.textContent='Edge profiles surround the piece. Corner values are radius in inches; 0 is square.';
 
         edgeRow.append(edgeDiagram,edgeHint);
         edgeBody.appendChild(edgeRow);
