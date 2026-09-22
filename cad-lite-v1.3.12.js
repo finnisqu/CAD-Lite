@@ -1441,6 +1441,8 @@
         else el.style.display='none';
       };
       [togGrid,togDims,togManualDims,togLabels,document.getElementById('lc-toggle-edges'),btnSnapAll,inCW,inCH,inGrid,inScale].forEach(hideToolbarControl);
+      const oldCanvasSettingsGrid=inCW?.closest('.lc-2x2');
+      if(oldCanvasSettingsGrid)oldCanvasSettingsGrid.style.display='none';
       const oldClipTop=document.getElementById('btn-clip-top');
       hideToolbarControl(oldClipTop);
       if(toggleSpacer)toggleSpacer.style.display='none';
