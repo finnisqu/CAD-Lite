@@ -1,0 +1,4977 @@
+/* CAD Lite CSS */
+
+/* --- Layout & cards --- */
+    .lc-wrap{display:grid;gap:14px;grid-template-columns:1fr}
+    @media(min-width:900px){.lc-wrap{grid-template-columns:320px 340px minmax(0,1fr)}}
+    .lc-card{background:#fff;border:1px solid #e5e7eb;border-radius:16px;padding:14px;box-shadow:0 1px 2px rgba(0,0,0,.04)}
+    .lc-card h3{margin:0 0 8px;font-size:16px;font-weight: 600}
+    .lc-card-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+    .lc-col{display:flex;flex-direction:column;gap:14px}
+
+    /* Inputs / rows */
+    .lc-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+    .lc-row3{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+    .lc-label{font-size:12px;color:#374151;display:block;margin-bottom:2px}
+    .lc-input,.lc-select{width:100%;padding:6px 8px;border:1px solid #d1d5db;border-radius:10px;font-size:14px;box-sizing:border-box}
+    .compact .lc-input,.compact .lc-select{max-width:120px}
+
+    /* Color swatch with ghost input (reliable in Squarespace) */
+    .lc-color-stack{position:relative;width:100%;height:40px}
+    .lc-color-ghost{position:absolute;inset:0;opacity:0;cursor:pointer}
+    .lc-swatch{position:absolute;inset:0;border:1px solid #d1d5db;border-radius:10px;background:var(--c,#fff)}
+
+    /* Kill native color-input chrome so only our swatch shows */
+    .lite-cad input[type="color"],
+    .lc-color-ghost{
+      -webkit-appearance: none;
+      appearance: none;
+      border: 0;
+      outline: 0;
+      background: transparent;
+    }
+
+    .lc-color-ghost::-webkit-color-swatch-wrapper { padding: 0; }
+    .lc-color-ghost::-webkit-color-swatch { border: none; }
+
+    /* Optional: remove the visible box edge entirely */
+    .lc-swatch{ border: 0; }
+
+
+    /* Buttons (uniform) */
+    .lc-btn{border:0;background:#111;color:#fff;height:36px;padding:0 12px;border-radius:12px;font-size:14px;cursor:pointer;min-width:120px}
+    .lc-btn.alt{background:#f3f4f6;color:#111}
+    .lc-btn.red{background:#dc2626}
+    .lc-btn.ghost{background:transparent;border:1px solid #d1d5db;color:#111}
+    .lc-btn.sm{height:30px;min-width:110px;padding:0 10px;border-radius:10px}
+
+    /* Lists */
+    .lc-list{max-height:65vh;overflow:auto;border:1px solid #e5e7eb;border-radius:12px;padding:8px}
+    .lc-item{border:1px solid #e5e7eb;border-radius:12px;padding:10px;margin-bottom:10px}
+    .lc-item.selected{border-color:#0ea5e9;box-shadow:0 0 0 2px rgba(14,165,233,.15) inset}
+    .lc-item-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px}
+    .lc-chip{display:inline-block;font-size:11px;padding:2px 6px;border-radius:999px;border:1px solid #d1d5db;background:#f9fafb}
+
+    /* Canvas */
+    .lc-toolbar{display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end;margin-bottom:10px}
+    .lc-ctl{display:flex;flex-direction:column}
+    .lc-canvas-wrap{overflow:auto;border:1px solid #e5e7eb;border-radius:14px}
+    /* beat Squarespace max-width rules */
+    .lite-cad svg, .lite-cad img{max-width:none !important}
+    #lc-svg{display:block;width:auto !important;height:auto !important;background:#fff}
+
+    /* Ensure inputs stay visible in Squarespace */
+    .lite-cad input[type="number"],
+    .lite-cad input[type="text"],
+    .lite-cad input[type="color"],
+    .lite-cad input[type="range"],
+    .lite-cad input[type="file"],
+    .lite-cad select{
+      display:inline-block !important;visibility:visible !important;opacity:1 !important;
+      height:auto !important;background:#fff !important;color:#111 !important
+    }
+
+    .lc-btnrow{display:flex;flex-wrap:wrap;gap:8px}
+    .lc-top{display:flex;justify-content:space-between;align-items:center;font-size:12px;color:#6b7280;margin-bottom:8px}
+
+    /* Corner buttons */
+    .lc-corner-grid{display:grid;grid-template-columns:repeat(2,28px);gap:8px}
+    .lc-corner-btn{width:28px;height:28px;border:1px solid #d1d5db;border-radius:8px;background:#fff;display:grid;place-items:center;cursor:pointer}
+    .lc-corner-btn.active{outline:2px solid #0ea5e9}
+    /* Rotate the right-angle icon per corner */
+    .lc-corner-btn svg{ transform-origin:50% 50%; }
+    .lc-corner-btn.pos-tr svg{ transform: rotate(90deg); }
+    .lc-corner-btn.pos-br svg{ transform: rotate(180deg); }
+    .lc-corner-btn.pos-bl svg{ transform: rotate(270deg); }
+
+/* --- Mobile spacing & stacking --- */
+@media (max-width: 899px){
+  /* stack inner form grids */
+  .lc-row,
+  .lc-row3{ grid-template-columns: 1fr; gap: 10px; }
+
+  /* tighter cards and columns */
+  .lc-card{ padding: 12px; }
+  .lc-col{ gap: 10px; }
+
+  /* toolbar: wrap into 2-up blocks on phones, full-width where needed */
+  .lc-toolbar{ gap: 8px; }
+  .lc-toolbar .lc-ctl{ flex: 1 1 48%; min-width: 0; }
+  .lc-toolbar input[type="range"]{ width: 100%; }
+  /* keep the Show grid + Snap all usable on one line or wrap cleanly */
+  .lc-toolbar .lc-btn{ min-width: 0; }
+
+  /* buttons: full-width for comfy tapping */
+  .lc-btn{ min-width: unset; width: 100%; }
+  .lc-btnrow{ flex-direction: column; gap: 8px; }
+
+  /* list & canvas panels */
+  .lc-list{ max-height: 40vh; }
+  .lc-canvas-wrap{ max-height: 60vh; }
+
+  /* labels a hair smaller on mobile */
+  .lc-label{ font-size: 11px; }
+
+  /* kill compact width cap so inputs don’t clip */
+  .compact .lc-input,
+  .compact .lc-select{ max-width: none; }
+
+  /* make the SVG scale with the container (still scrollable if larger) */
+  #lc-svg{ width: 100% !important; height: auto !important; }
+}
+
+/* Small phones: make each toolbar control full-width */
+@media (max-width: 480px){
+  .lc-toolbar .lc-ctl{ flex: 1 1 100%; }
+}
+
+/* Mobile: move toolbar under the canvas inside the canvas card */
+@media (max-width: 899px){
+  .lc-col:nth-child(3) .lc-card{ display:flex; flex-direction:column; }
+  .lc-col:nth-child(3) .lc-card .lc-top{ order: 0; }        /* meta row */
+  .lc-col:nth-child(3) .lc-card .lc-canvas-wrap{ order: 1; }/* SVG */
+  .lc-col:nth-child(3) .lc-card .lc-toolbar{ order: 2; }    /* settings */
+}
+
+@media (max-width: 899px){
+  /* Let the slider get full width and proper touch handling */
+  #lc-scale{ width: 100%; height: 32px; touch-action: pan-y; pointer-events: auto; }
+
+  /* Improve mobile ergonomics (iOS/Android) */
+  input[type="range"]{ -webkit-appearance:none; appearance:none; }
+  input[type="range"]::-webkit-slider-runnable-track{ height:6px; border-radius:999px; border:1px solid #e5e7eb; }
+  input[type="range"]::-webkit-slider-thumb{
+    -webkit-appearance:none; appearance:none;
+    width:22px; height:22px; border-radius:50%;
+    background:#fff; border:1px solid #d1d5db; margin-top:-8px;
+  }
+  input[type="range"]::-moz-range-track{ height:6px; border-radius:999px; border:1px solid #e5e7eb; }
+  input[type="range"]::-moz-range-thumb{ width:22px; height:22px; border-radius:50%; background:#fff; border:1px solid #d1d5db; }
+}
+
+/* Pieces as a compact nav list */
+.lc-list.lc-nav { border: 1px solid #e5e7eb; border-radius: 12px; padding: 8px; }
+.lc-item.nav {
+  display:flex; align-items:center; justify-content:space-between;
+  gap:10px; padding:10px 12px; margin:0 0 8px; border-radius:10px;
+  background: var(--c, #eef2ff); color: var(--fg, #111);
+  border: 1px solid rgba(0,0,0,.06); cursor:pointer;
+}
+.lc-item.nav.selected { outline: 2px solid rgba(14,165,233,.25); }
+.lc-item.nav .lc-line {
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 13px;
+}
+.lc-item.nav .lc-line strong { font-weight: 600; }
+.lc-item.nav .lc-select-btn { min-width: auto; height: 28px; padding: 0 10px; border-radius: 8px; }
+
+.lc-list.lc-nav { border:1px solid #e5e7eb; border-radius:12px; padding:8px; }
+.lc-item.nav{
+  display:flex; align-items:center; justify-content:space-between;
+  gap:10px; padding:10px 12px; margin:0 0 8px; border-radius:10px;
+  background: var(--c, #eef2ff);
+  color: var(--fg, #111);
+  border:1px solid rgba(0,0,0,.06); cursor:pointer;
+}
+.lc-item.nav.selected{ outline:2px solid rgba(14,165,233,.25); }
+.lc-item.nav .lc-line{ white-space:nowrap; overflow:hidden; text-overflow:ellipsis; font-size:13px; }
+.lc-item.nav .lc-line strong{ font-weight:600; }
+.lc-item.nav .lc-select-btn{ min-width:auto; height:28px; padding:0 10px; border-radius:8px; }
+
+.lc-iconbtn{ padding:0 6px; height:28px; display:inline-flex; align-items:center; justify-content:center; border-radius:8px; }
+.lc-icon{ width:16px; height:16px; display:block; }
+.lc-item.nav.selected{ outline:2px solid rgba(14,165,233,.35); } /* stronger highlight */
+
+/* Let full-width fields span the entire card grid */
+.lc-row .full{ grid-column: 1 / -1; }
+
+/* Compact icon buttons in Layouts panel */
+#lc-layouts .lc-iconbtn{
+  min-width: 0;
+  height: 22px;            /* was ~28px */
+  padding: 0 4px;          /* tighter */
+  border-radius: 6px;
+  line-height: 1;
+}
+#lc-layouts .lc-icon{
+  width: 12px;             /* was 16px */
+  height: 12px;
+  display: block;
+}
+
+/* (optional) tighten the right-side actions spacing a touch */
+#lc-layouts .lc-item.nav{ gap: 6px; padding: 8px 10px; }  /* was roomier */
+
+/* Compact icon buttons everywhere (Layouts, Inspector, Pieces) */
+.lc-iconbtn{ padding:0 6px; height:28px; display:inline-flex; align-items:center; justify-content:center; border-radius:8px; line-height:1; }
+.lc-icon{ width:16px; height:16px; display:block; }
+
+/* Make Layouts icons extra tiny (you already asked for this) */
+#lc-layouts .lc-iconbtn{ height:22px; padding:0 4px; border-radius:6px; }
+#lc-layouts .lc-icon{ width:12px; height:12px; }
+
+/* Inspector & Pieces: slightly compact too */
+#lc-inspector .lc-iconbtn, .lc-list.lc-nav .lc-iconbtn{ height:24px; padding:0 5px; border-radius:6px; }
+#lc-inspector .lc-icon, .lc-list.lc-nav .lc-icon{ width:14px; height:14px; }
+
+/* Export section 2x2 grid + Import row */
+.lc-subhead{ margin:12px 0 8px; font-weight:600; font-size:13px; opacity:.8; }
+.lc-export-grid{ display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+.lc-import-row{ display:flex; gap:8px; flex-wrap:wrap; }
+
+/* Tiny icon buttons—match Layouts—for Pieces and Inspector */
+.lc-list.lc-nav .lc-iconbtn,
+#lc-inspector .lc-iconbtn{
+  height: 22px;              /* small */
+  padding: 0 4px;
+  border-radius: 6px;
+  min-width: 0;
+}
+.lc-list.lc-nav .lc-icon,
+#lc-inspector .lc-icon{
+  width: 12px;
+  height: 12px;
+}
+
+/* (optional) slightly tighter row padding in Pieces */
+.lc-list.lc-nav .lc-item.nav{ padding: 8px 10px; gap: 6px; }
+
+/* Drag UI */
+.lc-item.nav.dragging{ opacity:.6 }
+.lc-drop-marker{ height:2px; background:#0ea5e9; border-radius:1px; margin:4px 0 }
+#lc-list.reordering{ user-select:none }
+
+/* Optional: small “handle” (if you add it) */
+.lc-drag{ cursor:grab; display:inline-flex; align-items:center; opacity:.7 }
+.lc-drag:active{ cursor:grabbing; opacity:1 }
+.lc-drag svg{ width:12px; height:12px; display:block }
+
+/* Force tiny icon buttons in Pieces & Inspector (override mobile width:100%) */
+#lc-list .lc-iconbtn,
+#lc-inspector .lc-iconbtn{
+  width: auto;           /* <-- key line to beat the mobile full-width rule */
+  min-width: 0;
+  height: 22px;
+  padding: 0 4px;
+  border-radius: 6px;
+}
+
+#lc-list .lc-icon,
+#lc-inspector .lc-icon{
+  width: 12px;
+  height: 12px;
+}
+
+/* keep rows compact */
+#lc-list .lc-item.nav{ padding: 8px 10px; gap: 6px; }
+
+#lc-svg{ touch-action: none; }
+
+/* Inspector: keep Backward / Forward / Rotate inside the container */
+#lc-inspector .lc-row3{
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr)); /* allow tracks to shrink */
+  gap: 8px;
+}
+
+#lc-inspector .lc-row3 .lc-btn{
+  width: 100%;      /* fill the track */
+  min-width: 0;     /* let content shrink inside grid */
+  box-sizing: border-box;
+  white-space: nowrap;          /* avoid wrapping to a new line */
+  overflow: hidden;             /* clip if needed */
+  text-overflow: ellipsis;      /* … if it’s extremely tight */
+}
+
+/* Make the small variant truly compact */
+#lc-inspector .lc-row3 .lc-btn.sm{
+  padding: 6px 8px;
+  font-size: 12px;
+}
+
+/* On very narrow screens, fall back to 1-per-row so it never spills */
+@media (max-width: 480px){
+  #lc-inspector .lc-row3{
+    grid-template-columns: 1fr;
+  }
+}
+
+/* 2-up grid rows inside the Inspector */
+#lc-inspector .lc-row2{
+  display:grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  align-items: end;
+}
+
+/* Sinks card basics */
+.sinks-card { display: grid; gap: 10px; }
+.sinks-header { display:flex; justify-content:space-between; align-items:center; }
+.sink-editor { border:1px solid #e5e7eb; border-radius:12px; padding:10px; background:#fff; }
+.sink-editor .row { display:grid; gap:8px; grid-template-columns: repeat(2, minmax(0,1fr)); }
+.sink-editor .field { display:grid; gap:4px; }
+.sink-editor .field-label { font-size:12px; color:#4b5563; }
+
+/* Buttons used by Sinks module */
+.btn{display:inline-flex;align-items:center;gap:.5rem;font-weight:600;font-size:12px;line-height:1.2;
+  padding:8px 10px;border-radius:10px;border:1px solid #d1d5db;background:#fff;cursor:pointer}
+.btn-primary{background:#0ea5e9;border-color:#0284c7;color:#fff}
+.btn-secondary{background:#fff;border-color:#d1d5db;color:#111}
+.btn:active{transform:translateY(1px)}
+
+/* Sinks: faucet-hole row */
+.sink-editor .holes-row{ display:flex; gap:6px; align-items:center; }
+.sink-editor .holes-row input[type="checkbox"]{ margin:0; }
+
+@media (max-width: 899px){
+  /* let JS-controlled width/height take effect; just cap it */
+  #lc-svg{ max-width: 100% !important; height: auto; }
+}
+
+/* tiny circular layer chip, same footprint as .lc-btn.sm */
+.lc-layer-badge {
+  width: 28px;              /* match your .lc-btn.sm size */
+  height: 28px;
+  border-radius: 9999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1;
+  border: 1px solid var(--border, #ddd);
+  background: var(--muted, #f3f4f6);
+  color: var(--text, #111);
+  user-select: none;
+  pointer-events: none;     /* purely informational */
+  margin-right: 6px;        /* space before Duplicate */
+}
+.lc-layer-badge.sm {        /* keep naming parity with your button sizes */
+  width: 28px;
+  height: 28px;
+}
+
+/* Top bar as three even columns with internal 2×2 grids */
+.lc-toolbar.compact{
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0,1fr));
+  gap: 12px;
+  align-items: start;
+}
+
+/* Reusable 2×2 grid */
+.lc-2x2{
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+/* Bigger buttons for top row */
+.lc-btn.big{
+  height: 44px;
+  min-width: auto;
+  border-radius: 12px;
+}
+
+/* ===== Middle 2×2 grid: labels above inputs, consistent layout ===== */
+.lc-toolbar.compact .lc-2x2 .lc-ctl .lc-label{
+  /* put label text + (optional) value on row 1, input on row 2 */
+  display: grid;
+  grid-template-columns: 1fr auto;  /* label text | optional value (e.g., Zoom number) */
+  grid-template-rows: auto auto;    /* row 1: text/value, row 2: input */
+  align-items: center;
+  gap: 2px 8px;
+}
+
+/* Inputs span full width on row 2 */
+.lc-toolbar.compact .lc-2x2 .lc-ctl .lc-label > input,
+.lc-toolbar.compact .lc-2x2 .lc-ctl .lc-label > select {
+  grid-column: 1 / -1;
+  grid-row: 2;
+  width: 100%;
+  margin: 0;
+}
+
+/* Make range sliders truly full-width and centered visually */
+.lc-toolbar.compact .lc-2x2 .lc-ctl .lc-label > input[type="range"]{
+  width: 100%;
+}
+
+/* Zoom number sits to the right of the label text on row 1 */
+#lc-scale-label{
+  grid-column: 2;         /* right column, same row as label text */
+  grid-row: 1;
+  justify-self: end;
+  font-variant-numeric: tabular-nums;
+  opacity: 0.8;
+}
+
+/* Optional: tighten vertical rhythm of each control cell */
+.lc-toolbar.compact .lc-2x2 .lc-ctl{
+  display: block;
+}
+
+/* Vertical separators between the three 2×2 blocks in the top toolbar */
+.lc-toolbar.compact > .lc-2x2 {
+  position: relative;
+  padding-left: 12px;
+}
+.lc-toolbar.compact > .lc-2x2:first-child {
+  padding-left: 0;
+}
+.lc-toolbar.compact > .lc-2x2:not(:first-child)::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background: var(--border, #e5e7eb);
+}
+
+/* On mobile, stack and remove the lines/padding for a clean look */
+@media (max-width: 899px){
+  .lc-toolbar.compact{
+    grid-template-columns: 1fr;      /* the three blocks stack */
+  }
+  .lc-toolbar.compact > .lc-2x2{
+    padding-left: 0;
+  }
+  .lc-toolbar.compact > .lc-2x2::before{
+    display: none;
+  }
+}
+
+.lc-overlay-panel{
+  margin-top: 12px;
+  border: 1px solid var(--border, #e5e7eb);
+  border-radius: 10px;
+  padding: 10px;
+  background: var(--panel, #fafafa);
+}
+.lc-row-title{
+  font-weight: 600; margin-bottom: 8px;
+}
+.lc-overlay-grid{
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0,1fr));
+  gap: 8px;
+}
+.lc-preset-row{ display:flex; gap:6px; align-items:center; }
+@media (max-width: 899px){
+  .lc-overlay-grid{ grid-template-columns: 1fr 1fr; }
+}
+
+/* Full-span without overshooting the column */
+.lc-span-full{
+  grid-column: 1 / -1;  /* span all grid tracks */
+  width: auto;          /* don't force 100% if parent has padding/gaps */
+  max-width: 100%;
+}
+
+/* Keep panel inside column and account for padding/borders */
+.lc-overlay-panel{
+  box-sizing: border-box;
+  max-width: 100%;
+}
+
+/* Make every control a single full-width row */
+.lc-overlay-grid{
+  display: grid;
+  grid-template-columns: 1fr;  /* one column: each control on its own row */
+  gap: 10px;
+}
+
+/* Inputs fill their row */
+.lc-overlay-grid .lc-label > input,
+.lc-overlay-grid .lc-label > select{
+  width: 100%;
+}
+
+/* Preset buttons: one per row, full width */
+.lc-preset-row{
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 8px;
+}
+.lc-preset-row .lc-btn{
+  width: 100%;
+}
+
+/* Show/Hide + Clear row: stack vertically, full width */
+.lc-overlay-grid .lc-ctl{
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 8px;
+}
+.lc-overlay-grid .lc-ctl .lc-btn{
+  width: 100%;
+}
+
+/* Accordion wrapper spans the column but never overflows */
+.lc-accordion{
+  max-width: 100%;
+}
+
+/* Header button */
+.lc-acc-btn{
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 12px;
+  border: 1px solid var(--border, #e5e7eb);
+  border-radius: 10px;
+  background: var(--panel, #fafafa);
+  font-weight: 600;
+}
+
+/* Chevron rotation when open */
+.lc-acc-btn .lc-acc-icon{ transition: transform .2s ease; }
+.lc-acc-btn.open .lc-acc-icon{ transform: rotate(90deg); }
+
+/* Body spacing */
+.lc-acc-body{ margin-top: 8px; }
+
+/* Keep panel within column */
+.lc-overlay-panel{ box-sizing: border-box; max-width: 100%; }
+
+/* Overlay controls stacked neatly (one per row) */
+.lc-overlay-grid{
+  display: grid;
+  grid-template-columns: 1fr; /* one column, full width rows */
+  gap: 10px;
+}
+.lc-overlay-grid .lc-label > input,
+.lc-overlay-grid .lc-label > select{ width: 100%; }
+
+/* Presets + action buttons full width, stacked */
+.lc-preset-row{ display: grid; grid-template-columns: 1fr; gap: 8px; }
+.lc-preset-row .lc-btn{ width: 100%; }
+.lc-overlay-grid .lc-ctl{ display: grid; grid-template-columns: 1fr; gap: 8px; }
+.lc-overlay-grid .lc-ctl .lc-btn{ width: 100%; }
+
+/* Keep label and % tidy above the slider */
+#insp-fill-pct{
+  margin-left: 8px;
+  opacity: .85;
+  font-variant-numeric: tabular-nums;
+}
+
+.lc-ov-list{
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+.lc-ov-row{
+  display:flex; align-items:center; gap:8px;
+  border:1px solid var(--border,#e5e7eb);
+  border-radius:8px; padding:6px 8px; background:#fff;
+}
+.lc-ov-row .ov-name{ flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.lc-ov-row .ov-actions{ display:flex; gap:6px; }
+.lc-ov-row.selected{ outline:2px solid var(--accent,#2563eb1a); }
+.lc-btn.xs{ height:26px; padding:0 8px; border-radius:8px; font-size:12px; }
+
+/* Keep panel within the column, never overflow */
+.lc-overlay-panel{ box-sizing:border-box; max-width:100%; }
+
+/* Overlay list: one row per overlay */
+.lc-ov-list{
+  display:grid; grid-template-columns:1fr; gap:6px; margin-bottom:10px;
+}
+.lc-ov-row{
+  display:flex; align-items:center; gap:8px;
+  border:1px solid var(--border,#e5e7eb);
+  border-radius:8px; padding:6px 8px; background:#fff;
+  cursor:pointer;
+}
+.lc-ov-row .ov-name{ flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.lc-ov-row .ov-actions{ display:flex; gap:6px; }
+.lc-ov-row.selected{ outline:2px solid var(--accent,#2563eb44); }
+
+/* Tiny list buttons */
+.lc-btn.xs{ height:26px; padding:0 8px; border-radius:8px; font-size:12px; }
+
+/* Controls: W/H and X/Y as 2×2, then full-width rows after */
+.lc-overlay-grid{ display:grid; gap:10px; }
+.lc-overlay-grid.ov-2x2{ grid-template-columns:1fr 1fr; }
+@media (max-width: 899px){
+  .lc-overlay-grid.ov-2x2{ grid-template-columns:1fr; }
+}
+.lc-overlay-grid .lc-label > input,
+.lc-overlay-grid .lc-label > select{ width:100%; }
+
+#ov-add-hint{ min-height: 1em; }
+
+/* Overlay panel stays inside the column */
+.lc-overlay-panel{ box-sizing:border-box; max-width:100%; }
+
+/* List container can scroll if tall */
+#ov-list.lc-ov-list{
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 6px;
+  margin-bottom: 10px;
+  overflow: auto;
+  min-width: 0;
+}
+
+/* Each row: [eye button] [name (flexible)] [actions] */
+.lc-ov-row{
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  min-width: 0;             /* <-- critical for ellipsis to work */
+  box-sizing: border-box;
+  border: 1px solid var(--border,#e5e7eb);
+  border-radius: 8px;
+  padding: 6px 8px;
+  background: #fff;
+  cursor: pointer;
+}
+
+/* Name cell: clamp or ellipsis */
+.lc-ov-row .ov-name{
+  min-width: 0;             /* <-- allow shrinking in grid/flex */
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;      /* single-line; see 2-line option below */
+}
+
+/* Buttons area never wraps or shrinks weirdly */
+.lc-ov-row .ov-actions{
+  display: inline-flex;
+  gap: 6px;
+  white-space: nowrap;
+}
+
+/* Selected highlight */
+.lc-ov-row.selected{ outline: 2px solid var(--accent,#2563eb44); }
+
+/* Tiny buttons */
+.lc-btn.xs{
+  height: 26px;
+  padding: 0 8px;
+  border-radius: 8px;
+  font-size: 12px;
+  line-height: 26px;
+}
+
+/* Optional: 2-line clamp for the name on wide screens (remove nowrap above) */
+/*
+@media (min-width: 1024px){
+  .lc-ov-row .ov-name{
+    white-space: normal;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+  }
+}
+*/
+
+/* Overlay list row layout */
+.lc-ov-row{
+  display: grid;
+  grid-template-columns: auto 1fr auto; /* [eye] [name flex] [actions] */
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  border: 1px solid var(--border,#e5e7eb);
+  border-radius: 8px;
+  padding: 6px 8px;
+  background: #fff;
+  cursor: pointer;
+}
+.lc-ov-row .ov-name{
+  min-width: 0;            /* critical for ellipsis */
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.lc-ov-row .ov-actions{
+  display: inline-flex;
+  gap: 6px;
+  white-space: nowrap;
+}
+.lc-ov-row.selected{ outline: 2px solid var(--accent,#2563eb44); }
+
+/* Tiny icon buttons (match pieces list feel) */
+.lc-iconbtn{
+  display: inline-flex; align-items: center; justify-content: center;
+  padding: 0 6px; height: 24px; min-width: 28px;
+  border-radius: 7px;
+}
+.lc-iconbtn.xs .lc-icon{ width: 14px; height: 14px; }
+
+/* ===== Slab Library Modal ===== */
+.slab-modal { position: fixed; inset: 0; display: none; }
+.slab-modal[aria-hidden="false"] { display: block; }
+.slab-modal__backdrop { position: absolute; inset: 0; background: rgba(0,0,0,.45); }
+.slab-modal__dialog {
+  position: relative; margin: 5vh auto; max-width: 980px; width: min(92vw, 980px);
+  background: #fff; border-radius: 14px; box-shadow: 0 20px 60px rgba(0,0,0,.25);
+  display: grid; grid-template-rows: auto auto 1fr auto; overflow: hidden;
+}
+.slab-modal__header { display: flex; align-items: center; justify-content: space-between; padding: 14px 16px; border-bottom: 1px solid #eee; }
+.slab-modal__close { background: none; border: 0; font-size: 28px; line-height: 1; cursor: pointer; color: #777; }
+.slab-modal__tools { display: flex; gap: 12px; align-items: center; padding: 12px 16px; border-bottom: 1px solid #f2f2f2; }
+.slab-modal__tools .lc-input { flex: 1; }
+.slab-count { font-size: 12px; color: #666; }
+
+.slab-grid {
+  padding: 12px; display: grid; gap: 12px;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); outline: none;
+}
+.slab-card {
+  user-select: none; border: 1px solid #e5e5e5; border-radius: 10px; overflow: hidden;
+  background: #fafafa; display: flex; flex-direction: column; cursor: pointer;
+  transition: box-shadow .15s ease, transform .02s ease;
+}
+.slab-card:hover { box-shadow: 0 6px 18px rgba(0,0,0,.08); }
+.slab-card__imgwrap { aspect-ratio: 4 / 3; background: #f0f0f0; display: grid; place-items: center; }
+.slab-card__imgwrap img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.slab-card__name { padding: 8px 10px; font-size: 13px; color: #222; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; background: #fff; }
+
+.slab-card.is-selected { border-color: #2b7cff; box-shadow: 0 0 0 2px #2b7cff33; }
+.slab-card.is-selected .slab-card__name { background: #f5faff; }
+
+.slab-modal__footer { display: flex; gap: 10px; justify-content: flex-end; padding: 12px 16px; border-top: 1px solid #f2f2f2; }
+
+/* Small screens */
+@media (max-width: 560px) {
+  .slab-modal__dialog { margin: 0; max-width: none; width: 100vw; height: 100vh; border-radius: 0; }
+  .slab-grid { grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); }
+}
+
+/* Header offset (tweak default as needed) */
+:root { --site-header-h: 72px; }
+
+/* Move the whole modal area below the header */
+.slab-modal { position: fixed; left: 0; right: 0; top: var(--site-header-h); bottom: 0; }
+
+/* Backdrop should also start below the header */
+.slab-modal__backdrop { position: absolute; left: 0; right: 0; top: 0; bottom: 0; }
+
+/* Pull dialog down a little (visual breathing room) */
+.slab-modal__dialog { margin-top: 2vh; }
+
+/* Ensure it doesn’t sit above the Squarespace header */
+.slab-modal { z-index: 900; } /* Most SQSP headers are 1000+ */
+
+
+/*Manual dimension */
+.dims-manual .dim-line text {
+  pointer-events: none; /* clicks go to the group */
+}
+
+.dims-manual .dim-line.selected line {
+  stroke-width: 2;
+}
+
+.dims-manual .dim-line.selected text {
+  font-weight: 600;
+}
+
+.dims-manual .dim-line {
+  cursor: grab;
+}
+.dims-manual .dim-line.selected {
+  stroke-width: 2;
+}
+
+/* Inspector sub-sections */
+.lc-subcard{
+  border:1px solid #e5e7eb;
+  border-radius:10px;
+  background:#f9fafb;
+  padding:8px 10px;
+  margin-bottom:8px;
+}
+.lc-subcard-label{
+  font-size:11px;
+  font-weight:600;
+  letter-spacing:.03em;
+  text-transform:uppercase;
+  color:#6b7280;
+  margin-bottom:4px;
+}
+.lc-subcard-body{
+  display:flex;
+  flex-direction:column;
+  gap:6px;
+}
+
+#lc-inspector .lc-subcard{
+  border:1px solid #e5e7eb;
+  border-radius:10px;
+  background:#f9fafb;
+  padding:8px 10px;
+  margin-bottom:8px;
+}
+#lc-inspector .lc-subcard-label{
+  font-size:11px;
+  font-weight:600;
+  letter-spacing:.03em;
+  text-transform:uppercase;
+  color:#6b7280;
+  margin-bottom:4px;
+}
+#lc-inspector .lc-subcard-body{
+  display:flex;
+  flex-direction:column;
+  gap:6px;
+}
+
+/* Compact controls inside inspector */
+#lc-inspector .lc-btn,
+#lc-inspector .lc-btn.sm{
+  height:28px;
+  min-width:0;
+  padding:0 8px;
+  border-radius:8px;
+  font-size:12px;
+}
+#lc-inspector .lc-btn.lc-iconbtn{
+  width:28px;
+  min-width:28px;
+  padding:0;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+}
+
+/* Fill toggle smaller */
+#lc-inspector button.lc-fill-toggle{
+  height:28px;
+  min-width:0;
+  padding:0 10px;
+}
+
+/* Opacity slider smaller */
+#lc-inspector input[type="range"]{
+  width:100%;
+  margin-top:4px;
+}
+
+/* Color swatch shorter to match buttons */
+#lc-inspector .lc-color-ghost{
+  height:28px;
+}
+
+/* Layer badge: no label, just pill */
+#lc-inspector .lc-layer-badge{
+  width:28px;
+  height:28px;
+  border-radius:999px;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  font-size:11px;
+  font-weight:600;
+  border:1px solid #d1d5db;
+  background:#e5e7eb;
+  color:#111;
+}
+
+/* Make sinks card look like a subcard */
+#lc-sinks-card{
+  border:1px solid #e5e7eb;
+  border-radius:10px;
+  background:#f9fafb;
+  padding:8px 10px;
+  margin-top:8px;
+}
+#lc-sinks-card h3{
+  font-size:11px;
+  font-weight:600;
+  letter-spacing:.03em;
+  text-transform:uppercase;
+  color:#6b7280;
+  margin:0 0 4px;
+}
+
+#lc-inspector .lc-subcard{
+  border:1px solid #e5e7eb;
+  border-radius:10px;
+  background:#f9fafb;
+  padding:8px 10px;
+  margin-bottom:8px;
+}
+
+#lc-inspector .lc-subcard-label{
+  font-size:11px;
+  font-weight:600;
+  letter-spacing:.03em;
+  text-transform:uppercase;
+  color:#6b7280;
+  margin-bottom:4px;
+}
+
+#lc-inspector .lc-subcard-body{
+  display:flex;
+  flex-direction:column;
+  gap:6px;
+}
+
+/* Compact buttons inside inspector */
+#lc-inspector .lc-btn,
+#lc-inspector .lc-btn.sm{
+  height:28px;
+  min-width:0;
+  padding:0 8px;
+  border-radius:8px;
+  font-size:12px;
+}
+
+#lc-inspector .lc-btn.lc-iconbtn{
+  width:28px;
+  min-width:28px;
+  padding:0;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+}
+
+/* Color swatch: not so tall */
+#lc-inspector .lc-color-stack{
+  display:flex;
+  align-items:center;
+  gap:4px;
+}
+#lc-inspector .lc-color-ghost{
+  height:26px;
+  padding:0 6px;
+}
+#lc-inspector .lc-swatch{
+  width:18px;
+  height:18px;
+  border-radius:999px;
+}
+
+/* Fill button under label */
+#lc-inspector .lc-fill-wrap{
+  display:flex;
+  flex-direction:column;
+  align-items:flex-start;
+  gap:4px;
+}
+#lc-inspector .lc-fill-toggle{
+  height:26px;
+  min-width:0;
+  padding:0 10px;
+  font-size:12px;
+}
+
+/* Opacity label + % inline */
+#lc-inspector .lc-opacity-head{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  font-size:12px;
+  margin-bottom:2px;
+}
+
+/* Layer badge with no label */
+#lc-inspector .lc-layer-badge{
+  width:28px;
+  height:28px;
+  border-radius:999px;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  font-size:11px;
+  font-weight:600;
+  border:1px solid #d1d5db;
+  background:#e5e7eb;
+  color:#111;
+}
+
+/* Sinks card styled as a mini-card inside Inspector */
+#lc-sinks-card{
+  border:1px solid #e5e7eb;
+  border-radius:10px;
+  background:#f9fafb;
+  padding:8px 10px;
+  margin-top:8px;
+}
+#lc-sinks-card h3{
+  font-size:11px;
+  font-weight:600;
+  letter-spacing:.03em;
+  text-transform:uppercase;
+  color:#6b7280;
+  margin:0 0 4px;
+}
+
+
+/* CAD UX additions */
+.lite-cad svg .lc-editable-dim { cursor: text; }
+.lite-cad svg .lc-editable-dim:hover { fill: #0284c7; text-decoration: underline; }
+.lite-cad svg .lc-smart-guide {
+  stroke: #0ea5e9;
+  stroke-width: 1.25;
+  stroke-dasharray: 5 4;
+  vector-effect: non-scaling-stroke;
+  pointer-events: none;
+}
+
+
+/* =========================================================
+   CAD Lite v1.3.14 — Dense canvas-first workspace
+   Visual direction: Photoshop/Webstudio-style docked utility panels
+   ========================================================= */
+
+.lite-cad{
+  font-size:11px;
+  line-height:1.2;
+}
+
+/* Canvas-first desktop shell: narrow utility rails + flexible document area */
+@media (min-width:900px){
+  .lc-wrap{
+    grid-template-columns:minmax(140px,8vw) minmax(0,1fr) minmax(165px,9vw) !important;
+    gap:4px !important;
+    align-items:start;
+  }
+
+  .lc-col{
+    gap:4px !important;
+    min-width:0;
+  }
+
+  /* Left and right docks stay compact while the center owns the workspace. */
+  .lc-wrap > .lc-col:first-child,
+  .lc-wrap > .lc-col:nth-child(3){
+    min-width:0;
+  }
+
+  /* JS reorders desktop columns to: left rail | canvas | inspector. */
+  .lc-wrap > .lc-col:nth-child(3){
+    max-height:calc(100vh - 24px);
+    overflow:auto;
+    scrollbar-width:thin;
+  }
+
+  /* Project fields stack in the narrow left dock instead of squeezing 2-up. */
+  .lc-wrap > .lc-col:first-child > .lc-card:first-child .lc-row{
+    grid-template-columns:1fr !important;
+  }
+}
+
+/* Flat, tight application panels rather than rounded website cards */
+.lc-card{
+  border:1px solid #d9dce1 !important;
+  border-radius:4px !important;
+  padding:6px !important;
+  box-shadow:none !important;
+}
+
+.lc-card h3{
+  margin:0 !important;
+  font-size:11.5px !important;
+  line-height:1.15 !important;
+  font-weight:650 !important;
+  letter-spacing:0 !important;
+}
+
+.lc-card-head{
+  min-height:24px;
+  margin-bottom:4px !important;
+  gap:4px !important;
+}
+
+.lc-top{
+  margin-bottom:3px !important;
+  font-size:10px !important;
+}
+
+/* Dense form rhythm */
+.lc-row,
+.lc-row3,
+#lc-inspector .lc-row2,
+#lc-inspector .lc-row3{
+  gap:4px !important;
+}
+
+.lc-label,
+.lc-small{
+  font-size:10.5px !important;
+  line-height:1.15 !important;
+}
+
+.lc-label{
+  margin-bottom:1px !important;
+  color:#4b5563 !important;
+}
+
+.lc-input,
+.lc-select,
+.lite-cad input[type="number"],
+.lite-cad input[type="text"],
+.lite-cad input[type="date"],
+.lite-cad input[type="search"],
+.lite-cad select,
+.lite-cad textarea{
+  border-radius:4px !important;
+  border-color:#cfd3d9 !important;
+  padding:3px 5px !important;
+  font-size:11px !important;
+  line-height:1.2 !important;
+  box-sizing:border-box;
+}
+
+.lite-cad input[type="number"],
+.lite-cad input[type="text"],
+.lite-cad input[type="date"],
+.lite-cad input[type="search"],
+.lite-cad select{
+  min-height:24px !important;
+}
+
+.lite-cad textarea{
+  min-height:42px;
+  resize:vertical;
+}
+
+/* Buttons: compact desktop-app controls */
+.lc-btn,
+.lc-btn.sm,
+.lc-btn.big{
+  min-width:0 !important;
+  height:25px !important;
+  padding:0 7px !important;
+  border-radius:4px !important;
+  font-size:10.5px !important;
+  line-height:1 !important;
+}
+
+.lc-iconbtn,
+#lc-inspector .lc-iconbtn,
+#lc-list .lc-iconbtn,
+.lc-list.lc-nav .lc-iconbtn{
+  width:24px !important;
+  min-width:24px !important;
+  height:24px !important;
+  padding:0 4px !important;
+  border-radius:4px !important;
+}
+
+.lc-icon,
+#lc-inspector .lc-icon,
+#lc-list .lc-icon{
+  width:12px !important;
+  height:12px !important;
+}
+
+/* Lists behave more like Layers/Navigator panels */
+.lc-list,
+.lc-list.lc-nav{
+  border-radius:3px !important;
+  padding:3px !important;
+  border-color:#dfe2e6 !important;
+}
+
+.lc-item,
+.lc-item.nav,
+.lc-list.lc-nav .lc-item.nav,
+#lc-list .lc-item.nav{
+  gap:4px !important;
+  padding:5px 6px !important;
+  margin:0 0 3px !important;
+  border-radius:3px !important;
+}
+
+.lc-item.nav .lc-line,
+.lc-item .lc-line{
+  font-size:10.5px !important;
+}
+
+.lc-chip{
+  font-size:9px !important;
+  padding:1px 4px !important;
+}
+
+/* Header Add / Eye controls stay small enough for narrow rails */
+.lc-card-head .lc-list-add{
+  min-width:28px !important;
+  width:28px !important;
+  height:23px !important;
+  padding:0 !important;
+  font-size:16px !important;
+  border-radius:4px !important;
+}
+
+.lc-card-head .lc-iconbtn{
+  width:23px !important;
+  min-width:23px !important;
+  height:23px !important;
+}
+
+/* Canvas should visually dominate */
+.lc-canvas-wrap{
+  border-radius:2px !important;
+  border-color:#cfd3d9 !important;
+  background:#e9eaec;
+}
+
+.lc-wrap > .lc-col:nth-child(2) > .lc-card{
+  padding:4px !important;
+  border-radius:3px !important;
+}
+
+/* Classic compact application toolbar */
+.lc-toolbar,
+.lc-toolbar.compact{
+  display:flex !important;
+  flex-wrap:wrap !important;
+  align-items:center !important;
+  gap:2px !important;
+  margin:0 0 4px !important;
+  padding:3px !important;
+  border:1px solid #d9dce1;
+  border-radius:4px;
+  background:#f6f7f8;
+}
+
+.lc-toolbar.compact > .lc-2x2{
+  display:flex !important;
+  gap:2px !important;
+  padding:0 4px 0 0 !important;
+  margin:0 2px 0 0;
+  border-right:1px solid #d9dce1;
+}
+
+.lc-toolbar.compact > .lc-2x2::before{
+  display:none !important;
+}
+
+.lc-toolbar .lc-ctl{
+  flex:0 0 auto !important;
+  min-width:0 !important;
+}
+
+.lc-toolbar .lc-btn{
+  width:auto !important;
+}
+
+.lc-toolbar .lc-toolbar-icon{
+  width:27px !important;
+  min-width:27px !important;
+  padding:0 !important;
+}
+
+.lc-toolbar svg{
+  width:15px;
+  height:15px;
+}
+
+/* Compact menus / flyouts */
+#lc-view-menu,
+.lc-view-submenu,
+.lc-toolbar .lc-ctl > [role="menu"]{
+  width:190px !important;
+  max-width:min(190px,82vw) !important;
+  padding:4px !important;
+  border-radius:4px !important;
+  box-shadow:0 8px 22px rgba(0,0,0,.14) !important;
+}
+
+#lc-view-menu button,
+#lc-view-menu label,
+.lc-view-submenu button,
+.lc-view-submenu label,
+.lc-toolbar .lc-ctl > [role="menu"] button{
+  font-size:10.5px !important;
+}
+
+#lc-view-menu input,
+#lc-view-menu select,
+.lc-view-submenu input,
+.lc-view-submenu select{
+  font-size:10.5px !important;
+  min-height:22px !important;
+}
+
+/* Inspector: Webstudio-like tight property groups */
+#lc-inspector{
+  font-size:10.5px !important;
+}
+
+#lc-inspector > *{
+  margin-top:0;
+}
+
+#lc-inspector .lc-subcard,
+#lc-sinks-card,
+.sink-editor{
+  border-radius:3px !important;
+  padding:5px !important;
+  margin:0 0 4px !important;
+  background:#f8f9fa !important;
+  border-color:#dfe2e6 !important;
+}
+
+#lc-inspector .lc-subcard-label,
+#lc-sinks-card h3{
+  font-size:9.5px !important;
+  line-height:1.1 !important;
+  margin:0 0 3px !important;
+  letter-spacing:.025em !important;
+}
+
+#lc-inspector .lc-subcard-body,
+.sinks-card{
+  gap:4px !important;
+}
+
+#lc-inspector .lc-btn,
+#lc-inspector .lc-btn.sm,
+#lc-inspector button.lc-fill-toggle{
+  height:23px !important;
+  padding:0 5px !important;
+  border-radius:3px !important;
+  font-size:10px !important;
+}
+
+#lc-inspector input,
+#lc-inspector select{
+  min-height:23px !important;
+  padding:2px 4px !important;
+  border-radius:3px !important;
+  font-size:10.5px !important;
+}
+
+#lc-inspector .lc-opacity-head{
+  font-size:10px !important;
+  margin-bottom:1px !important;
+}
+
+#lc-inspector .lc-layer-badge{
+  width:23px !important;
+  height:23px !important;
+  font-size:9px !important;
+}
+
+#lc-sinks-card{
+  margin-top:0 !important;
+}
+
+/* Overlay accordion follows the same tight inspector language */
+.lc-acc-btn{
+  padding:5px 6px !important;
+  min-height:25px;
+  border-radius:3px !important;
+  font-size:10.5px !important;
+}
+
+.lc-acc-body{
+  margin-top:4px !important;
+}
+
+.lc-overlay-panel{
+  margin-top:4px !important;
+  padding:5px !important;
+  border-radius:3px !important;
+}
+
+.lc-overlay-grid,
+.lc-preset-row{
+  gap:4px !important;
+}
+
+/* Modal can remain roomy, but use the same sharper visual language */
+.slab-modal__dialog{
+  border-radius:5px !important;
+}
+
+/* Small-screen behavior remains touch-friendly instead of forcing desktop density. */
+@media (max-width:899px){
+  .lc-wrap{
+    gap:6px !important;
+  }
+
+  .lc-card{
+    padding:7px !important;
+  }
+
+  .lc-col{
+    gap:6px !important;
+  }
+
+  .lc-toolbar,
+  .lc-toolbar.compact{
+    gap:4px !important;
+  }
+
+  .lc-toolbar .lc-ctl{
+    flex:0 0 auto !important;
+  }
+
+  .lc-toolbar .lc-btn{
+    width:auto !important;
+  }
+}
+
+
+/* =========================================================
+   CAD Lite v1.3.15 — tighter utility rails + classic toolbar
+   ========================================================= */
+
+@media (min-width:900px){
+  .lc-wrap{
+    grid-template-columns:
+      clamp(175px,10vw,195px)
+      minmax(0,1fr)
+      clamp(205px,11vw,225px) !important;
+    gap:4px !important;
+  }
+}
+
+/* Sidebar headers: title/chevron row + compact actions row */
+.lc-two-row-head{
+  display:grid !important;
+  grid-template-columns:1fr !important;
+  align-items:stretch !important;
+  gap:3px !important;
+  margin-bottom:4px !important;
+}
+
+.lc-head-title-row{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:6px;
+  min-height:20px;
+  cursor:pointer;
+}
+
+.lc-head-title-row h3{
+  min-width:0;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+
+.lc-head-arrow{
+  flex:0 0 auto;
+  font-size:11px !important;
+  opacity:.65;
+}
+
+.lc-head-actions-row{
+  display:flex;
+  align-items:center;
+  gap:3px;
+}
+
+.lc-head-actions-row .lc-list-add{
+  flex:1 1 auto;
+  width:auto !important;
+  min-width:0 !important;
+  height:22px !important;
+  font-size:14px !important;
+  padding:0 6px !important;
+}
+
+.lc-head-actions-row .lc-sidebar-add{
+  width:100% !important;
+  min-width:0 !important;
+  height:23px !important;
+  padding:0 6px !important;
+  font-size:10px !important;
+}
+
+.lc-head-actions-row .lc-iconbtn{
+  flex:0 0 23px;
+}
+
+/* Project can stay single-row, but shares the same compact disclosure language */
+.lc-card-head > .lc-head-title-row{
+  width:100%;
+}
+
+/* Main toolbar context */
+.lc-toolbar-context{
+  flex:0 0 auto;
+  min-width:128px;
+  max-width:180px;
+  padding:2px 8px 2px 3px;
+  margin-right:3px;
+  border-right:1px solid #d9dce1;
+  overflow:hidden;
+}
+
+.lc-toolbar-project{
+  font-size:10.5px;
+  font-weight:650;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+
+.lc-toolbar-layout{
+  margin-top:1px;
+  font-size:9.5px;
+  color:#6b7280;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+
+/* Primary icon cluster: Undo / Redo / Zoom - / Zoom + / Snap / Add Piece */
+.lc-primary-tools{
+  display:flex !important;
+  flex-direction:row !important;
+  align-items:center !important;
+  flex-wrap:nowrap !important;
+  gap:2px !important;
+  padding:0 4px 0 0 !important;
+}
+
+.lc-toolbar-zoom{
+  display:flex !important;
+  flex-direction:row !important;
+  align-items:center !important;
+  gap:2px !important;
+}
+
+#lc-undo,
+#lc-redo{
+  border:1px solid #cfd3d9 !important;
+  background:#fff !important;
+}
+
+#lc-undo:disabled,
+#lc-redo:disabled{
+  opacity:.4;
+}
+
+#lc-piece-snap{
+  border:1px solid #cfd3d9 !important;
+}
+
+#lc-piece-snap.alt{
+  background:#e8f2ff !important;
+  border-color:#9fc5f8 !important;
+  color:#174ea6 !important;
+}
+
+/* Make Add Piece visually ubiquitous without making it huge */
+.lc-add-piece-top{
+  background:#111 !important;
+  border-color:#111 !important;
+  color:#fff !important;
+}
+
+.lc-add-piece-top:hover{
+  background:#2a2a2a !important;
+}
+
+/* Keep menu controls in one run instead of interleaving zoom icons */
+#lc-view-menu-btn,
+.lc-toolbar .lc-ctl > button[aria-haspopup="menu"]{
+  white-space:nowrap;
+}
+
+/* Inspector: remove outer selected-card bulk */
+#lc-inspector > .lc-item.selected{
+  border:0 !important;
+  box-shadow:none !important;
+  padding:0 !important;
+  margin:0 !important;
+  background:transparent !important;
+}
+
+#lc-inspector .lc-subcard{
+  padding:4px !important;
+  margin-bottom:3px !important;
+}
+
+#lc-inspector .lc-subcard-body{
+  gap:3px !important;
+}
+
+#lc-inspector .lc-subcard-label{
+  margin-bottom:2px !important;
+}
+
+.lc-inspector-section-toggle{
+  display:flex !important;
+  align-items:center;
+  justify-content:space-between;
+  gap:6px;
+  cursor:pointer;
+  min-height:18px;
+  user-select:none;
+}
+
+.lc-inspector-section-actions{
+  display:flex;
+  align-items:center;
+  gap:3px;
+}
+
+.lc-inspector-section-actions .lc-iconbtn{
+  width:20px !important;
+  min-width:20px !important;
+  height:20px !important;
+  font-size:14px !important;
+}
+
+/* Sinks is now a true Inspector section; remove its legacy nested-card shell */
+.lc-sinks-section #lc-sinks-card{
+  border:0 !important;
+  background:transparent !important;
+  padding:0 !important;
+  margin:0 !important;
+}
+
+.lc-sinks-section #lc-sinks-card .sinks-card{
+  gap:3px !important;
+}
+
+.lc-sinks-section #lc-sinks-card .sinks-card > .lc-card-head:first-child{
+  display:none !important;
+}
+
+.lc-sinks-section .lc-sinks-collapse-body{
+  padding-top:2px;
+}
+
+#lc-inspector .sink-editor{
+  padding:4px !important;
+  border-radius:3px !important;
+}
+
+#lc-inspector .sink-editor .row{
+  gap:4px !important;
+}
+
+#lc-inspector .sink-editor .field{
+  gap:2px !important;
+}
+
+#lc-inspector .lc-seam-list{
+  gap:4px !important;
+}
+
+#lc-inspector .lc-seam-row{
+  border-radius:3px !important;
+  padding:4px !important;
+}
+
+/* Slightly smaller utility text in sidebars without shrinking canvas labels */
+.lc-wrap > .lc-col:first-child,
+.lc-wrap > .lc-col:nth-child(3){
+  font-size:10.5px;
+}
+
+/* On narrower desktop widths, preserve usable rails but let canvas flex */
+@media (min-width:900px) and (max-width:1250px){
+  .lc-wrap{
+    grid-template-columns:170px minmax(0,1fr) 200px !important;
+  }
+
+  .lc-toolbar-context{
+    min-width:105px;
+    max-width:130px;
+  }
+}
+
+
+/* =========================================================
+   CAD Lite v1.3.17 — Theater / Fullscreen workspace
+   ========================================================= */
+
+/* Lock the underlying Squarespace page while CAD Lite owns the viewport. */
+html.lc-theater-page-lock,
+body.lc-theater-page-lock{
+  overflow:hidden !important;
+  overscroll-behavior:none !important;
+}
+
+/* Theater Mode: cover the entire browser viewport without entering native fullscreen. */
+.lite-cad.lc-theater-mode{
+  position:fixed !important;
+  inset:0 !important;
+  z-index:2147483000 !important;
+  width:100vw !important;
+  max-width:none !important;
+  height:100vh !important;
+  max-height:none !important;
+  margin:0 !important;
+  padding:4px !important;
+  box-sizing:border-box !important;
+  overflow:auto !important;
+  background:#f1f3f4 !important;
+  overscroll-behavior:contain;
+}
+
+/* Native Fullscreen needs its own explicit sizing because Squarespace may
+   otherwise leave inherited max-width / section spacing in place. */
+.lite-cad:fullscreen,
+.lite-cad:-webkit-full-screen{
+  width:100vw !important;
+  max-width:none !important;
+  height:100vh !important;
+  max-height:none !important;
+  margin:0 !important;
+  padding:4px !important;
+  box-sizing:border-box !important;
+  overflow:auto !important;
+  background:#f1f3f4 !important;
+}
+
+/* Let the application shell use the viewport vertically in focus modes. */
+.lite-cad.lc-theater-mode .lc-wrap,
+.lite-cad:fullscreen .lc-wrap,
+.lite-cad:-webkit-full-screen .lc-wrap{
+  min-height:calc(100vh - 8px);
+  align-content:start;
+}
+
+@media (min-width:900px){
+  .lite-cad.lc-theater-mode .lc-wrap > .lc-col,
+  .lite-cad:fullscreen .lc-wrap > .lc-col,
+  .lite-cad:-webkit-full-screen .lc-wrap > .lc-col{
+    max-height:calc(100vh - 8px);
+  }
+
+  .lite-cad.lc-theater-mode .lc-wrap > .lc-col:nth-child(2),
+  .lite-cad:fullscreen .lc-wrap > .lc-col:nth-child(2),
+  .lite-cad:-webkit-full-screen .lc-wrap > .lc-col:nth-child(2){
+    overflow:hidden;
+  }
+
+  .lite-cad.lc-theater-mode .lc-wrap > .lc-col:first-child,
+  .lite-cad.lc-theater-mode .lc-wrap > .lc-col:nth-child(3),
+  .lite-cad:fullscreen .lc-wrap > .lc-col:first-child,
+  .lite-cad:fullscreen .lc-wrap > .lc-col:nth-child(3),
+  .lite-cad:-webkit-full-screen .lc-wrap > .lc-col:first-child,
+  .lite-cad:-webkit-full-screen .lc-wrap > .lc-col:nth-child(3){
+    overflow:auto;
+    scrollbar-width:thin;
+  }
+}
+
+/* Focus-mode controls are a separate mini-cluster visually. */
+#lc-theater-mode{
+  margin-left:3px;
+  border-left:1px solid #cfd3d9 !important;
+}
+
+#lc-theater-mode.alt,
+#lc-fullscreen-mode.alt{
+  background:#e8f2ff !important;
+  border-color:#9fc5f8 !important;
+  color:#174ea6 !important;
+}
+
+/* The old Import / Export card is intentionally gone; hidden proxy controls
+   remain available only as implementation hooks for toolbar dropdown actions. */
+#lc-hidden-file-actions{
+  display:none !important;
+}
+
+
+/* =========================================================
+   CAD Lite v1.3.18 — robust focus-mode + explicit workspace rails
+   ========================================================= */
+
+/* Theater is intentionally different from native Fullscreen:
+   keep the Squarespace/site header visible and own everything beneath it. */
+.lite-cad.lc-theater-mode{
+  inset:auto !important;
+  top:var(--site-header-h, 0px) !important;
+  right:0 !important;
+  bottom:0 !important;
+  left:0 !important;
+  width:100vw !important;
+  height:calc(100vh - var(--site-header-h, 0px)) !important;
+  max-height:calc(100vh - var(--site-header-h, 0px)) !important;
+  z-index:900 !important;
+  margin:0 !important;
+  padding:4px !important;
+  overflow:auto !important;
+}
+
+/* The site header stays above Theater Mode and remains fully interactive. */
+html.lc-theater-page-lock,
+body.lc-theater-page-lock{
+  overflow:hidden !important;
+}
+
+/* Explicit workspace classes replace fragile nth-child assumptions. */
+.lc-left-rail,
+.lc-canvas-col,
+.lc-inspector-col{
+  min-width:0;
+}
+
+.lc-inspector-col{
+  display:flex !important;
+  flex-direction:column !important;
+}
+
+.lc-inspector-panel{
+  display:block !important;
+  visibility:visible !important;
+  opacity:1 !important;
+}
+
+@media (min-width:900px){
+  .lc-inspector-col{
+    max-height:calc(100vh - 24px);
+    overflow:auto;
+    scrollbar-width:thin;
+  }
+
+  .lc-theater-mode .lc-left-rail,
+  .lc-theater-mode .lc-canvas-col,
+  .lc-theater-mode .lc-inspector-col{
+    max-height:calc(100vh - var(--site-header-h, 0px) - 8px) !important;
+  }
+
+  .lc-theater-mode .lc-left-rail,
+  .lc-theater-mode .lc-inspector-col{
+    overflow:auto !important;
+  }
+
+  .lc-theater-mode .lc-canvas-col{
+    overflow:hidden !important;
+  }
+
+  .lite-cad.lc-theater-mode .lc-wrap{
+    min-height:calc(100vh - var(--site-header-h, 0px) - 8px) !important;
+  }
+}
+
+/* Safety net: if an old static Import / Export card survives for any reason,
+   do not let it occupy the Inspector rail. */
+.lc-card:has(#lc-export-json):has(#lc-import-btn){
+  display:none !important;
+}
+
+
+/* =========================================================
+   CAD Lite v1.3.19 — Webstudio-style continuous Inspector rail
+   ========================================================= */
+
+/* One outer rail, not a stack of cards. */
+.lc-inspector-panel{
+  padding:0 !important;
+  overflow:hidden;
+  background:#fff !important;
+}
+
+.lc-inspector-panel > .lc-card-head{
+  min-height:27px !important;
+  padding:5px 7px !important;
+  margin:0 !important;
+  border-bottom:1px solid #dfe2e6;
+}
+
+.lc-inspector-panel > .lc-card-head h3{
+  font-size:11px !important;
+  font-weight:650 !important;
+}
+
+#lc-inspector{
+  padding:0 !important;
+  background:#fff;
+}
+
+/* Continuous section stack with divider lines. */
+#lc-inspector .lc-subcard,
+#lc-inspector .lc-sinks-section{
+  margin:0 !important;
+  padding:0 !important;
+  border:0 !important;
+  border-top:1px solid #e2e4e7 !important;
+  border-radius:0 !important;
+  background:transparent !important;
+  box-shadow:none !important;
+}
+
+#lc-inspector > .lc-item.selected > .lc-subcard:first-child{
+  border-top:0 !important;
+}
+
+#lc-inspector .lc-subcard-label,
+#lc-inspector .lc-sinks-section > .lc-subcard-label{
+  display:flex !important;
+  align-items:center;
+  justify-content:space-between;
+  min-height:25px !important;
+  margin:0 !important;
+  padding:5px 6px !important;
+  border:0 !important;
+  background:#fafafa !important;
+  color:#2f3337 !important;
+  font-size:9.5px !important;
+  font-weight:700 !important;
+  line-height:1 !important;
+  letter-spacing:.035em !important;
+  text-transform:uppercase;
+}
+
+#lc-inspector .lc-subcard-label:hover,
+#lc-inspector .lc-sinks-section > .lc-subcard-label:hover{
+  background:#f3f4f6 !important;
+}
+
+#lc-inspector .lc-subcard-body{
+  padding:5px 6px 7px !important;
+  margin:0 !important;
+  gap:4px !important;
+  background:#fff !important;
+}
+
+#lc-inspector .lc-subcard-body[hidden]{
+  display:none !important;
+}
+
+#lc-inspector .lc-head-arrow{
+  font-size:10px !important;
+  opacity:.7;
+}
+
+/* Labels become quiet property captions rather than form headings. */
+#lc-inspector .lc-label,
+#lc-inspector .lc-small{
+  font-size:9.5px !important;
+  line-height:1.15 !important;
+}
+
+#lc-inspector .lc-label{
+  color:#5f6368 !important;
+  margin:0 !important;
+}
+
+/* Flat Webstudio-like property fields. */
+#lc-inspector .lc-input,
+#lc-inspector input[type="number"],
+#lc-inspector input[type="text"],
+#lc-inspector select{
+  min-height:22px !important;
+  height:22px !important;
+  padding:2px 5px !important;
+  border:1px solid transparent !important;
+  border-radius:3px !important;
+  background:#f1f3f4 !important;
+  box-shadow:none !important;
+  color:#202124 !important;
+  font-size:10px !important;
+}
+
+#lc-inspector .lc-input:hover,
+#lc-inspector input[type="number"]:hover,
+#lc-inspector input[type="text"]:hover,
+#lc-inspector select:hover{
+  border-color:#d3d6da !important;
+}
+
+#lc-inspector .lc-input:focus,
+#lc-inspector input[type="number"]:focus,
+#lc-inspector input[type="text"]:focus,
+#lc-inspector select:focus{
+  border-color:#8ab4f8 !important;
+  outline:1px solid #8ab4f8 !important;
+  background:#fff !important;
+}
+
+/* Property row rhythm. */
+#lc-inspector .lc-row{
+  gap:4px !important;
+}
+
+#lc-inspector .lc-inspector-name-row{
+  align-items:end;
+}
+
+#lc-inspector .lc-inspector-name-row > label{
+  min-width:0;
+}
+
+#lc-inspector .lc-inspector-name-row > div{
+  align-self:end;
+  gap:2px !important;
+}
+
+#lc-inspector .lc-inspector-size-row{
+  grid-template-columns:repeat(2,minmax(0,1fr)) !important;
+}
+
+#lc-inspector .lc-inspector-rotation-row{
+  grid-template-columns:minmax(0,1fr) !important;
+}
+
+#lc-inspector .lc-inspector-appearance-row{
+  align-items:end;
+}
+
+#lc-inspector .lc-inspector-layer-row{
+  align-items:end;
+}
+
+/* Layer controls become compact icon actions. */
+#lc-inspector .lc-layer-action{
+  width:23px !important;
+  min-width:23px !important;
+  height:22px !important;
+  padding:0 !important;
+  align-self:end;
+}
+
+#lc-inspector .lc-layer-field{
+  display:grid;
+  grid-template-columns:1fr auto;
+  align-items:end;
+  gap:4px;
+}
+
+#lc-inspector .lc-layer-field .lc-layer-badge,
+#lc-inspector .lc-layer-field button{
+  border-radius:3px !important;
+}
+
+/* Remove the old circular visual treatment from the layer number. */
+#lc-inspector button[disabled]{
+  opacity:.8;
+}
+
+/* Edge options stack naturally in the narrower rail. */
+#lc-inspector .lc-inspector-edge-row{
+  grid-template-columns:minmax(0,1fr) !important;
+}
+
+#lc-inspector .lc-edge-field{
+  min-width:0;
+}
+
+#lc-inspector .lc-inspector-corners{
+  padding-top:4px;
+  border-top:1px solid #eceef0;
+}
+
+#lc-inspector .lc-corner-grid{
+  gap:3px !important;
+}
+
+#lc-inspector .lc-corner-btn{
+  width:24px !important;
+  height:24px !important;
+  min-width:24px !important;
+  border-radius:3px !important;
+}
+
+/* Sinks: section shell is flat; only actual sink rows get subtle boundaries. */
+.lc-sinks-section .lc-sinks-collapse-body{
+  padding:5px 6px 7px !important;
+}
+
+.lc-sinks-section #lc-sinks-card,
+.lc-sinks-section .sinks-card{
+  background:transparent !important;
+  border:0 !important;
+  padding:0 !important;
+  margin:0 !important;
+}
+
+.lc-sinks-section .lc-list{
+  border:0 !important;
+  padding:0 !important;
+  background:transparent !important;
+}
+
+.lc-sinks-section .lc-item.nav{
+  border:1px solid #e0e2e5 !important;
+  background:#fafafa;
+  margin-bottom:3px !important;
+}
+
+#lc-inspector .sink-editor{
+  margin:0 0 4px !important;
+  padding:5px !important;
+  border:1px solid #e0e2e5 !important;
+  border-radius:3px !important;
+  background:#fafafa !important;
+}
+
+/* Seams follow the same compact row language. */
+#lc-inspector .lc-seam-row{
+  padding:4px !important;
+  border:1px solid #e0e2e5 !important;
+  border-radius:3px !important;
+  background:#fafafa !important;
+}
+
+#lc-inspector .lc-seam-row .lc-label{
+  min-width:0;
+}
+
+#lc-inspector .lc-seam-list{
+  gap:3px !important;
+}
+
+/* Tiny section action buttons, such as Add Sink. */
+#lc-inspector .lc-inspector-section-actions{
+  gap:2px !important;
+}
+
+#lc-inspector .lc-inspector-section-actions .lc-iconbtn{
+  width:19px !important;
+  min-width:19px !important;
+  height:19px !important;
+  padding:0 !important;
+  border:0 !important;
+  background:transparent !important;
+}
+
+/* Make the empty Inspector state look intentional. */
+#lc-inspector.lc-small{
+  padding:10px 8px !important;
+  color:#6b7280;
+  font-size:10px !important;
+  line-height:1.35 !important;
+}
+
+/* Narrow desktop: don't crush 3-up appearance controls; wrap into two rows. */
+@media (min-width:900px) and (max-width:1250px){
+  #lc-inspector .lc-inspector-appearance-row{
+    grid-template-columns:repeat(2,minmax(0,1fr)) !important;
+  }
+
+  #lc-inspector .lc-inspector-appearance-row > :last-child{
+    grid-column:1 / -1;
+  }
+}
+
+
+/* =========================================================
+   CAD Lite v1.3.20 — unified rails + spatial edge editor
+   ========================================================= */
+
+/* LEFT RAIL — mirror the Inspector's continuous section language */
+@media (min-width:900px){
+  .lc-left-rail{
+    display:flex !important;
+    flex-direction:column !important;
+    gap:0 !important;
+    border:1px solid #d9dce1;
+    border-radius:4px;
+    overflow:auto;
+    background:#fff;
+    scrollbar-width:thin;
+  }
+}
+
+.lc-left-rail .lc-left-section{
+  margin:0 !important;
+  padding:0 !important;
+  border:0 !important;
+  border-top:1px solid #e2e4e7 !important;
+  border-radius:0 !important;
+  background:#fff !important;
+  box-shadow:none !important;
+}
+
+.lc-left-rail .lc-left-section:first-child{
+  border-top:0 !important;
+}
+
+.lc-left-rail .lc-left-section > .lc-card-head{
+  margin:0 !important;
+  padding:0 !important;
+  min-height:0 !important;
+  background:#fafafa !important;
+  border:0 !important;
+}
+
+.lc-left-rail .lc-left-section .lc-head-title-row{
+  min-height:25px !important;
+  padding:5px 6px !important;
+  background:#fafafa !important;
+}
+
+.lc-left-rail .lc-left-section .lc-head-title-row:hover{
+  background:#f3f4f6 !important;
+}
+
+.lc-left-rail .lc-left-section .lc-head-title-row h3{
+  font-size:9.5px !important;
+  font-weight:700 !important;
+  line-height:1 !important;
+  letter-spacing:.035em !important;
+  text-transform:uppercase;
+  color:#2f3337 !important;
+}
+
+.lc-left-rail .lc-left-section .lc-head-actions-row{
+  padding:3px 6px 5px !important;
+  background:#fff;
+  gap:3px !important;
+}
+
+.lc-left-rail .lc-left-section > .lc-row{
+  padding:5px 6px 7px !important;
+  gap:4px !important;
+}
+
+.lc-left-rail .lc-left-section > .lc-list{
+  margin:0 !important;
+  padding:4px 5px 6px !important;
+  border:0 !important;
+  border-radius:0 !important;
+  background:#fff !important;
+}
+
+.lc-left-rail .lc-left-section .lc-item.nav{
+  margin-bottom:2px !important;
+  padding:4px 5px !important;
+  border-radius:3px !important;
+  border-color:#e2e4e7 !important;
+}
+
+.lc-left-rail .lc-left-section .lc-item.nav:last-child{
+  margin-bottom:0 !important;
+}
+
+/* Project fields should collapse cleanly and stay dense. */
+.lc-left-rail .lc-left-section textarea{
+  min-height:36px !important;
+}
+
+/* SLAB OVERLAY — independent left-rail section below Pieces */
+.lc-sidebar-overlay-card{
+  width:auto !important;
+  min-width:0 !important;
+  max-width:none !important;
+  box-sizing:border-box !important;
+}
+
+.lc-sidebar-overlay-card > .lc-acc-btn{
+  width:100% !important;
+  min-height:25px !important;
+  margin:0 !important;
+  padding:5px 6px !important;
+  border:0 !important;
+  border-radius:0 !important;
+  background:#fafafa !important;
+  color:#2f3337 !important;
+  font-size:9.5px !important;
+  font-weight:700 !important;
+  letter-spacing:.035em !important;
+  text-transform:uppercase;
+}
+
+.lc-sidebar-overlay-card > .lc-acc-btn:hover{
+  background:#f3f4f6 !important;
+}
+
+.lc-sidebar-overlay-card > .lc-acc-body{
+  width:100% !important;
+  min-width:0 !important;
+  max-width:100% !important;
+  margin:0 !important;
+  padding:5px 6px 7px !important;
+  box-sizing:border-box !important;
+  background:#fff;
+}
+
+.lc-sidebar-overlay-card .lc-overlay-panel{
+  width:100% !important;
+  min-width:0 !important;
+  max-width:100% !important;
+  margin:0 !important;
+  padding:0 !important;
+  border:0 !important;
+  border-radius:0 !important;
+  background:transparent !important;
+  box-sizing:border-box !important;
+}
+
+.lc-sidebar-overlay-card .lc-ov-head{
+  display:grid !important;
+  grid-template-columns:1fr !important;
+  gap:3px !important;
+  margin:0 0 5px !important;
+}
+
+.lc-sidebar-overlay-card .lc-ov-head .lc-btn{
+  width:100% !important;
+}
+
+.lc-sidebar-overlay-card .lc-overlay-grid,
+.lc-sidebar-overlay-card .lc-overlay-grid.ov-2x2{
+  display:grid !important;
+  grid-template-columns:1fr !important;
+  gap:4px !important;
+  width:100% !important;
+  min-width:0 !important;
+}
+
+.lc-sidebar-overlay-card .lc-ov-list{
+  width:100% !important;
+  min-width:0 !important;
+}
+
+.lc-sidebar-overlay-card .lc-ov-row{
+  grid-template-columns:auto minmax(0,1fr) auto !important;
+  min-width:0 !important;
+}
+
+.lc-sidebar-overlay-card .ov-name{
+  min-width:0 !important;
+  overflow:hidden;
+  white-space:nowrap;
+  text-overflow:ellipsis;
+}
+
+/* RESET — destructive but not alarm-red */
+.lc-reset-top{
+  color:#b42318 !important;
+  background:#fff1f0 !important;
+  border:1px solid #f3b3ad !important;
+}
+
+.lc-reset-top:hover{
+  color:#8f1d14 !important;
+  background:#ffe4e1 !important;
+  border-color:#e8948c !important;
+}
+
+/* Keep all destructive list icons visually consistent. */
+.lc-btn.red.lc-iconbtn{
+  color:#b42318 !important;
+  border-color:#efb0aa !important;
+  background:#fff7f6 !important;
+}
+
+.lc-btn.red.lc-iconbtn:hover{
+  background:#ffe8e5 !important;
+  border-color:#df8e86 !important;
+}
+
+/* Sinks uses the same in-section Add pattern as Seams. */
+#lc-inspector .lc-add-inspector-item{
+  margin-top:4px !important;
+}
+
+/* EDGE OPTIONS — box-model-style spatial interface */
+#lc-inspector .lc-edge-diagram{
+  position:relative;
+  width:100%;
+  height:154px;
+  min-width:0;
+  margin:1px 0 2px;
+  border:1px solid #e2e4e7;
+  border-radius:3px;
+  background:#fafafa;
+  overflow:hidden;
+  box-sizing:border-box;
+}
+
+#lc-inspector .lc-edge-piece-preview{
+  position:absolute;
+  left:50%;
+  top:50%;
+  width:74px;
+  height:48px;
+  transform:translate(-50%,-50%);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  border:1px solid #7b8188;
+  border-radius:2px;
+  background:#fff;
+  color:#7b8188;
+  font-size:8px;
+  font-weight:700;
+  letter-spacing:.08em;
+  pointer-events:none;
+}
+
+#lc-inspector .lc-edge-spatial{
+  position:absolute;
+  display:block;
+  margin:0 !important;
+  z-index:2;
+}
+
+#lc-inspector .lc-edge-spatial select{
+  width:62px !important;
+  min-width:0 !important;
+  height:21px !important;
+  padding:1px 3px !important;
+  font-size:9px !important;
+}
+
+#lc-inspector .lc-edge-spatial-top{
+  top:5px;
+  left:50%;
+  transform:translateX(-50%);
+}
+
+#lc-inspector .lc-edge-spatial-bottom{
+  bottom:5px;
+  left:50%;
+  transform:translateX(-50%);
+}
+
+#lc-inspector .lc-edge-spatial-left{
+  left:4px;
+  top:50%;
+  transform:translateY(-50%);
+}
+
+#lc-inspector .lc-edge-spatial-right{
+  right:4px;
+  top:50%;
+  transform:translateY(-50%);
+}
+
+#lc-inspector .lc-edge-corner{
+  position:absolute !important;
+  z-index:3;
+  width:19px !important;
+  min-width:19px !important;
+  height:19px !important;
+  padding:0 !important;
+  border-radius:3px !important;
+  background:#fff !important;
+}
+
+#lc-inspector .lc-edge-corner svg{
+  width:12px !important;
+  height:12px !important;
+}
+
+#lc-inspector .lc-edge-corner-tl{
+  left:calc(50% - 46px);
+  top:calc(50% - 33px);
+}
+
+#lc-inspector .lc-edge-corner-tr{
+  left:calc(50% + 27px);
+  top:calc(50% - 33px);
+}
+
+#lc-inspector .lc-edge-corner-bl{
+  left:calc(50% - 46px);
+  top:calc(50% + 15px);
+}
+
+#lc-inspector .lc-edge-corner-br{
+  left:calc(50% + 27px);
+  top:calc(50% + 15px);
+}
+
+#lc-inspector .lc-edge-corner.active{
+  color:#174ea6 !important;
+  background:#e8f2ff !important;
+  border-color:#8ab4f8 !important;
+}
+
+#lc-inspector .lc-edge-diagram-hint{
+  margin-top:4px !important;
+  color:#7a7f85 !important;
+  font-size:9px !important;
+  line-height:1.25 !important;
+}
+
+/* Old corner-grid layout is no longer used by Edge Options. */
+#lc-inspector .lc-inspector-corners{
+  display:none !important;
+}
+
+
+/* =========================================================
+   CAD Lite v1.3.21 — Annotation Inspector + numeric corner radii
+   ========================================================= */
+
+/* Annotation selections use the same continuous Inspector language as Pieces. */
+#lc-inspector .lc-annotation-inspector{
+  border:0 !important;
+  box-shadow:none !important;
+  padding:0 !important;
+  margin:0 !important;
+  background:#fff !important;
+}
+
+#lc-inspector .lc-annotation-inspector .lc-subcard{
+  border-top:0 !important;
+}
+
+#lc-inspector .lc-annotation-summary{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:4px;
+}
+
+#lc-inspector .lc-annotation-summary > div{
+  min-width:0;
+  padding:5px;
+  border-radius:3px;
+  background:#f7f8f9;
+}
+
+#lc-inspector .lc-annotation-summary span{
+  display:block;
+  margin-bottom:2px;
+  color:#6b7280;
+  font-size:8.5px;
+  font-weight:600;
+  letter-spacing:.035em;
+  text-transform:uppercase;
+}
+
+#lc-inspector .lc-annotation-summary strong{
+  display:block;
+  overflow:hidden;
+  color:#202124;
+  font-size:10px;
+  font-weight:600;
+  white-space:nowrap;
+  text-overflow:ellipsis;
+}
+
+#lc-inspector .lc-annotation-grid{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:4px;
+}
+
+#lc-inspector .lc-annotation-grid > label{
+  min-width:0;
+}
+
+#lc-inspector .lc-annotation-grid input[type="color"]{
+  width:100% !important;
+  min-height:22px !important;
+  padding:2px !important;
+}
+
+#lc-inspector .lc-annotation-textarea{
+  width:100%;
+  height:auto !important;
+  min-height:68px !important;
+  padding:5px !important;
+  resize:vertical;
+  box-sizing:border-box;
+}
+
+#lc-inspector .lc-annotation-actions{
+  display:flex;
+  align-items:center;
+  gap:4px;
+}
+
+#lc-inspector .lc-annotation-actions > .lc-btn{
+  flex:1 1 0;
+}
+
+#lc-inspector .lc-annotation-delete{
+  margin-top:3px;
+}
+
+/* Spatial edge UI: only the chosen label rotates.
+   The actual native picker remains unrotated and is opened programmatically. */
+#lc-inspector .lc-edge-diagram{
+  height:176px !important;
+}
+
+#lc-inspector .lc-edge-piece-preview{
+  width:80px !important;
+  height:54px !important;
+}
+
+#lc-inspector .lc-edge-profile-display{
+  width:68px;
+  height:22px;
+  padding:0 5px;
+  border:1px solid #d3d6da;
+  border-radius:3px;
+  background:#f1f3f4;
+  color:#202124;
+  font:600 9px/1 system-ui,Segoe UI,Roboto,Helvetica,Arial,sans-serif;
+  overflow:hidden;
+  white-space:nowrap;
+  text-overflow:ellipsis;
+  cursor:pointer;
+}
+
+#lc-inspector .lc-edge-profile-display:hover{
+  border-color:#aeb4bb;
+  background:#fff;
+}
+
+#lc-inspector .lc-edge-profile-display:focus{
+  outline:1px solid #8ab4f8;
+  border-color:#8ab4f8;
+}
+
+#lc-inspector .lc-edge-profile-display-left{
+  transform:rotate(-90deg);
+}
+
+#lc-inspector .lc-edge-profile-display-right{
+  transform:rotate(90deg);
+}
+
+/* Top and bottom intentionally stay left-to-right. */
+#lc-inspector .lc-edge-profile-display-top,
+#lc-inspector .lc-edge-profile-display-bottom{
+  transform:none;
+}
+
+#lc-inspector .lc-edge-picker{
+  position:absolute !important;
+  width:1px !important;
+  height:1px !important;
+  min-width:1px !important;
+  min-height:1px !important;
+  padding:0 !important;
+  margin:0 !important;
+  opacity:.001;
+  pointer-events:none;
+  overflow:hidden;
+}
+
+/* Slightly reposition the edge controls around the taller diagram. */
+#lc-inspector .lc-edge-spatial-top{
+  top:6px !important;
+}
+
+#lc-inspector .lc-edge-spatial-bottom{
+  bottom:6px !important;
+}
+
+#lc-inspector .lc-edge-spatial-left{
+  left:-17px !important;
+}
+
+#lc-inspector .lc-edge-spatial-right{
+  right:-17px !important;
+}
+
+/* Numeric corner radii sit at the actual visual corners of the piece preview. */
+#lc-inspector .lc-edge-radius{
+  position:absolute;
+  z-index:4;
+  display:block;
+  width:42px;
+  margin:0 !important;
+}
+
+#lc-inspector .lc-edge-radius input{
+  width:42px !important;
+  min-width:42px !important;
+  height:21px !important;
+  min-height:21px !important;
+  padding:1px 3px !important;
+  text-align:center;
+  font-size:9px !important;
+  background:#fff !important;
+  border-color:#cfd3d9 !important;
+}
+
+#lc-inspector .lc-edge-radius-tl{
+  left:calc(50% - 61px);
+  top:calc(50% - 43px);
+}
+
+#lc-inspector .lc-edge-radius-tr{
+  left:calc(50% + 19px);
+  top:calc(50% - 43px);
+}
+
+#lc-inspector .lc-edge-radius-bl{
+  left:calc(50% - 61px);
+  top:calc(50% + 22px);
+}
+
+#lc-inspector .lc-edge-radius-br{
+  left:calc(50% + 19px);
+  top:calc(50% + 22px);
+}
+
+#lc-inspector .lc-edge-diagram-hint{
+  margin-top:5px !important;
+}
+
+/* Old corner buttons are no longer used in Edge Options. */
+#lc-inspector .lc-edge-corner{
+  display:none !important;
+}
+
+
+/* =========================================================
+   CAD Lite v1.3.22 — refined Edge Options + Inspector header
+   ========================================================= */
+
+/* Give the Inspector title the same breathing room as the left rail headers. */
+.lc-inspector-panel > .lc-card-head{
+  padding:7px 9px !important;
+}
+
+/* Replace the previous edge/corner control with one clean spatial editor. */
+#lc-inspector .lc-edge-designer{
+  display:flex;
+  flex-direction:column;
+  gap:5px;
+  min-width:0;
+}
+
+#lc-inspector .lc-edge-designer-diagram{
+  position:relative;
+  width:100%;
+  height:196px;
+  min-width:0;
+  box-sizing:border-box;
+  border:1px solid #e0e4e8;
+  border-radius:5px;
+  background:#fafbfc;
+  overflow:hidden;
+}
+
+#lc-inspector .lc-edge-piece-box{
+  position:absolute;
+  left:50%;
+  top:50%;
+  width:130px;
+  height:102px;
+  transform:translate(-50%,-50%);
+  box-sizing:border-box;
+  border:1px solid #98a7b8;
+  border-radius:9px;
+  background:#fff;
+  overflow:hidden;
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.65);
+}
+
+#lc-inspector .lc-edge-piece-word{
+  position:absolute;
+  left:50%;
+  top:50%;
+  transform:translate(-50%,-50%);
+  z-index:3;
+  color:#9aa4b0;
+  font-size:7.5px;
+  font-weight:700;
+  letter-spacing:.09em;
+  pointer-events:none;
+}
+
+#lc-inspector .lc-edge-cross{
+  position:absolute;
+  z-index:2;
+  opacity:.8;
+  pointer-events:none;
+}
+
+#lc-inspector .lc-edge-cross-v{
+  top:8px;
+  bottom:8px;
+  left:50%;
+  width:1px;
+  transform:translateX(-.5px);
+  background:repeating-linear-gradient(to bottom,#d2d8df 0 5px,transparent 5px 10px);
+}
+
+#lc-inspector .lc-edge-cross-h{
+  left:8px;
+  right:8px;
+  top:50%;
+  height:1px;
+  transform:translateY(-.5px);
+  background:repeating-linear-gradient(to right,#d2d8df 0 5px,transparent 5px 10px);
+}
+
+/* Four spatial corner zones. Clicking a zone focuses its radius input. */
+#lc-inspector .lc-edge-zone{
+  position:absolute;
+  z-index:1;
+  width:50%;
+  height:50%;
+  padding:0;
+  border:0;
+  background:transparent;
+  cursor:pointer;
+  transition:background-color .12s ease, box-shadow .12s ease;
+}
+
+#lc-inspector .lc-edge-zone:hover{
+  background:rgba(59,130,246,.045);
+}
+
+#lc-inspector .lc-edge-zone.active{
+  background:rgba(59,130,246,.115);
+  box-shadow:inset 0 0 0 1px rgba(59,130,246,.12);
+}
+
+#lc-inspector .lc-edge-zone-tl{
+  left:0;top:0;
+  border-radius:9px 0 0 0;
+}
+#lc-inspector .lc-edge-zone-tr{
+  right:0;top:0;
+  border-radius:0 9px 0 0;
+}
+#lc-inspector .lc-edge-zone-bl{
+  left:0;bottom:0;
+  border-radius:0 0 0 9px;
+}
+#lc-inspector .lc-edge-zone-br{
+  right:0;bottom:0;
+  border-radius:0 0 9px 0;
+}
+
+/* Radius values sit inside their actual corners and read like square controls. */
+#lc-inspector .lc-edge-corner-input{
+  position:absolute;
+  z-index:4;
+  width:37px !important;
+  min-width:37px !important;
+  height:34px !important;
+  min-height:34px !important;
+  padding:2px 3px !important;
+  box-sizing:border-box;
+  border:1px solid #c8d0da !important;
+  border-radius:5px !important;
+  background:#fff !important;
+  color:#202124;
+  text-align:center;
+  font-size:9.5px !important;
+  font-weight:600;
+  box-shadow:0 1px 2px rgba(0,0,0,.05);
+}
+
+#lc-inspector .lc-edge-corner-input:focus{
+  border-color:#7aa7e8 !important;
+  outline:1px solid #7aa7e8 !important;
+}
+
+#lc-inspector .lc-edge-corner-input-tl{left:8px;top:8px;}
+#lc-inspector .lc-edge-corner-input-tr{right:8px;top:8px;}
+#lc-inspector .lc-edge-corner-input-bl{left:8px;bottom:8px;}
+#lc-inspector .lc-edge-corner-input-br{right:8px;bottom:8px;}
+
+/* Edge profile selects live outside the piece; there is only one visible control per side. */
+#lc-inspector .lc-edge-control{
+  position:absolute;
+  z-index:6;
+  margin:0 !important;
+}
+
+#lc-inspector .lc-edge-control-top{
+  top:6px;
+  left:50%;
+  transform:translateX(-50%);
+}
+
+#lc-inspector .lc-edge-control-bottom{
+  bottom:6px;
+  left:50%;
+  transform:translateX(-50%);
+}
+
+#lc-inspector .lc-edge-control-left{
+  left:4px;
+  top:50%;
+  width:30px;
+  height:88px;
+  transform:translateY(-50%);
+}
+
+#lc-inspector .lc-edge-control-right{
+  right:4px;
+  top:50%;
+  width:30px;
+  height:88px;
+  transform:translateY(-50%);
+}
+
+#lc-inspector .lc-edge-profile-select{
+  display:block !important;
+  visibility:visible !important;
+  opacity:1 !important;
+  box-sizing:border-box;
+  width:92px !important;
+  min-width:92px !important;
+  height:27px !important;
+  min-height:27px !important;
+  padding:2px 21px 2px 7px !important;
+  border:1px solid #cfd6df !important;
+  border-radius:5px !important;
+  background:#f4f6f8 !important;
+  color:#202124 !important;
+  font-size:9.5px !important;
+  font-weight:600;
+  line-height:1 !important;
+  cursor:pointer;
+  box-shadow:none !important;
+}
+
+#lc-inspector .lc-edge-profile-select:hover{
+  border-color:#aeb8c4 !important;
+  background:#fff !important;
+}
+
+#lc-inspector .lc-edge-profile-select-left,
+#lc-inspector .lc-edge-profile-select-right{
+  position:absolute;
+  left:50%;
+  top:50%;
+  transform-origin:center;
+}
+
+#lc-inspector .lc-edge-profile-select-left{
+  transform:translate(-50%,-50%) rotate(-90deg);
+}
+
+#lc-inspector .lc-edge-profile-select-right{
+  transform:translate(-50%,-50%) rotate(90deg);
+}
+
+/* Top and bottom stay left-to-right as requested. */
+#lc-inspector .lc-edge-profile-select-top,
+#lc-inspector .lc-edge-profile-select-bottom{
+  transform:none;
+}
+
+#lc-inspector .lc-edge-designer-hint{
+  padding:0 1px;
+  color:#727982 !important;
+  font-size:8.8px !important;
+  line-height:1.3 !important;
+}
+
+/* Neutralize the previous v1.3.21 edge controls so only the .22 UI participates. */
+#lc-inspector .lc-edge-diagram,
+#lc-inspector .lc-edge-piece-preview,
+#lc-inspector .lc-edge-spatial,
+#lc-inspector .lc-edge-profile-display,
+#lc-inspector .lc-edge-picker,
+#lc-inspector .lc-edge-radius{
+  /* These nodes are no longer generated in v1.3.22. */
+}
+
+
+/* =========================================================
+   CAD Lite v1.3.23 — Edge Options spacing refinements
+   ========================================================= */
+
+/* Give decimal radii enough room to remain fully visible. */
+#lc-inspector .lc-edge-corner-input{
+  width:46px !important;
+  min-width:46px !important;
+  padding:2px 5px !important;
+  font-size:9.5px !important;
+}
+
+#lc-inspector .lc-edge-corner-input-tl{left:7px !important;}
+#lc-inspector .lc-edge-corner-input-tr{right:7px !important;}
+#lc-inspector .lc-edge-corner-input-bl{left:7px !important;}
+#lc-inspector .lc-edge-corner-input-br{right:7px !important;}
+
+/* Pull the vertical edge-profile controls away from the piece rectangle. */
+#lc-inspector .lc-edge-control-left{
+  left:0 !important;
+  width:26px !important;
+}
+
+#lc-inspector .lc-edge-control-right{
+  right:0 !important;
+  width:26px !important;
+}
+
+/* Their rotated footprint is controlled by the select height. */
+#lc-inspector .lc-edge-profile-select-left,
+#lc-inspector .lc-edge-profile-select-right{
+  height:24px !important;
+  min-height:24px !important;
+}
+
+/* Create a slightly larger visual gutter without changing the overall panel size. */
+#lc-inspector .lc-edge-piece-box{
+  width:124px !important;
+}
+
+
+/* =========================================================
+   CAD Lite v1.3.24 — left-rail header width containment
+   ========================================================= */
+
+/* Prevent 100%-wide header rows from becoming 100% + padding. */
+.lc-left-rail,
+.lc-left-rail .lc-left-section,
+.lc-left-rail .lc-left-section > .lc-card-head,
+.lc-left-rail .lc-left-section .lc-head-title-row,
+.lc-left-rail .lc-left-section .lc-head-actions-row,
+.lc-sidebar-overlay-card,
+.lc-sidebar-overlay-card > .lc-acc-btn{
+  box-sizing:border-box !important;
+  max-width:100% !important;
+  min-width:0 !important;
+}
+
+.lc-left-rail .lc-left-section > .lc-card-head{
+  width:100% !important;
+  overflow:hidden;
+}
+
+/* The global rule previously used width:100% with content-box padding. */
+.lc-left-rail .lc-left-section .lc-head-title-row{
+  width:100% !important;
+  padding-left:6px !important;
+  padding-right:6px !important;
+  overflow:hidden;
+}
+
+.lc-left-rail .lc-left-section .lc-head-title-row h3{
+  flex:1 1 auto;
+  min-width:0 !important;
+}
+
+.lc-left-rail .lc-left-section .lc-head-arrow{
+  flex:0 0 12px !important;
+  width:12px;
+  min-width:12px;
+  text-align:center;
+  margin-left:3px;
+}
+
+/* Keep second-row actions contained too. */
+.lc-left-rail .lc-left-section .lc-head-actions-row{
+  width:100% !important;
+  overflow:hidden;
+}
+
+/* Slab Overlay uses a different header implementation but should align identically. */
+.lc-sidebar-overlay-card > .lc-acc-btn{
+  width:100% !important;
+  padding-left:6px !important;
+  padding-right:6px !important;
+  overflow:hidden;
+}
+
+
+/* =========================================================
+   CAD Lite v1.3.25 — Inspector organization + Overlay navigator
+   ========================================================= */
+
+/* Inspector header now mirrors the left-rail section language. */
+.lc-inspector-panel > .lc-inspector-head{
+  display:flex !important;
+  align-items:center !important;
+  box-sizing:border-box !important;
+  min-height:29px !important;
+  margin:0 !important;
+  padding:6px 8px !important;
+  border-bottom:1px solid #e2e4e7 !important;
+  background:#fafafa !important;
+}
+
+.lc-inspector-panel > .lc-inspector-head h3{
+  margin:0 !important;
+  color:#2f3337 !important;
+  font-size:9.5px !important;
+  font-weight:700 !important;
+  line-height:1 !important;
+  letter-spacing:.035em !important;
+  text-transform:uppercase !important;
+}
+
+/* Inspector must shrink as sections close, not retain a previous tall flex size. */
+.lc-inspector-col{
+  align-items:stretch !important;
+}
+
+.lc-inspector-panel{
+  width:100% !important;
+  height:auto !important;
+  min-height:0 !important;
+  max-height:none !important;
+  flex:0 0 auto !important;
+  align-self:stretch !important;
+}
+
+#lc-inspector{
+  height:auto !important;
+  min-height:0 !important;
+  max-height:none !important;
+  flex:0 0 auto !important;
+}
+
+#lc-inspector .lc-subcard-body[hidden]{
+  display:none !important;
+}
+
+/* Annotation/Overlay disclosure heads use the same rail header geometry. */
+#lc-inspector .lc-annotation-inspector .lc-subcard-label{
+  min-height:26px !important;
+  padding:6px 7px !important;
+}
+
+/* Give common property pairs their own predictable rows. */
+#lc-inspector .lc-inspector-property-grid{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:5px;
+}
+
+#lc-inspector .lc-line-endpoint-stack{
+  display:grid;
+  grid-template-columns:1fr;
+  gap:5px;
+  padding-top:2px;
+}
+
+#lc-inspector .lc-line-endpoint-stack .lc-label{
+  display:grid;
+  grid-template-columns:54px minmax(0,1fr);
+  align-items:center;
+  gap:6px;
+}
+
+#lc-inspector .lc-line-endpoint-stack .lc-label > span{
+  margin:0;
+}
+
+#lc-inspector .lc-inspector-full-action{
+  width:100% !important;
+}
+
+#lc-inspector .lc-annotation-delete{
+  width:100% !important;
+}
+
+/* Note Leader and Delete stay on separate full-width lines. */
+#lc-inspector .lc-annotation-inspector .lc-btn + .lc-btn{
+  margin-top:2px;
+}
+
+/* Overlay Inspector */
+#lc-inspector .lc-overlay-opacity-field{
+  display:flex;
+  flex-direction:column;
+  gap:3px;
+}
+
+#lc-inspector .lc-overlay-opacity-head{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:8px;
+}
+
+#lc-inspector .lc-overlay-opacity-head strong{
+  font-size:9.5px;
+  color:#4b5563;
+}
+
+#lc-inspector .lc-overlay-toggle-stack{
+  display:grid;
+  gap:4px;
+  padding-top:2px;
+}
+
+#lc-inspector .lc-overlay-check-row{
+  display:flex;
+  align-items:center;
+  gap:7px;
+  min-height:24px;
+  padding:4px 6px;
+  border-radius:3px;
+  background:#f7f8f9;
+  color:#374151;
+  font-size:10px;
+  cursor:pointer;
+}
+
+#lc-inspector .lc-overlay-check-row input{
+  margin:0;
+}
+
+/* OVERLAYS navigator — intentionally lightweight and collapsed by default. */
+.lc-overlays-card{
+  box-sizing:border-box !important;
+  width:100% !important;
+  min-width:0 !important;
+  max-width:100% !important;
+}
+
+.lc-overlays-card > .lc-card-head{
+  box-sizing:border-box !important;
+  width:100% !important;
+  margin:0 !important;
+  padding:0 !important;
+  background:#fafafa !important;
+}
+
+.lc-overlays-card .lc-head-title-row{
+  box-sizing:border-box !important;
+  width:100% !important;
+  max-width:100% !important;
+  min-width:0 !important;
+  padding:5px 6px !important;
+}
+
+.lc-overlays-card .lc-overlay-nav-list{
+  box-sizing:border-box !important;
+  width:100% !important;
+  min-width:0 !important;
+  max-width:100% !important;
+  margin:0 !important;
+  padding:4px 5px 6px !important;
+  border:0 !important;
+  border-radius:0 !important;
+  background:#fff !important;
+  overflow:auto;
+}
+
+.lc-overlays-card .lc-ov-row{
+  display:grid !important;
+  grid-template-columns:23px minmax(0,1fr) 23px !important;
+  align-items:center !important;
+  gap:4px !important;
+  width:100% !important;
+  min-width:0 !important;
+  box-sizing:border-box !important;
+  margin:0 0 2px !important;
+  padding:4px !important;
+  border:1px solid #e2e4e7 !important;
+  border-radius:3px !important;
+  background:#fff;
+}
+
+.lc-overlays-card .lc-ov-row.selected{
+  border-color:#8ab4f8 !important;
+  background:#eef5ff !important;
+}
+
+.lc-overlays-card .ov-name{
+  min-width:0 !important;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+  font-size:10px;
+}
+
+.lc-overlays-card .ov-actions{
+  display:flex;
+  justify-content:flex-end;
+}
+
+.lc-overlays-card .lc-iconbtn{
+  width:22px !important;
+  min-width:22px !important;
+  height:22px !important;
+  padding:0 3px !important;
+}
+
+.lc-overlays-card .lc-overlay-empty{
+  padding:4px 2px;
+  opacity:.65;
+}
+
+/* Slightly stronger destructive navigator actions. */
+.lc-btn.red.lc-iconbtn,
+.lc-overlays-card .ov-del{
+  color:#c32020 !important;
+  border-color:#e4a09a !important;
+  background:#fff1ef !important;
+}
+
+.lc-btn.red.lc-iconbtn:hover,
+.lc-overlays-card .ov-del:hover{
+  color:#951717 !important;
+  border-color:#d7766e !important;
+  background:#ffe1de !important;
+}
+
+/* INSERT menu divider for the secondary Slab Overlay actions. */
+.lc-menu-separator{
+  height:1px;
+  margin:4px 3px;
+  background:#e2e4e7;
+}
+
+/* =========================================================
+   CAD Lite v1.3.26 — Inspector overflow correction
+   ========================================================= */
+
+/* v1.3.25 made the Inspector explicitly 100% wide. Keep that sizing
+   inside the grid track by including padding/borders in the width math. */
+.lc-inspector-col,
+.lc-inspector-panel,
+.lc-inspector-panel > .lc-inspector-head,
+#lc-inspector,
+#lc-sinks-card{
+  box-sizing:border-box !important;
+  min-width:0 !important;
+  max-width:100% !important;
+}
+
+.lc-inspector-panel,
+#lc-inspector{
+  width:100% !important;
+  overflow-x:hidden !important;
+}
+
+#lc-inspector .lc-item,
+#lc-inspector .lc-subcard,
+#lc-inspector .lc-subcard-body,
+#lc-inspector .lc-inspector-property-grid,
+#lc-inspector .lc-line-endpoint-stack,
+#lc-inspector .lc-row,
+#lc-inspector .lc-row2,
+#lc-inspector .lc-row3,
+#lc-inspector .sink-editor,
+#lc-sinks-card .sinks-card,
+#lc-sinks-card .lc-list{
+  box-sizing:border-box !important;
+  min-width:0 !important;
+  max-width:100% !important;
+}
+
+#lc-inspector input,
+#lc-inspector select,
+#lc-inspector textarea,
+#lc-sinks-card input,
+#lc-sinks-card select,
+#lc-sinks-card textarea{
+  box-sizing:border-box !important;
+  min-width:0 !important;
+  max-width:100% !important;
+}
+
+/* =========================================================
+   CAD Lite v1.3.27 — Estimate foundation
+   ========================================================= */
+
+.lc-estimate-card{
+  box-sizing:border-box !important;
+  width:100% !important;
+  min-width:0 !important;
+  max-width:100% !important;
+}
+
+.lc-estimate-card > .lc-card-head,
+.lc-estimate-card .lc-head-title-row{
+  box-sizing:border-box !important;
+  width:100% !important;
+  min-width:0 !important;
+  max-width:100% !important;
+}
+
+.lc-estimate-summary{
+  box-sizing:border-box;
+  display:grid;
+  gap:4px;
+  width:100%;
+  padding:5px;
+}
+
+.lc-estimate-row{
+  box-sizing:border-box;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:8px;
+  min-width:0;
+  min-height:25px;
+  padding:4px 6px;
+  border:1px solid #e5e7eb;
+  border-radius:3px;
+  background:#f7f8f9;
+  color:#4b5563;
+  font-size:10px;
+}
+
+.lc-estimate-row strong{
+  flex:0 0 auto;
+  color:#1f2937;
+  font-size:10.5px;
+  font-weight:700;
+  font-variant-numeric:tabular-nums;
+}
+
+#lc-inspector .lc-estimate-readonly{
+  background:#f7f8f9 !important;
+  color:#374151 !important;
+  cursor:default;
+  font-variant-numeric:tabular-nums;
+}
+
+/* =========================================================
+   CAD Lite v1.3.29 — fixed-height desktop workspace shell
+   ========================================================= */
+
+/*
+  The workspace viewport should stay visually stable while CAD zoom changes.
+  On desktop, all three columns share one viewport-based height. The drawing
+  SVG can grow/shrink inside the gray canvas viewport without resizing the app.
+*/
+@media (min-width:900px){
+  .lite-cad{
+    --lc-workspace-height:clamp(
+      540px,
+      calc(100vh - var(--site-header-h, 0px) - 24px),
+      820px
+    );
+  }
+
+  .lc-wrap{
+    align-items:stretch !important;
+  }
+
+  .lc-left-rail,
+  .lc-canvas-col,
+  .lc-inspector-col{
+    box-sizing:border-box !important;
+    height:var(--lc-workspace-height) !important;
+    min-height:0 !important;
+    max-height:var(--lc-workspace-height) !important;
+  }
+
+  /* Left rail behaves like a conventional application sidebar. */
+  .lc-left-rail{
+    overflow-x:hidden !important;
+    overflow-y:auto !important;
+    scrollbar-width:thin;
+    align-content:start;
+  }
+
+  /* The canvas column itself stays fixed; only the canvas viewport scrolls. */
+  .lc-canvas-col{
+    overflow:hidden !important;
+  }
+
+  .lc-canvas-col > .lc-card{
+    box-sizing:border-box !important;
+    display:flex !important;
+    flex-direction:column !important;
+    width:100% !important;
+    height:100% !important;
+    min-height:0 !important;
+    max-height:100% !important;
+    overflow:visible !important;
+  }
+
+  .lc-canvas-col .lc-toolbar,
+  .lc-canvas-col .lc-top{
+    flex:0 0 auto !important;
+  }
+
+  .lc-canvas-col .lc-canvas-wrap{
+    box-sizing:border-box !important;
+    flex:1 1 auto !important;
+    width:100% !important;
+    height:auto !important;
+    min-height:0 !important;
+    max-height:none !important;
+    overflow:auto !important;
+    scrollbar-width:thin;
+    overscroll-behavior:contain;
+  }
+
+  /* Preserve gray non-working space when the zoomed SVG is smaller than its viewport. */
+  .lc-canvas-col .lc-canvas-wrap > svg{
+    display:block;
+    flex:none;
+  }
+
+  /*
+    Inspector becomes a full-height rail. Its content can collapse normally,
+    but overflow stays inside this rail rather than changing workspace height.
+  */
+  .lc-inspector-col{
+    overflow:hidden !important;
+    align-items:stretch !important;
+  }
+
+  .lc-inspector-panel{
+    box-sizing:border-box !important;
+    width:100% !important;
+    height:100% !important;
+    min-height:0 !important;
+    max-height:100% !important;
+    overflow-x:hidden !important;
+    overflow-y:auto !important;
+    scrollbar-width:thin;
+  }
+
+  /* Focus modes use all of their genuinely available vertical space. */
+  .lite-cad.lc-theater-mode{
+    --lc-workspace-height:calc(100vh - var(--site-header-h, 0px) - 8px);
+  }
+
+  .lite-cad:fullscreen,
+  .lite-cad:-webkit-full-screen{
+    --lc-workspace-height:calc(100vh - 8px);
+  }
+}
+
+/* =========================================================
+   CAD Lite v1.3.30 — compact navigator headers
+   ========================================================= */
+
+.lc-left-rail .lc-single-row-head{
+  display:block !important;
+  margin:0 !important;
+  padding:0 !important;
+}
+
+.lc-left-rail .lc-single-row-head > .lc-head-title-row{
+  min-height:26px !important;
+}
+
+.lc-left-rail .lc-head-inline-actions{
+  display:flex;
+  align-items:center;
+  justify-content:flex-end;
+  flex:0 0 auto;
+  gap:2px;
+  margin-left:auto;
+}
+
+.lc-left-rail .lc-head-eye{
+  box-sizing:border-box !important;
+  width:21px !important;
+  min-width:21px !important;
+  height:21px !important;
+  padding:0 !important;
+  border:0 !important;
+  background:transparent !important;
+  color:#4b5563 !important;
+}
+
+.lc-left-rail .lc-head-eye:hover{
+  background:#eceff2 !important;
+  color:#202124 !important;
+}
+
+.lc-left-rail .lc-head-eye svg{
+  width:14px !important;
+  height:14px !important;
+}
+
+.lc-left-rail .lc-sidebar-add-row{
+  box-sizing:border-box;
+  width:100%;
+  padding:4px 5px 3px;
+  border-top:1px solid #eceff1;
+  background:#fff;
+}
+
+.lc-left-rail .lc-sidebar-inline-add{
+  box-sizing:border-box !important;
+  width:100% !important;
+  min-width:0 !important;
+  height:23px !important;
+  padding:0 6px !important;
+  border-radius:3px !important;
+  font-size:10px !important;
+  font-weight:600 !important;
+  text-align:left !important;
+  justify-content:flex-start !important;
+}
+
+.lc-left-rail .lc-single-row-head + .lc-sidebar-add-row{
+  margin-top:0 !important;
+}
+
+.lc-left-rail .lc-single-row-head .lc-head-actions-row{
+  display:none !important;
+}
+
+/* =========================================================
+   CAD Lite v1.3.31 — faucet-hole selector cleanup
+   ========================================================= */
+
+/* Faucet holes are one full-width property, not half of the sink editor grid. */
+#lc-inspector .sink-editor .faucet-hole-row{
+  grid-template-columns:minmax(0,1fr) !important;
+  width:100% !important;
+}
+
+#lc-inspector .sink-editor .faucet-hole-field{
+  display:block !important;
+  box-sizing:border-box !important;
+  width:100% !important;
+  min-width:0 !important;
+  max-width:100% !important;
+}
+
+#lc-inspector .sink-editor .faucet-hole-field > .lc-small{
+  margin-bottom:4px !important;
+}
+
+/* Spread all nine selectors across the available Inspector width. */
+#lc-inspector .sink-editor .holes-row{
+  display:flex !important;
+  align-items:center !important;
+  justify-content:space-between !important;
+  gap:3px !important;
+  box-sizing:border-box !important;
+  width:100% !important;
+  min-width:0 !important;
+  max-width:100% !important;
+}
+
+/* Keep the actual click targets visually consistent and prevent flex shrinking. */
+#lc-inspector .sink-editor .holes-row input[type="checkbox"]{
+  flex:0 0 15px !important;
+  width:15px !important;
+  min-width:15px !important;
+  max-width:15px !important;
+  height:15px !important;
+  min-height:15px !important;
+  margin:0 !important;
+  padding:0 !important;
+}
+
+/* =========================================================
+   CAD Lite v1.3.32 — structured sink + faucet-hole inspector
+   ========================================================= */
+#lc-inspector .sink-editor{padding:0 !important;overflow:hidden !important;background:#fff !important;}
+#lc-inspector .sink-editor-section{margin:0 !important;padding:0 !important;border:0 !important;border-top:1px solid #e1e4e8 !important;background:#fff;}
+#lc-inspector .sink-editor-section:first-child{border-top:0 !important;}
+#lc-inspector .sink-editor-section-head{
+  display:flex;align-items:center;justify-content:space-between;box-sizing:border-box;width:100%;min-height:25px;
+  margin:0;padding:5px 6px;border:0;background:#f5f6f7;color:#34383d;cursor:pointer;font:inherit;text-align:left;
+}
+#lc-inspector .sink-editor-section-head:hover{background:#eceff2;}
+#lc-inspector .sink-editor-section-title{font-size:9.5px;font-weight:700;line-height:1;letter-spacing:.035em;text-transform:uppercase;}
+#lc-inspector .sink-editor-section-arrow{flex:0 0 auto;font-size:10px;opacity:.7;}
+#lc-inspector .sink-editor-section-body{display:grid;gap:4px;padding:5px 6px 7px;background:#fff;}
+#lc-inspector .sink-editor-section-body[hidden]{display:none !important;}
+#lc-inspector .sink-editor .sink-setback-row{grid-template-columns:minmax(0,1fr) !important;}
+#lc-inspector .sink-editor .faucet-hole-field{display:block !important;width:100% !important;min-width:0 !important;max-width:100% !important;}
+#lc-inspector .sink-editor .faucet-pattern-head{display:flex;align-items:center;justify-content:space-between;gap:6px;margin:0 0 4px;}
+#lc-inspector .sink-editor .faucet-selected-count{color:#6b7280;font-size:9px;font-variant-numeric:tabular-nums;white-space:nowrap;}
+#lc-inspector .sink-editor .holes-row{display:grid !important;grid-template-columns:repeat(9,minmax(0,1fr)) !important;align-items:start !important;gap:2px !important;width:100% !important;}
+#lc-inspector .sink-editor .faucet-hole-slot{display:grid;grid-template-rows:16px 9px;justify-items:center;align-items:start;min-width:0;}
+#lc-inspector .sink-editor .faucet-hole-slot input[type="checkbox"]{width:15px !important;min-width:15px !important;max-width:15px !important;height:15px !important;min-height:15px !important;margin:0 !important;padding:0 !important;}
+#lc-inspector .sink-editor .faucet-hole-marker{min-height:9px;color:#7b8087;font-size:7.5px;font-weight:700;line-height:9px;}
+#lc-inspector .sink-editor .faucet-hole-slot.is-center .faucet-hole-marker{color:#3f4750;}
+#lc-inspector .sink-editor .faucet-settings-row{grid-template-columns:repeat(3,minmax(0,1fr)) !important;gap:4px !important;}
+#lc-inspector .sink-editor .faucet-settings-row .lc-label{min-width:0 !important;}
+#lc-inspector .sink-editor .faucet-settings-row input{width:100% !important;min-width:0 !important;padding-left:3px !important;padding-right:3px !important;font-variant-numeric:tabular-nums;}
+@media (min-width:900px) and (max-width:1100px){
+  #lc-inspector .sink-editor .faucet-settings-row{grid-template-columns:repeat(2,minmax(0,1fr)) !important;}
+  #lc-inspector .sink-editor .faucet-settings-row > :last-child{grid-column:1 / -1;}
+}
+
+/* =========================================================
+   CAD Lite v1.3.33 — master piece-fill display toggle
+   ========================================================= */
+
+.lc-left-rail .lc-piece-fill-toggle{
+  box-sizing:border-box !important;
+  width:21px !important;
+  min-width:21px !important;
+  height:21px !important;
+  padding:0 !important;
+  border:0 !important;
+  background:transparent !important;
+  color:#4b5563 !important;
+}
+.lc-left-rail .lc-piece-fill-toggle:hover{
+  background:#eceff2 !important;
+  color:#202124 !important;
+}
+.lc-left-rail .lc-piece-fill-toggle svg{
+  display:block;
+  width:14px !important;
+  height:14px !important;
+}
+.lc-left-rail .lc-piece-fill-toggle.is-off{opacity:.55;}
+
+/* =========================================================
+   CAD Lite v1.3.34 — Overlay add dropdown in left rail
+   ========================================================= */
+
+.lc-overlays-card .lc-overlay-add-row{
+  position:relative;
+  z-index:4;
+}
+
+.lc-overlays-card .lc-overlay-add-wrap{
+  position:relative;
+  width:100%;
+}
+
+.lc-overlays-card .lc-overlay-add-btn{
+  display:flex !important;
+  align-items:center !important;
+  justify-content:space-between !important;
+}
+
+.lc-overlays-card .lc-overlay-add-btn::after{
+  content:'▾';
+  margin-left:auto;
+  font-size:9px;
+  opacity:.7;
+}
+
+.lc-overlays-card .lc-overlay-add-btn:disabled{
+  cursor:not-allowed !important;
+  opacity:.45 !important;
+}
+
+.lc-overlays-card .lc-overlay-add-menu{
+  position:absolute;
+  top:calc(100% + 3px);
+  left:0;
+  right:0;
+  z-index:20;
+  box-sizing:border-box;
+  padding:3px;
+  border:1px solid #d9dce1;
+  border-radius:4px;
+  background:#fff;
+  box-shadow:0 7px 18px rgba(0,0,0,.14);
+}
+
+.lc-overlays-card .lc-overlay-add-menu[hidden]{
+  display:none !important;
+}
+
+.lc-overlays-card .lc-overlay-add-option{
+  display:block;
+  box-sizing:border-box;
+  width:100%;
+  min-height:25px;
+  margin:0;
+  padding:5px 7px;
+  border:0;
+  border-radius:3px;
+  background:transparent;
+  color:#30343a;
+  cursor:pointer;
+  font:inherit;
+  font-size:10px;
+  text-align:left;
+}
+
+.lc-overlays-card .lc-overlay-add-option:hover{
+  background:#f0f2f4;
+}
+
+/* =========================================================
+   CAD Lite v1.3.35 — quick Clip to Pieces control
+   ========================================================= */
+
+.lc-overlays-card .lc-overlay-quick-row{
+  box-sizing:border-box;
+  width:100%;
+  padding:0 5px 4px;
+  background:#fff;
+}
+
+.lc-overlays-card .lc-overlay-clip-quick{
+  box-sizing:border-box !important;
+  display:flex !important;
+  align-items:center !important;
+  justify-content:flex-start !important;
+  width:100% !important;
+  min-width:0 !important;
+  height:23px !important;
+  padding:0 6px !important;
+  border-radius:3px !important;
+  font-size:10px !important;
+  font-weight:600 !important;
+  text-align:left !important;
+}
+
+/* =========================================================
+   CAD Lite v1.3.36 — VIEW > Overlays controls
+   ========================================================= */
+/* Uses the existing VIEW submenu/toggle styles. */
+
+/* =========================================================
+   CAD Lite v1.3.37 — structured desktop-style toolbar menus
+   ========================================================= */
+.lc-toolbar-menu,
+#lc-view-menu,
+.lc-view-submenu{
+  box-sizing:border-box !important;
+  width:280px !important;
+  max-width:min(280px,88vw) !important;
+  padding:4px !important;
+  border-radius:5px !important;
+  color:#202124;
+}
+.lc-menu-command{
+  display:grid !important;
+  grid-template-columns:24px minmax(0,1fr) auto !important;
+  align-items:center !important;
+  column-gap:8px !important;
+  min-height:32px !important;
+  width:100% !important;
+  padding:5px 8px !important;
+  border:0 !important;
+  border-radius:3px !important;
+  background:transparent !important;
+  color:#202124 !important;
+  font-size:12px !important;
+  font-weight:400 !important;
+  text-align:left !important;
+}
+.lc-menu-command:hover:not(:disabled){background:#eef0f2 !important;}
+.lc-menu-command:disabled{color:#a9aaad !important;cursor:default !important;opacity:1 !important;}
+.lc-menu-command:disabled .lc-menu-shortcut,
+.lc-menu-command:disabled .lc-menu-icon{color:#bdc1c6 !important;opacity:.8;}
+.lc-menu-icon{
+  display:flex;align-items:center;justify-content:center;width:20px;min-width:20px;height:20px;color:#5f6368;
+}
+.lc-menu-icon:empty{visibility:hidden;}
+.lc-menu-icon svg{width:16px !important;height:16px !important;}
+.lc-menu-label{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.lc-menu-shortcut{
+  justify-self:end;margin-left:18px;color:#9aa0a6;font-size:10.5px;font-weight:400;white-space:nowrap;
+}
+.lc-menu-chevron{
+  justify-self:end;margin-left:18px;color:#5f6368;font-size:17px !important;
+}
+.lc-menu-submenu-row{grid-template-columns:24px minmax(0,1fr) auto !important;}
+#lc-view-menu .lc-menu-toggle-row,
+.lc-view-submenu .lc-menu-toggle-row{
+  display:grid !important;
+  grid-template-columns:20px minmax(0,1fr) !important;
+  align-items:center !important;
+  column-gap:8px !important;
+  min-height:30px;
+  padding:4px 8px !important;
+  border-radius:3px !important;
+  color:#202124;
+}
+#lc-view-menu .lc-menu-toggle-row:hover,
+.lc-view-submenu .lc-menu-toggle-row:hover{background:#eef0f2 !important;}
+#lc-view-menu .lc-menu-toggle-row input,
+.lc-view-submenu .lc-menu-toggle-row input{margin:0 !important;}
+#lc-view-menu .lc-menu-toggle-row span,
+.lc-view-submenu .lc-menu-toggle-row span{font-size:12px !important;}
+.lc-toolbar-menu .lc-menu-separator,
+#lc-view-menu .lc-menu-separator{
+  height:1px;margin:4px 0 !important;background:#e0e0e0;
+}
+
+/* =========================================================
+   CAD Lite v1.3.38 — EDIT menu startup hotfix
+   ========================================================= */
+/* Runtime-only fix; visual menu styling remains v1.3.37. */
+
+/* =========================================================
+   CAD Lite v1.3.39 — menu alignment, sizing + flyout stacking
+   ========================================================= */
+.lc-toolbar .lc-ctl > .lc-toolbar-menu[role="menu"],
+#lc-view-menu.lc-toolbar-menu,
+.lc-view-submenu.lc-toolbar-menu{
+  box-sizing:border-box !important;
+  width:280px !important;
+  min-width:280px !important;
+  max-width:min(280px, calc(100vw - 16px)) !important;
+  padding:4px !important;
+}
+
+.lc-toolbar .lc-toolbar-menu .lc-menu-command,
+#lc-view-menu .lc-menu-command,
+.lc-view-submenu .lc-menu-command{
+  box-sizing:border-box !important;
+  display:grid !important;
+  grid-template-columns:24px minmax(0,1fr) 72px !important;
+  width:100% !important;
+  min-width:0 !important;
+  max-width:none !important;
+  margin:0 !important;
+}
+
+#lc-view-menu > div{
+  box-sizing:border-box;
+  width:100%;
+  min-width:0;
+}
+
+.lc-menu-shortcut,
+.lc-menu-chevron{
+  box-sizing:border-box;
+  width:72px;
+  min-width:72px;
+  margin-left:0 !important;
+  justify-self:stretch !important;
+  text-align:right !important;
+}
+
+.lc-menu-chevron{
+  display:block;
+  line-height:1 !important;
+}
+
+@media (min-width:900px){
+  .lc-canvas-col{
+    position:relative !important;
+    z-index:40 !important;
+    overflow:visible !important;
+  }
+
+  .lc-canvas-col > .lc-card,
+  .lc-canvas-col .lc-toolbar{
+    overflow:visible !important;
+  }
+
+  .lc-canvas-col .lc-toolbar{
+    position:relative !important;
+    z-index:60 !important;
+  }
+
+  .lc-left-rail,
+  .lc-inspector-col{
+    position:relative;
+    z-index:1;
+  }
+
+  .lc-canvas-col .lc-canvas-wrap{
+    overflow:auto !important;
+  }
+}
+
+#lc-layouts .lc-btn.red.lc-iconbtn{
+  color:#c32020 !important;
+  border-color:#e4a09a !important;
+  background:#fff1ef !important;
+}
+#lc-layouts .lc-btn.red.lc-iconbtn:hover{
+  color:#951717 !important;
+  border-color:#d7766e !important;
+  background:#ffe1de !important;
+}
+
+/* =========================================================
+   CAD Lite v1.3.40 — align VIEW > Canvas numeric controls
+   ========================================================= */
+
+.lc-view-submenu .lc-view-number-row{
+  box-sizing:border-box;
+  width:100%;
+  min-width:0;
+  grid-template-columns:minmax(0,1fr) 84px 36px !important;
+}
+
+.lc-view-submenu .lc-view-number-label{
+  min-width:0;
+}
+
+.lc-view-submenu .lc-view-number-input{
+  box-sizing:border-box !important;
+  width:84px !important;
+  min-width:84px !important;
+  max-width:84px !important;
+  justify-self:end;
+}
+
+.lc-view-submenu .lc-view-number-unit{
+  box-sizing:border-box;
+  width:36px;
+  min-width:36px;
+  color:#6f7378;
+  font-size:10.5px !important;
+  line-height:1;
+  text-align:left;
+  white-space:nowrap;
+}
+
+/* =========================================================
+   CAD Lite v1.3.41 — reclaim empty shortcut space
+   ========================================================= */
+
+/* Commands without shortcuts get the entire text column. */
+.lc-toolbar .lc-toolbar-menu .lc-menu-command:not(.lc-menu-has-shortcut):not(.lc-menu-submenu-row),
+#lc-view-menu .lc-menu-command:not(.lc-menu-has-shortcut):not(.lc-menu-submenu-row),
+.lc-view-submenu .lc-menu-command:not(.lc-menu-has-shortcut):not(.lc-menu-submenu-row){
+  grid-template-columns:24px minmax(0,1fr) !important;
+}
+
+/* Empty shortcut spans should not reserve any width. */
+.lc-menu-command:not(.lc-menu-has-shortcut) .lc-menu-shortcut:empty{
+  display:none !important;
+}
+
+/* Commands with actual shortcuts keep the aligned right column. */
+.lc-toolbar .lc-toolbar-menu .lc-menu-command.lc-menu-has-shortcut,
+#lc-view-menu .lc-menu-command.lc-menu-has-shortcut,
+.lc-view-submenu .lc-menu-command.lc-menu-has-shortcut{
+  grid-template-columns:24px minmax(0,1fr) 72px !important;
+}
+
+/* =========================================================
+   CAD Lite v1.3.42 — left rail consistency
+   ========================================================= */
+
+.lc-nav-entity-row{
+  min-width:0;
+}
+
+.lc-nav-main{
+  flex:1 1 auto;
+  min-width:0;
+}
+
+.lc-nav-title{
+  min-width:0;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+  font-size:10.5px;
+  font-weight:600;
+  line-height:1.25;
+}
+
+.lc-nav-meta{
+  min-width:0;
+  margin-top:2px;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+  font-size:9.5px;
+  font-weight:400;
+  line-height:1.2;
+  opacity:.68;
+}
+
+.lc-nav-actions{
+  flex:0 0 auto;
+  display:flex;
+  align-items:center;
+  gap:4px;
+}
+
+#lc-list .lc-nav-actions .lc-iconbtn,
+#lc-dim-list .lc-nav-actions .lc-iconbtn,
+#lc-line-list .lc-nav-actions .lc-iconbtn,
+#lc-layouts .lc-layout-actions .lc-iconbtn{
+  box-sizing:border-box;
+  width:22px !important;
+  min-width:22px !important;
+  height:22px !important;
+  padding:0 4px !important;
+  border-radius:6px !important;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+}
+
+#lc-list .lc-nav-actions .lc-icon,
+#lc-dim-list .lc-nav-actions .lc-icon,
+#lc-line-list .lc-nav-actions .lc-icon,
+#lc-layouts .lc-layout-actions .lc-iconbtn .lc-icon{
+  width:12px !important;
+  height:12px !important;
+}
+
+.lc-list-empty{
+  display:flex !important;
+  align-items:center;
+  justify-content:center;
+  min-height:28px;
+  color:#6b7280 !important;
+  background:transparent !important;
+  border:0 !important;
+  font-size:9.5px;
+  font-style:italic;
+  cursor:default !important;
+  opacity:.8;
+}
+
+#lc-layouts .lc-layout-item{
+  box-sizing:border-box;
+  display:block !important;
+  padding:0 !important;
+  overflow:hidden;
+}
+
+#lc-layouts .lc-layout-title-row{
+  box-sizing:border-box;
+  width:100%;
+  min-height:30px;
+  display:flex;
+  align-items:center;
+  padding:6px 7px;
+  cursor:pointer;
+}
+
+#lc-layouts .lc-layout-title{
+  width:100%;
+  font-size:10.5px;
+}
+
+#lc-layouts .lc-layout-title-row .lc-input{
+  box-sizing:border-box;
+  width:100% !important;
+  min-width:0;
+  height:24px !important;
+  padding:2px 5px !important;
+}
+
+#lc-layouts .lc-layout-actions{
+  box-sizing:border-box;
+  width:100%;
+  display:grid;
+  grid-template-columns:minmax(0,1fr) 22px 22px;
+  align-items:center;
+  gap:4px;
+  padding:0 7px 6px;
+}
+
+#lc-layouts .lc-layout-duplicate{
+  box-sizing:border-box;
+  width:100% !important;
+  min-width:0 !important;
+  height:22px !important;
+  padding:0 7px !important;
+  display:flex !important;
+  align-items:center;
+  justify-content:flex-start;
+  gap:5px;
+  border-radius:6px !important;
+  font-size:9.5px !important;
+}
+
+#lc-layouts .lc-layout-duplicate .lc-icon{
+  flex:0 0 auto;
+  width:12px !important;
+  height:12px !important;
+}
+
+/* =========================================================
+   CAD Lite v1.3.43 — sidebar behavior + Appearance cleanup
+   ========================================================= */
+
+/* Left-rail list areas stay compact and scroll independently when long. */
+#lc-layouts,
+#lc-list,
+#lc-note-list,
+#lc-dim-list,
+#lc-line-list,
+#ov-list{
+  box-sizing:border-box;
+  max-height:220px !important;
+  overflow-y:auto !important;
+  overflow-x:hidden !important;
+  scrollbar-width:thin;
+}
+
+/* Stronger, tighter interaction language for pencil/delete controls. */
+.lc-left-rail .lc-rename-btn,
+.lc-left-rail .lc-btn.red.lc-iconbtn,
+#ov-list .lc-btn.red.lc-iconbtn{
+  width:20px !important;
+  min-width:20px !important;
+  height:20px !important;
+  padding:0 3px !important;
+  border-radius:3px !important;
+}
+
+.lc-left-rail .lc-nav-actions,
+#lc-layouts .lc-layout-actions,
+#lc-note-list .lc-item.nav{
+  column-gap:2px !important;
+}
+
+.lc-left-rail .lc-rename-btn{
+  border:1px solid #c7ccd3 !important;
+  background:#fff !important;
+  color:#34383d !important;
+  transition:background .12s ease,border-color .12s ease,color .12s ease;
+}
+
+.lc-left-rail .lc-rename-btn:hover{
+  background:#eef3f8 !important;
+  border-color:#8ea3b8 !important;
+  color:#1f4d75 !important;
+}
+
+.lc-left-rail .lc-rename-btn:active{
+  background:#e2eaf2 !important;
+}
+
+.lc-left-rail .lc-btn.red.lc-iconbtn,
+#ov-list .lc-btn.red.lc-iconbtn,
+#lc-layouts .lc-btn.red.lc-iconbtn{
+  border:1px solid #c65e58 !important;
+}
+
+.lc-left-rail .lc-btn.red.lc-iconbtn:hover,
+#ov-list .lc-btn.red.lc-iconbtn:hover,
+#lc-layouts .lc-btn.red.lc-iconbtn:hover{
+  border-color:#9d3833 !important;
+}
+
+/* Layout Duplicate should visibly respond too. */
+#lc-layouts .lc-layout-duplicate{
+  border:1px solid #c7ccd3 !important;
+  border-radius:3px !important;
+  transition:background .12s ease,border-color .12s ease,color .12s ease;
+}
+
+#lc-layouts .lc-layout-duplicate:hover{
+  background:#eef3f8 !important;
+  border-color:#8ea3b8 !important;
+  color:#1f4d75 !important;
+}
+
+#lc-layouts .lc-layout-actions{
+  grid-template-columns:minmax(0,1fr) 20px 20px !important;
+  gap:2px !important;
+}
+
+/* Reorder affordance. */
+.lc-list.reordering,
+#lc-layouts.reordering{
+  user-select:none;
+}
+
+.lc-item.nav.dragging,
+.lc-layout-item.dragging{
+  opacity:.55;
+}
+
+/* Appearance: Color / Opacity+Fill / Layer rows. */
+#lc-inspector .lc-piece-color-row{
+  display:block;
+  margin:0 !important;
+}
+
+#lc-inspector .lc-piece-color-row .lc-color-stack{
+  position:relative !important;
+  display:block !important;
+  box-sizing:border-box;
+  width:100% !important;
+  height:27px !important;
+  margin-top:3px;
+}
+
+#lc-inspector .lc-piece-color-row .lc-color-ghost{
+  position:absolute !important;
+  inset:0 !important;
+  z-index:2;
+  display:block !important;
+  width:100% !important;
+  height:100% !important;
+  padding:0 !important;
+  opacity:0 !important;
+  cursor:pointer;
+}
+
+#lc-inspector .lc-piece-color-row .lc-swatch{
+  position:absolute !important;
+  inset:0 !important;
+  display:block !important;
+  box-sizing:border-box;
+  width:auto !important;
+  height:auto !important;
+  border:1px solid #aeb4bc !important;
+  border-radius:3px !important;
+  background:var(--c,#fff) !important;
+  pointer-events:none;
+}
+
+#lc-inspector .lc-piece-opacity-row{
+  grid-template-columns:minmax(0,1fr) auto !important;
+  align-items:end !important;
+  gap:6px !important;
+}
+
+#lc-inspector .lc-piece-opacity-field{
+  min-width:0;
+  margin:0 !important;
+}
+
+#lc-inspector .lc-piece-opacity-field input[type="range"]{
+  box-sizing:border-box;
+  width:100% !important;
+  margin:3px 0 0 !important;
+}
+
+#lc-inspector .lc-piece-fill-field{
+  display:flex;
+  flex-direction:column;
+  gap:3px;
+  margin:0 !important;
+}
+
+#lc-inspector .lc-piece-fill-field .lc-fill-toggle{
+  height:24px !important;
+  min-width:62px !important;
+  padding:0 7px !important;
+  border-radius:3px !important;
+  font-size:10px !important;
+}
+
+#lc-inspector .lc-piece-layer-row{
+  display:grid !important;
+  grid-template-columns:23px minmax(0,1fr) 23px !important;
+  align-items:stretch !important;
+  gap:4px !important;
+}
+
+#lc-inspector .lc-piece-layer-row .lc-layer-action{
+  width:23px !important;
+  min-width:23px !important;
+  height:24px !important;
+  border-radius:3px !important;
+  align-self:stretch !important;
+}
+
+#lc-inspector .lc-layer-display{
+  box-sizing:border-box;
+  min-width:0;
+  height:24px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  border:1px solid #cfd3d8;
+  border-radius:3px;
+  background:#f5f6f7;
+  color:#454a50;
+  font-size:10px;
+  font-weight:600;
+}
+
+/* =========================================================
+   CAD Lite v1.3.44 — Quick Layouts + final control tightening
+   ========================================================= */
+
+/* Generic toolbar flyout used by INSERT > Quick Layouts. */
+.lc-toolbar .lc-menu-submenu-host{
+  position:relative;
+  box-sizing:border-box;
+  width:100%;
+  min-width:0;
+}
+
+.lc-toolbar .lc-toolbar-submenu{
+  position:absolute !important;
+  left:calc(100% - 2px) !important;
+  top:-4px !important;
+  right:auto !important;
+  box-sizing:border-box !important;
+  width:230px !important;
+  min-width:230px !important;
+  max-width:min(230px, calc(100vw - 16px)) !important;
+  padding:4px !important;
+  border:1px solid #d1d5db !important;
+  border-radius:4px !important;
+  background:#fff !important;
+  box-shadow:0 10px 28px rgba(0,0,0,.14) !important;
+  z-index:80 !important;
+}
+
+.lc-toolbar .lc-toolbar-menu .lc-menu-submenu-row{
+  grid-template-columns:24px minmax(0,1fr) 24px !important;
+}
+
+.lc-toolbar .lc-toolbar-menu .lc-menu-submenu-row .lc-menu-chevron{
+  width:24px !important;
+  min-width:24px !important;
+}
+
+/* Beat older ID-specific 22px button rules. */
+#lc-list .lc-nav-actions .lc-iconbtn,
+#lc-dim-list .lc-nav-actions .lc-iconbtn,
+#lc-line-list .lc-nav-actions .lc-iconbtn,
+#lc-layouts .lc-layout-actions .lc-iconbtn{
+  width:20px !important;
+  min-width:20px !important;
+  height:20px !important;
+  padding:0 3px !important;
+  border-radius:3px !important;
+}
+
+#lc-list .lc-nav-actions,
+#lc-dim-list .lc-nav-actions,
+#lc-line-list .lc-nav-actions,
+#lc-layouts .lc-layout-actions{
+  gap:2px !important;
+}
+
+/* All actual trash-can icon buttons get a clearer dark red edge. */
+.lite-cad .lc-btn.red.lc-iconbtn[title^="Delete"]{
+  border:1px solid #b44b45 !important;
+}
+
+.lite-cad .lc-btn.red.lc-iconbtn[title^="Delete"]:hover{
+  border-color:#84302c !important;
+}
+
+/* Rename/edit pencils visibly respond across all left-rail lists. */
+.lc-left-rail .lc-btn.ghost.lc-iconbtn[title^="Rename"],
+.lc-left-rail .lc-btn.ghost.lc-iconbtn[title="Edit note"]{
+  border:1px solid #c7ccd3 !important;
+  border-radius:3px !important;
+  background:#fff !important;
+  transition:background .12s ease,border-color .12s ease,color .12s ease;
+}
+
+.lc-left-rail .lc-btn.ghost.lc-iconbtn[title^="Rename"]:hover,
+.lc-left-rail .lc-btn.ghost.lc-iconbtn[title="Edit note"]:hover{
+  background:#e9f0f6 !important;
+  border-color:#819ab0 !important;
+  color:#1f4d75 !important;
+}
+
+/* =========================================================
+   CAD Lite v1.3.45 — layout navigation + input/UI consistency
+   ========================================================= */
+
+/* NOTE inspector action follows the newer compact rectangular control language. */
+#lc-inspector .lc-note-leader-action{
+  box-sizing:border-box;
+  height:24px !important;
+  min-height:24px !important;
+  padding:0 7px !important;
+  border:1px solid #c7ccd3 !important;
+  border-radius:3px !important;
+  background:#fff !important;
+  color:#34383d !important;
+  font-size:10px !important;
+  transition:background .12s ease,border-color .12s ease,color .12s ease;
+}
+
+#lc-inspector .lc-note-leader-action:hover{
+  background:#e9f0f6 !important;
+  border-color:#819ab0 !important;
+  color:#1f4d75 !important;
+}
+
+#lc-inspector .lc-note-leader-action:active{
+  background:#dde7ef !important;
+}
+
+/* Overlay action cluster now mirrors the pencil/trash placement of other lists. */
+#ov-list .ov-actions{
+  flex:0 0 auto;
+  display:flex !important;
+  align-items:center;
+  gap:2px !important;
+}
+
+#ov-list .lc-overlay-eye-action{
+  box-sizing:border-box;
+  width:20px !important;
+  min-width:20px !important;
+  height:20px !important;
+  padding:0 3px !important;
+  border:1px solid #c7ccd3 !important;
+  border-radius:3px !important;
+  background:#fff !important;
+  color:#34383d !important;
+  transition:background .12s ease,border-color .12s ease,color .12s ease;
+}
+
+#ov-list .lc-overlay-eye-action:hover{
+  background:#e9f0f6 !important;
+  border-color:#819ab0 !important;
+  color:#1f4d75 !important;
+}
+
+#ov-list .lc-overlay-eye-action .lc-icon{
+  width:12px !important;
+  height:12px !important;
+}
+
+#ov-list .ov-name{
+  min-width:0;
+  flex:1 1 auto;
+}
+
+/* =========================================================
+   CAD Lite v1.3.46 — leader/overlay alignment + vanity sinks
+   ========================================================= */
+
+/* Note-list leader toggle: same compact bordered control in both states. */
+#lc-note-list .lc-note-leader-toggle{
+  box-sizing:border-box;
+  width:20px !important;
+  min-width:20px !important;
+  height:20px !important;
+  padding:0 3px !important;
+  border:1px solid #c7ccd3 !important;
+  border-radius:3px !important;
+  background:#fff !important;
+  color:#34383d !important;
+  transition:background .12s ease,border-color .12s ease,color .12s ease;
+}
+
+#lc-note-list .lc-note-leader-toggle:hover{
+  background:#e9f0f6 !important;
+  border-color:#819ab0 !important;
+  color:#1f4d75 !important;
+}
+
+#lc-note-list .lc-note-leader-toggle.is-active{
+  background:#eef5ff !important;
+  border-color:#8ea9c2 !important;
+  color:#245b88 !important;
+}
+
+#lc-note-list .lc-note-leader-toggle.is-active:hover{
+  background:#e2edf7 !important;
+  border-color:#6f90ad !important;
+}
+
+/* Inspector Add/Remove Leader matches the standard inspector button geometry. */
+#lc-inspector .lc-note-leader-action{
+  box-sizing:border-box;
+  height:28px !important;
+  min-height:28px !important;
+  padding:0 8px !important;
+  border:1px solid #c7ccd3 !important;
+  border-radius:8px !important;
+  background:#fff !important;
+  color:#34383d !important;
+  font-size:12px !important;
+}
+
+#lc-inspector .lc-note-leader-action:hover{
+  background:#f3f4f6 !important;
+  border-color:#9da4ad !important;
+  color:#24282d !important;
+}
+
+/* The old overlay eye column is gone: only [name] [eye + trash]. */
+#ov-list .lc-ov-row,
+.lc-overlays-card .lc-ov-row,
+.lc-sidebar-overlay-card .lc-ov-row{
+  grid-template-columns:minmax(0,1fr) auto !important;
+  column-gap:4px !important;
+}
+
+#ov-list .ov-actions,
+.lc-overlays-card .ov-actions,
+.lc-sidebar-overlay-card .ov-actions{
+  justify-self:end !important;
+  justify-content:flex-end !important;
+  gap:2px !important;
+}
+
+/* Match the final 20px sidebar action geometry. */
+.lc-overlays-card .lc-iconbtn,
+.lc-sidebar-overlay-card .lc-iconbtn{
+  width:20px !important;
+  min-width:20px !important;
+  height:20px !important;
+  padding:0 3px !important;
+  border-radius:3px !important;
+}
+
+/* =========================================================
+   CAD Lite v1.3.47 — sink history/semantics + VIEW stacking
+   ========================================================= */
+
+/* VIEW and its flyouts must paint above either rail on desktop. */
+@media (min-width:900px){
+  .lite-cad .lc-canvas-col{
+    position:relative !important;
+    z-index:100 !important;
+    overflow:visible !important;
+  }
+
+  .lite-cad .lc-canvas-col > .lc-card,
+  .lite-cad .lc-canvas-col .lc-toolbar,
+  .lite-cad #lc-view-menu,
+  .lite-cad #lc-view-menu > div{
+    overflow:visible !important;
+  }
+
+  .lite-cad .lc-canvas-col .lc-toolbar{
+    position:relative !important;
+    z-index:1000 !important;
+  }
+
+  .lite-cad #lc-view-menu{
+    z-index:1100 !important;
+  }
+
+  .lite-cad .lc-view-submenu.lc-toolbar-menu{
+    z-index:1200 !important;
+  }
+
+  .lite-cad .lc-left-rail,
+  .lite-cad .lc-inspector-col{
+    position:relative !important;
+    z-index:1 !important;
+  }
+
+  .lite-cad .lc-canvas-col .lc-canvas-wrap{
+    overflow:auto !important;
+  }
+}
+
+/* CAD Lite v1.3.48 — Quick Layout vanity FRONT reference correction */
+
+/* =========================================================
+   CAD Lite v1.3.49 — sink navigator + CL dimension lanes
+   ========================================================= */
+
+#lc-inspector .lc-sink-list{
+  display:block !important;
+  overflow:visible !important;
+}
+
+#lc-inspector .lc-sink-row{
+  box-sizing:border-box;
+  display:grid !important;
+  grid-template-columns:13px minmax(0,1fr) auto !important;
+  align-items:center !important;
+  column-gap:4px !important;
+  min-width:0;
+  padding:4px !important;
+}
+
+#lc-inspector .lc-sink-drag{
+  width:13px;
+  min-width:13px;
+  height:22px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  color:#8a9098;
+  cursor:grab;
+  touch-action:none;
+  user-select:none;
+}
+
+#lc-inspector .lc-sink-drag:active{
+  cursor:grabbing;
+  color:#4f5965;
+}
+
+#lc-inspector .lc-sink-drag svg{
+  width:10px;
+  height:16px;
+  fill:currentColor;
+  pointer-events:none;
+}
+
+#lc-inspector .lc-sink-row-main{
+  min-width:0;
+  overflow:hidden;
+}
+
+#lc-inspector .lc-sink-row-title,
+#lc-inspector .lc-sink-row-meta{
+  min-width:0;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+
+#lc-inspector .lc-sink-row-title{
+  font-size:10.5px;
+  font-weight:600;
+  line-height:1.2;
+  color:#2f3337;
+}
+
+#lc-inspector .lc-sink-row-meta{
+  margin-top:2px;
+  font-size:9px;
+  line-height:1.15;
+  color:#6b7280;
+}
+
+#lc-inspector .lc-sink-row-actions{
+  flex:0 0 auto;
+  display:flex;
+  align-items:center;
+  gap:2px;
+}
+
+#lc-inspector .lc-sink-row-actions .lc-iconbtn{
+  box-sizing:border-box;
+  width:20px !important;
+  min-width:20px !important;
+  height:20px !important;
+  padding:0 3px !important;
+  border-radius:3px !important;
+}
+
+#lc-inspector .lc-sink-row-actions .lc-rename-btn,
+#lc-inspector .lc-sink-row-actions .lc-sink-duplicate{
+  border:1px solid #c7ccd3 !important;
+  background:#fff !important;
+  color:#34383d !important;
+}
+
+#lc-inspector .lc-sink-row-actions .lc-rename-btn:hover,
+#lc-inspector .lc-sink-row-actions .lc-sink-duplicate:hover{
+  background:#e9f0f6 !important;
+  border-color:#819ab0 !important;
+  color:#1f4d75 !important;
+}
+
+#lc-inspector .lc-sink-row.dragging{
+  opacity:.5;
+}
+
+#lc-inspector .lc-sink-list.reordering{
+  user-select:none;
+}
+
+/* CAD Lite v1.3.50 — runtime-safe sink reorder wiring */
+
+
+
+/* =========================================================
+   CAD Lite v1.3.51 — UI uniformity, drag affordances + bounded flyouts
+   ========================================================= */
+
+/* Match the left utility rail to the Inspector rail width. */
+@media (min-width:900px){
+  .lc-wrap{
+    grid-template-columns:minmax(165px,9vw) minmax(0,1fr) minmax(165px,9vw) !important;
+  }
+}
+@media (min-width:900px) and (max-width:1250px){
+  .lc-wrap{
+    grid-template-columns:200px minmax(0,1fr) 200px !important;
+  }
+}
+
+/* "Add" is an action, not a row title: center it consistently everywhere. */
+.lite-cad .lc-left-rail .lc-sidebar-inline-add,
+.lite-cad .lc-overlays-card .lc-sidebar-inline-add{
+  justify-content:center !important;
+  text-align:center !important;
+}
+
+/* Reorderable sidebar entities use the same six-dot affordance as Sinks. */
+.lc-left-rail .lc-sidebar-drag{
+  flex:0 0 13px;
+  width:13px;
+  min-width:13px;
+  height:22px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  color:#8a9098;
+  cursor:grab;
+  touch-action:none;
+  user-select:none;
+}
+.lc-left-rail .lc-sidebar-drag:active{
+  cursor:grabbing;
+  color:#4f5965;
+}
+.lc-left-rail .lc-sidebar-drag svg{
+  width:10px;
+  height:16px;
+  fill:currentColor;
+  pointer-events:none;
+}
+#lc-layouts .lc-layout-title{
+  flex:1 1 auto;
+  width:auto !important;
+  min-width:0;
+}
+
+/* Inspector Add controls stay clearly separate from entity rows. */
+#lc-inspector .lc-add-inspector-item,
+#lc-inspector .lc-seam-list + .lc-btn{
+  justify-content:center !important;
+  text-align:center !important;
+}
+
+/* JS positions open menus against the viewport; these caps are the safety net. */
+.lite-cad .lc-toolbar-menu,
+.lite-cad #lc-view-menu,
+.lite-cad .lc-view-submenu,
+.lite-cad .lc-toolbar-submenu{
+  max-width:calc(100vw - 16px) !important;
+  max-height:calc(100vh - 16px) !important;
+  overscroll-behavior:contain;
+}
+
+
+/* =========================================================
+   CAD Lite v1.3.52 — final sidebar/menu consistency
+   ========================================================= */
+
+/* Overlay actions use the same centered action language as every other Add row. */
+.lite-cad .lc-overlays-card .lc-overlay-add-btn{
+  position:relative !important;
+  justify-content:center !important;
+  text-align:center !important;
+  padding-left:20px !important;
+  padding-right:20px !important;
+}
+.lite-cad .lc-overlays-card .lc-overlay-add-btn::after{
+  position:absolute !important;
+  right:6px !important;
+  margin-left:0 !important;
+}
+.lite-cad .lc-overlays-card .lc-overlay-clip-quick{
+  justify-content:center !important;
+  text-align:center !important;
+}
+
+/* Layouts have two visual rows, so repeat the drag affordance on row two. */
+#lc-layouts .lc-layout-actions{
+  grid-template-columns:13px minmax(0,1fr) 20px 20px !important;
+  gap:2px !important;
+}
+#lc-layouts .lc-layout-actions > .lc-sidebar-drag{
+  align-self:center;
+  justify-self:center;
+}
+#lc-layouts .lc-layout-duplicate{
+  justify-content:flex-start !important;
+  padding-left:7px !important;
+}
+
+/* Quick Layout previews deserve a little more breathing room than generic submenu icons. */
+.lite-cad .lc-quick-layout-menu{
+  width:300px !important;
+  min-width:300px !important;
+  max-width:min(300px, calc(100vw - 16px)) !important;
+}
+.lite-cad .lc-quick-layout-menu .lc-menu-command{
+  grid-template-columns:34px minmax(0,1fr) !important;
+  min-height:36px !important;
+}
+.lite-cad .lc-quick-layout-menu .lc-menu-icon{
+  width:30px !important;
+  min-width:30px !important;
+  height:24px !important;
+}
+.lite-cad .lc-quick-layout-menu .lc-menu-icon svg{
+  width:26px !important;
+  height:22px !important;
+}
+
+/* Seam Add now shares the same centered inspector-action class as Add Sink. */
+#lc-inspector .lc-add-inspector-item{
+  justify-content:center !important;
+  text-align:center !important;
+}
+
+
+/* =========================================================
+   CAD Lite v1.3.53 — endpoint-correct Inspector opacity sliders
+   ========================================================= */
+
+/*
+  Native range tracks visually continue underneath half of the thumb at min/max.
+  Draw our own track inset by half the 12px thumb so the visible endpoints line up
+  exactly with the thumb center at both ends.
+*/
+#lc-inspector input[type="range"].lc-opacity-range{
+  --lc-range-pct:100%;
+  -webkit-appearance:none !important;
+  appearance:none !important;
+  box-sizing:border-box !important;
+  width:100% !important;
+  height:16px !important;
+  min-height:16px !important;
+  padding:0 !important;
+  border:0 !important;
+  border-radius:0 !important;
+  background:
+    linear-gradient(
+      to right,
+      #6b7280 0,
+      #6b7280 var(--lc-range-pct),
+      #d9dde2 var(--lc-range-pct),
+      #d9dde2 100%
+    )
+    center / calc(100% - 12px) 4px no-repeat !important;
+  cursor:pointer;
+}
+
+#lc-inspector input[type="range"].lc-opacity-range::-webkit-slider-runnable-track{
+  height:4px !important;
+  border:0 !important;
+  border-radius:999px !important;
+  background:transparent !important;
+  box-shadow:none !important;
+}
+
+#lc-inspector input[type="range"].lc-opacity-range::-webkit-slider-thumb{
+  -webkit-appearance:none !important;
+  appearance:none !important;
+  box-sizing:border-box !important;
+  width:12px !important;
+  height:12px !important;
+  margin-top:-4px !important;
+  border:1px solid #9aa0a6 !important;
+  border-radius:50% !important;
+  background:#fff !important;
+  box-shadow:0 0 0 1px rgba(255,255,255,.45) !important;
+}
+
+#lc-inspector input[type="range"].lc-opacity-range::-moz-range-track{
+  height:4px !important;
+  border:0 !important;
+  border-radius:999px !important;
+  background:transparent !important;
+}
+
+#lc-inspector input[type="range"].lc-opacity-range::-moz-range-progress{
+  height:4px !important;
+  background:transparent !important;
+}
+
+#lc-inspector input[type="range"].lc-opacity-range::-moz-range-thumb{
+  box-sizing:border-box !important;
+  width:12px !important;
+  height:12px !important;
+  border:1px solid #9aa0a6 !important;
+  border-radius:50% !important;
+  background:#fff !important;
+}
+
+#lc-inspector input[type="range"].lc-opacity-range:disabled{
+  cursor:default;
+  opacity:.5 !important;
+}
+
+
+/* =========================================================
+   CAD Lite v1.3.54 — one centered Layout drag handle
+   ========================================================= */
+
+#lc-layouts .lc-layout-item{
+  position:relative !important;
+}
+
+/* The single handle belongs to the whole two-row Layout card. */
+#lc-layouts .lc-layout-title-row > .lc-sidebar-drag{
+  position:absolute !important;
+  left:7px !important;
+  top:50% !important;
+  transform:translateY(-50%) !important;
+  z-index:2;
+}
+
+/* Both rows reserve the same left gutter for that one centered handle. */
+#lc-layouts .lc-layout-title-row{
+  padding-left:26px !important;
+}
+
+#lc-layouts .lc-layout-actions{
+  grid-template-columns:minmax(0,1fr) 20px 20px !important;
+  padding-left:26px !important;
+}
+
+/* v1.3.52's second-row handle is intentionally gone. */
+#lc-layouts .lc-layout-actions > .lc-sidebar-drag{
+  display:none !important;
+}
