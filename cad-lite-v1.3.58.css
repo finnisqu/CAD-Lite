@@ -5269,3 +5269,42 @@ body.lc-theater-page-lock{
 .lite-cad.lc-theme-dark *{
   scrollbar-color:#555d66 #202327;
 }
+
+
+/* v1.3.58 dark-theme specificity cleanup */
+
+/* Piece navigator rows intentionally keep their actual piece colors. */
+.lite-cad.lc-theme-dark #lc-list .lc-item.nav{
+  background:var(--c,#dbeafe) !important;
+  color:var(--fg,#111) !important;
+}
+
+/* Beat older ID-specific light-only control rules. */
+.lite-cad.lc-theme-dark .lc-left-rail .lc-rename-btn,
+.lite-cad.lc-theme-dark .lc-left-rail .lc-btn.ghost.lc-iconbtn[title^="Rename"],
+.lite-cad.lc-theme-dark .lc-left-rail .lc-btn.ghost.lc-iconbtn[title="Edit note"],
+.lite-cad.lc-theme-dark #lc-layouts .lc-layout-duplicate,
+.lite-cad.lc-theme-dark #lc-inspector .lc-note-leader-action,
+.lite-cad.lc-theme-dark #lc-inspector .lc-sink-row-actions .lc-rename-btn,
+.lite-cad.lc-theme-dark #lc-inspector .lc-sink-row-actions .lc-sink-duplicate{
+  background:var(--lc-panel) !important;
+  color:var(--lc-text) !important;
+  border-color:var(--lc-border-strong) !important;
+}
+
+.lite-cad.lc-theme-dark .lc-left-rail .lc-rename-btn:hover,
+.lite-cad.lc-theme-dark .lc-left-rail .lc-btn.ghost.lc-iconbtn[title^="Rename"]:hover,
+.lite-cad.lc-theme-dark .lc-left-rail .lc-btn.ghost.lc-iconbtn[title="Edit note"]:hover,
+.lite-cad.lc-theme-dark #lc-layouts .lc-layout-duplicate:hover,
+.lite-cad.lc-theme-dark #lc-inspector .lc-note-leader-action:hover,
+.lite-cad.lc-theme-dark #lc-inspector .lc-sink-row-actions .lc-rename-btn:hover,
+.lite-cad.lc-theme-dark #lc-inspector .lc-sink-row-actions .lc-sink-duplicate:hover{
+  background:var(--lc-hover) !important;
+  color:var(--lc-text) !important;
+  border-color:var(--lc-border-strong) !important;
+}
+
+/* Sink metadata follows the muted dark-theme text color. */
+.lite-cad.lc-theme-dark #lc-inspector .lc-sink-row-meta{
+  color:var(--lc-muted) !important;
+}
