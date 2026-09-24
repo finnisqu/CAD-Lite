@@ -2967,70 +2967,124 @@
       let guideState=null;
       let guidePanel=null;
       let guideHighlight=null;
+      let guideAdvanceTimer=null;
 
       const guideFindByText=(selector,text)=>{
         return Array.from(document.querySelectorAll(selector))
           .find(el=>String(el.textContent||'').trim().toLowerCase().includes(String(text).toLowerCase()))||null;
       };
 
+      const guideMetric={
+        designPieces:()=>state.pieces.filter(piece=>!isBacksplashPiece(piece)).length,
+        designPlacement:()=>state.pieces
+          .filter(piece=>!isBacksplashPiece(piece))
+          .map(piece=>[piece.id,round3(piece.x),round3(piece.y),round3(piece.w),round3(piece.h),round3(piece.rotation||0)].join(':'))
+          .join('|'),
+        splashes:()=>state.pieces.filter(isBacksplashPiece).length,
+        sinks:()=>state.pieces.reduce((sum,piece)=>sum+(Array.isArray(piece.sinks)?piece.sinks.length:0),0),
+        edges:()=>state.pieces.map(piece=>[
+          piece.id,
+          Object.values(piece.edgeProfiles||{}).join(','),
+          Object.values(piece.cornerRadii||{}).map(v=>round3(Number(v)||0)).join(',')
+        ].join(':')).join('|'),
+        seams:()=>state.pieces.reduce((sum,piece)=>sum+(Array.isArray(piece.pieceSeams)?piece.pieceSeams.length:0),0),
+        slabs:()=>overlays().length,
+        slabPlacement:()=>state.pieces.map(piece=>{
+          const sp=ensureSlabPlacement(piece);
+          return [piece.id,round3(sp.x),round3(sp.y),round3(sp.rotation||0)].join(':');
+        }).join('|')
+      };
+
       const guidedWorkflowSteps=[
         {
           title:'Create countertop pieces',
-          body:'Start in DESIGN and add pieces. For a fast starting point, INSERT → Quick Layouts can generate a common kitchen or vanity arrangement.',
+          body:'Start in DESIGN. Use + Add Piece for a 40" × 25.5" starter top, or INSERT → Quick Layouts for a common kitchen or vanity arrangement.',
           workspace:'layout',
-          target:()=>document.querySelector('.lc-add-piece-top')||document.getElementById('lc-add')
+          target:()=>document.getElementById('lc-list')?.closest('.lc-card')||document.querySelector('.lc-add-piece-top'),
+          capture:guideMetric.designPieces,
+          complete:baseline=>guideMetric.designPieces()>baseline
         },
         {
           title:'Build the installed layout',
-          body:'Move, size, rotate, and snap the countertop pieces into their installed positions. This is the customer-facing DESIGN layout.',
+          body:'Move, size, rotate, and snap the countertop pieces into their installed positions. This is the customer-facing DESIGN canvas.',
           workspace:'layout',
-          target:()=>document.getElementById('lc-svg')
+          target:()=>document.getElementById('lc-svg'),
+          capture:guideMetric.designPlacement,
+          complete:baseline=>guideMetric.designPlacement()!==baseline
         },
         {
           title:'Add splashes',
-          body:'Select a countertop piece and use + Add Splash in PIECE INFO. Click the piece edge that receives the splash. Hold S for the momentary splash tool.',
+          body:'Select a countertop piece and use + Add Splash in PIECE INFO, then click the edge that receives the splash. The guide advances after a splash is actually created.',
           workspace:'layout',
-          target:()=>document.querySelector('.lc-add-splash-action')||document.getElementById('lc-inspector')
+          target:()=>document.querySelector('.lc-add-splash-action')||guideFindByText('#lc-inspector .lc-subcard','Piece Info')||document.getElementById('lc-inspector'),
+          capture:guideMetric.splashes,
+          complete:baseline=>guideMetric.splashes()>baseline
         },
         {
           title:'Add sinks and faucets',
-          body:'With the piece selected, open SINKS in the Inspector. Add a sink model, set its centerline, and configure faucet holes as needed.',
+          body:'Open SINKS and choose + Add Sink. Set the model, centerline, and faucet holes as needed.',
           workspace:'layout',
-          target:()=>document.querySelector('.lc-sinks-section')||document.getElementById('lc-inspector')
+          target:()=>document.querySelector('.lc-sinks-section')||document.getElementById('lc-inspector'),
+          capture:guideMetric.sinks,
+          complete:baseline=>guideMetric.sinks()>baseline
         },
         {
           title:'Set edge profiles and corners',
-          body:'Open EDGES & CORNERS in the Inspector. Assign the profile to each physical side and enter any corner radii.',
+          body:'Open EDGES & CORNERS. Assign the profile to each physical side and enter any corner radii.',
           workspace:'layout',
-          target:()=>guideFindByText('#lc-inspector .lc-subcard','Edges & Corners')||document.getElementById('lc-inspector')
+          target:()=>guideFindByText('#lc-inspector .lc-subcard','Edges & Corners')||document.getElementById('lc-inspector'),
+          capture:guideMetric.edges,
+          complete:baseline=>guideMetric.edges()!==baseline
         },
         {
           title:'Plan seams',
-          body:'Open SEAMS to place fabrication seam references. These will become the basis for the Cut-at-Seam fabrication workflow.',
+          body:'Open SEAMS and add any fabrication seam references needed for the job.',
           workspace:'layout',
-          target:()=>guideFindByText('#lc-inspector .lc-subcard','Seams')||document.getElementById('lc-inspector')
+          target:()=>guideFindByText('#lc-inspector .lc-subcard','Seams')||document.getElementById('lc-inspector'),
+          capture:guideMetric.seams,
+          complete:baseline=>guideMetric.seams()>baseline
+        },
+        {
+          title:'Open the SLAB canvas',
+          body:'CAD Lite has two coordinated canvases: DESIGN keeps the installed layout; SLAB stores fabrication placement. Click the SLAB tab to continue.',
+          target:()=>slabWorkspaceTab||document.querySelectorAll('.lc-canvas-tab')[1]||null,
+          capture:()=>state.workspace,
+          complete:()=>state.workspace==='slab'
         },
         {
           title:'Add a slab',
-          body:'Now move to SLAB. Expand SLABS and choose + Add Slab. Upload a photo or choose one from the library, crop it, and enter the real slab dimensions.',
+          body:'In SLAB, expand SLABS and choose + Add Slab. Upload or choose an image, crop it, then enter the real slab width and height.',
           workspace:'slab',
-          target:()=>document.getElementById('lc-overlays-title')?.closest('.lc-left-section')||document.querySelector('.lc-canvas-tab:last-child')
+          target:()=>document.getElementById('lc-overlays-title')?.closest('.lc-left-section')||document.querySelector('.lc-overlays-card'),
+          capture:guideMetric.slabs,
+          complete:baseline=>guideMetric.slabs()>baseline
         },
         {
           title:'Arrange fabrication placement',
-          body:'Move and rotate the countertop pieces over the slab images. SLAB placement is independent from the installed DESIGN layout.',
+          body:'Move and rotate the countertop pieces over the slab images. These coordinates are independent from the installed DESIGN layout.',
           workspace:'slab',
-          target:()=>document.getElementById('lc-svg')
+          target:()=>document.getElementById('lc-svg'),
+          capture:guideMetric.slabPlacement,
+          complete:baseline=>guideMetric.slabPlacement()!==baseline
         },
         {
-          title:'Review the finished stone in DESIGN',
-          body:'Return to DESIGN and choose Piece Display → Slab. The tops keep their installed positions while showing the exact material regions selected in SLAB.',
+          title:'Return to DESIGN',
+          body:'Click DESIGN to return to the installed drawing. The slab selections you just made will stay mapped to the tops.',
+          target:()=>layoutWorkspaceTab||document.querySelector('.lc-canvas-tab'),
+          capture:()=>state.workspace,
+          complete:()=>state.workspace!=='slab'
+        },
+        {
+          title:'Review the slab appearance',
+          body:'Use the Pieces display control—or VIEW → Pieces—to choose Slab and review the installed tops with their mapped material.',
           workspace:'layout',
-          target:()=>document.querySelector('.lc-piece-fill-toggle')||document.getElementById('lc-view-menu-btn')
+          target:()=>document.querySelector('.lc-piece-fill-toggle')||document.getElementById('lc-view-menu-btn'),
+          capture:()=>pieceDisplayMode(),
+          complete:baseline=>baseline!=='slab'&&pieceDisplayMode()==='slab'
         },
         {
           title:'Review and export',
-          body:'Check the finished DESIGN one last time, then use EXPORT for PDF, PNG, SVG, project JSON, or a share link.',
+          body:'Review DESIGN one last time. EXPORT can create PDFs, PNG, SVG, project JSON, or a share link.',
           workspace:'layout',
           target:()=>document.getElementById('lc-export-menu-btn')
         }
@@ -3043,7 +3097,7 @@
 
       function ensureGuidePanel(){
         if(guidePanel)return guidePanel;
-        const root=document.querySelector('.lite-cad')||document.body;
+        const root=document.querySelector('.lc-canvas-col')||document.querySelector('.lite-cad')||document.body;
         const panel=document.createElement('div');
         panel.className='lc-guide-panel';
         panel.hidden=true;
@@ -3079,13 +3133,18 @@
 
       function renderGuidedWorkflowStep(){
         if(!guideState)return;
+        guideState.rendering=true;
+        cancelPlacementTools?.({redraw:false});
+
         const panel=ensureGuidePanel();
         clearGuideHighlight();
         const step=guidedWorkflowSteps[guideState.index];
-        if(!step)return;
+        if(!step){guideState.rendering=false;return;}
 
         if(step.workspace==='slab')setCanvasWorkspace('slab');
         else if(step.workspace==='layout')setCanvasWorkspace('layout');
+
+        guideState.baseline=step.capture?.();
 
         panel.querySelector('.lc-guide-kicker').textContent=`Guided Workflow · Step ${guideState.index+1} of ${guidedWorkflowSteps.length}`;
         panel.querySelector('.lc-guide-title').textContent=step.title;
@@ -3103,15 +3162,41 @@
             try{target.scrollIntoView({behavior:'smooth',block:'nearest',inline:'nearest'});}catch(_){}
           }
         });
+        guideState.rendering=false;
+      }
+
+      function maybeAdvanceGuidedWorkflow(){
+        if(!guideState||guideState.rendering||guideState.advancing)return;
+        const index=guideState.index;
+        const step=guidedWorkflowSteps[index];
+        if(!step?.complete)return;
+        let complete=false;
+        try{complete=!!step.complete(guideState.baseline);}catch(_){complete=false;}
+        if(!complete)return;
+
+        guideState.advancing=true;
+        clearTimeout(guideAdvanceTimer);
+        guideAdvanceTimer=setTimeout(()=>{
+          if(!guideState||guideState.index!==index)return;
+          guideState.advancing=false;
+          if(index>=guidedWorkflowSteps.length-1){
+            stopGuidedWorkflow(true);
+            return;
+          }
+          guideState.index++;
+          renderGuidedWorkflowStep();
+        },180);
       }
 
       function startGuidedWorkflow(){
-        guideState={index:0};
+        cancelPlacementTools?.({redraw:false});
+        guideState={index:0,baseline:null,rendering:false,advancing:false};
         try{localStorage.setItem(GUIDE_SEEN_KEY,'1');}catch(_){}
         renderGuidedWorkflowStep();
       }
 
       function stopGuidedWorkflow(markSeen=false){
+        clearTimeout(guideAdvanceTimer);
         clearGuideHighlight();
         if(guidePanel)guidePanel.hidden=true;
         guideState=null;
@@ -3125,12 +3210,12 @@
         try{seen=localStorage.getItem(GUIDE_SEEN_KEY)==='1';}catch(_){}
         if(seen)return;
 
-        const root=document.querySelector('.lite-cad')||document.body;
+        const root=document.querySelector('.lc-canvas-col')||document.querySelector('.lite-cad')||document.body;
         const prompt=document.createElement('div');
         prompt.className='lc-guide-welcome';
         prompt.innerHTML=`
           <strong>New to CAD Lite?</strong>
-          <span>Follow the guided workflow from slab selection through layout, sinks, edges, fabrication placement, and export.</span>
+          <span>Follow a guided workflow through DESIGN, sinks and edges, then SLAB placement and final review.</span>
           <div>
             <button type="button" class="lc-btn ghost sm" data-guide-not-now>Not Now</button>
             <button type="button" class="lc-btn alt sm" data-guide-start>Start Guide</button>
@@ -5558,6 +5643,7 @@ if (window.svg2pdf) {
           syncLineToolUI?.();
         }
         syncCanvasWorkspaceTabs();
+        syncViewMenuUI?.();
         renderList?.();
         renderDimList?.();
         renderLineList?.();
@@ -6181,6 +6267,7 @@ if (window.svg2pdf) {
 
 function scheduleSave(){
   detachShareIdFromUrl();    // Detach on any save
+  if(typeof maybeAdvanceGuidedWorkflow==='function')setTimeout(maybeAdvanceGuidedWorkflow,0);
   clearTimeout(saveTimer);
   saveTimer = setTimeout(()=>{
     try{
