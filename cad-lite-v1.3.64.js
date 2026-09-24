@@ -5223,7 +5223,139 @@ function restore(){
       }
 
 
-      function clampToCanvas(p){ const rs=realSize(p); p.x=clamp(p.x,0,state.cw-rs.w); p.y=clamp(p.y,0,state.ch-rs.h); }
+      function clampToCanvas(p){ const rs=realSize(p); p.x=clamp(p.x,0,Math.max(0,state.cw-rs.w)); p.y=clamp(p.y,0,Math.max(0,state.ch-rs.h)); }
+
+      const DEFAULT_SPLASH_HEIGHT=4;
+      const SPLASH_DRAW_GAP=3;
+
+      function isBacksplashPiece(piece){
+        return !!piece && (
+          piece.pieceType==='backsplash' ||
+          (Array.isArray(piece.tags) && piece.tags.includes('backsplash'))
+        );
+      }
+
+      function splashParentForTool(){
+        const ids=state.selectedIds?.length
+          ? state.selectedIds
+          : (state.selectedId?[state.selectedId]:[]);
+        if(ids.length!==1)return null;
+        const p=state.pieces.find(piece=>piece.id===ids[0])||null;
+        if(!p||isBacksplashPiece(p))return null;
+        return p;
+      }
+
+      function splashChildForEdge(parentId,edge){
+        return state.pieces.find(piece=>
+          isBacksplashPiece(piece) &&
+          piece.attachment?.kind==='backsplash' &&
+          piece.attachment?.parentPieceId===parentId &&
+          piece.attachment?.sourceEdge===edge
+        )||null;
+      }
+
+      function detachSplashChildren(parentId){
+        state.pieces.forEach(piece=>{
+          if(piece.attachment?.kind==='backsplash' && piece.attachment?.parentPieceId===parentId){
+            piece.attachment={...piece.attachment,parentPieceId:null,linkedLength:false};
+          }
+        });
+      }
+
+      function rotateVec(x,y,deg){
+        const t=(Number(deg)||0)*Math.PI/180;
+        const c=Math.cos(t),s=Math.sin(t);
+        return {x:x*c-y*s,y:x*s+y*c};
+      }
+
+      function splashPlacement(parent,edge,height=DEFAULT_SPLASH_HEIGHT){
+        const rs=realSize(parent);
+        const cx=(Number(parent.x)||0)+rs.w/2;
+        const cy=(Number(parent.y)||0)+rs.h/2;
+        const pw=Math.max(.25,Number(parent.w)||.25);
+        const ph=Math.max(.25,Number(parent.h)||.25);
+        const rot=((Number(parent.rotation)||0)%360+360)%360;
+
+        const edgeInfo={
+          top:{ex:0,ey:-ph/2,nx:0,ny:-1,length:pw,rotation:rot,name:'Backsplash',kind:'backsplash'},
+          right:{ex:pw/2,ey:0,nx:1,ny:0,length:ph,rotation:(rot+90)%360,name:'Right Sidesplash',kind:'sidesplash'},
+          bottom:{ex:0,ey:ph/2,nx:0,ny:1,length:pw,rotation:rot,name:'Backsplash',kind:'backsplash'},
+          left:{ex:-pw/2,ey:0,nx:-1,ny:0,length:ph,rotation:(rot+90)%360,name:'Left Sidesplash',kind:'sidesplash'}
+        }[edge]||null;
+        if(!edgeInfo)return null;
+
+        const edgeVec=rotateVec(edgeInfo.ex,edgeInfo.ey,rot);
+        const normal=rotateVec(edgeInfo.nx,edgeInfo.ny,rot);
+        const center={
+          x:cx+edgeVec.x+normal.x*(SPLASH_DRAW_GAP+height/2),
+          y:cy+edgeVec.y+normal.y*(SPLASH_DRAW_GAP+height/2)
+        };
+
+        const temp={w:edgeInfo.length,h:height,rotation:edgeInfo.rotation};
+        const crs=realSize(temp);
+        return {
+          ...edgeInfo,
+          x:center.x-crs.w/2,
+          y:center.y-crs.h/2
+        };
+      }
+
+      function createBacksplashFromEdge(parent,edge){
+        if(!parent||isBacksplashPiece(parent))return null;
+        const existing=splashChildForEdge(parent.id,edge);
+        if(existing)return existing;
+
+        const place=splashPlacement(parent,edge,DEFAULT_SPLASH_HEIGHT);
+        if(!place)return null;
+
+        const topLayer=Math.max(0,...state.pieces.map(x=>Number(x.layer)||0))+1;
+        const child={
+          id:uid(),
+          name:place.name,
+          w:round3(place.length),
+          h:DEFAULT_SPLASH_HEIGHT,
+          x:place.x,
+          y:place.y,
+          rotation:place.rotation,
+          color:parent.color||'#ffffff',
+          fillOpacity:Number.isFinite(Number(parent.fillOpacity))?Number(parent.fillOpacity):1,
+          noFill:!!parent.noFill,
+          layer:topLayer,
+          rTL:false,rTR:false,rBL:false,rBR:false,
+          cornerRadii:{tl:0,tr:0,br:0,bl:0},
+          pieceSeams:[],
+          sinks:[],
+          edgeProfiles:{top:'none',right:'none',bottom:'none',left:'none'},
+          pieceType:'backsplash',
+          tags:['backsplash'],
+          splashKind:place.kind,
+          splashHeight:DEFAULT_SPLASH_HEIGHT,
+          attachment:{
+            kind:'backsplash',
+            parentPieceId:parent.id,
+            sourceEdge:edge,
+            linkedLength:true
+          }
+        };
+        clampToCanvas(child);
+
+        const parentIndex=state.pieces.findIndex(piece=>piece.id===parent.id);
+        let insertAt=parentIndex>=0?parentIndex+1:state.pieces.length;
+        while(insertAt<state.pieces.length && state.pieces[insertAt]?.attachment?.parentPieceId===parent.id){
+          insertAt++;
+        }
+        state.pieces.splice(insertAt,0,child);
+
+        // Keep the parent active so Hold-S can add several sides in one motion.
+        selectOnly(parent.id);
+        renderList();
+        updateInspector();
+        sinksUI?.refresh?.();
+        draw();
+        scheduleSave();
+        pushHistory();
+        return child;
+      }
 
       function roundedRectPathCorners(x, y, w, h, r){
         const rtl=r.tl||0, rtr=r.tr||0, rbr=r.br||0, rbl=r.bl||0;
