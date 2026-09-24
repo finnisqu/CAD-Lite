@@ -9010,11 +9010,13 @@ function createRadiusAnnotation(piece,corner){
 
   const existing=radiusAnnotationForCorner(piece.id,corner,L);
   if(existing){
-    state.selectedNoteId=existing.id;
+    // Radius Mode behaves like Splash Mode: keep the countertop selected so
+    // additional corners remain available in the same run.
+    state.selectedNoteId=null;
     state.selectedLineId=null;
     state.selectedDimId=null;
-    clearSelection();
-    renderNoteList();renderLineList();updateInspector();draw();
+    selectOnly(piece.id);
+    renderList();renderNoteList();renderLineList();updateInspector();draw();
     return existing;
   }
 
@@ -9051,11 +9053,13 @@ function createRadiusAnnotation(piece,corner){
   L.notes.push(note);
   L.lines.push(line);
 
-  state.selectedNoteId=note.id;
+  // Keep the source piece active so Radius Mode can label several corners
+  // without switching the Inspector over to the generated Note.
+  state.selectedNoteId=null;
   state.selectedLineId=null;
   state.selectedDimId=null;
-  clearSelection();
-  renderNoteList();renderLineList();updateInspector();draw();scheduleSave();pushHistory();
+  selectOnly(piece.id);
+  renderList();renderNoteList();renderLineList();updateInspector();draw();scheduleSave();pushHistory();
   return note;
 }
 
