@@ -5828,6 +5828,108 @@ function restore(){
         svg.appendChild(g);
       }
 
+      function drawSplashInteractionLayer(){
+        if(activeMomentaryTool()!=='splash')return;
+
+        const parent=splashParentForTool();
+        if(!parent)return;
+
+        const rs=realSize(parent);
+        const W0=i2p(Math.max(.25,Number(parent.w)||.25));
+        const H0=i2p(Math.max(.25,Number(parent.h)||.25));
+        const cx=i2p((Number(parent.x)||0)+rs.w/2);
+        const cy=i2p((Number(parent.y)||0)+rs.h/2);
+        const left=cx-W0/2;
+        const top=cy-H0/2;
+        const rot=((Number(parent.rotation)||0)%360+360)%360;
+        const splashPx=i2p(DEFAULT_SPLASH_HEIGHT);
+        const gapPx=i2p(SPLASH_DRAW_GAP);
+        const hitPad=Math.max(7,Math.min(12,state.scale*.75));
+
+        const layer=document.createElementNS(svgNS,'g');
+        layer.setAttribute('class','lc-splash-interaction-layer');
+        layer.setAttribute('data-momentary-layer','splash');
+        if(rot)layer.setAttribute('transform',`rotate(${rot} ${cx} ${cy})`);
+
+        const defs={
+          top:{
+            hit:[left,top-hitPad,W0,hitPad*2],
+            line:[left,top,left+W0,top],
+            preview:[left,top-gapPx-splashPx,W0,splashPx]
+          },
+          right:{
+            hit:[left+W0-hitPad,top,hitPad*2,H0],
+            line:[left+W0,top,left+W0,top+H0],
+            preview:[left+W0+gapPx,top,splashPx,H0]
+          },
+          bottom:{
+            hit:[left,top+H0-hitPad,W0,hitPad*2],
+            line:[left,top+H0,left+W0,top+H0],
+            preview:[left,top+H0+gapPx,W0,splashPx]
+          },
+          left:{
+            hit:[left-hitPad,top,hitPad*2,H0],
+            line:[left,top,left,top+H0],
+            preview:[left-gapPx-splashPx,top,splashPx,H0]
+          }
+        };
+
+        ['top','right','bottom','left'].forEach(edge=>{
+          const occupied=!!splashChildForEdge(parent.id,edge);
+          const spec=defs[edge];
+          const opt=document.createElementNS(svgNS,'g');
+          opt.setAttribute('class','lc-splash-edge-option'+(occupied?' is-occupied':''));
+          opt.setAttribute('data-splash-edge',edge);
+
+          const preview=document.createElementNS(svgNS,'rect');
+          preview.setAttribute('class','lc-splash-edge-preview');
+          preview.setAttribute('x',spec.preview[0]);
+          preview.setAttribute('y',spec.preview[1]);
+          preview.setAttribute('width',Math.max(1,spec.preview[2]));
+          preview.setAttribute('height',Math.max(1,spec.preview[3]));
+          preview.setAttribute('rx','1');
+          preview.setAttribute('pointer-events','none');
+
+          const line=document.createElementNS(svgNS,'line');
+          line.setAttribute('class','lc-splash-edge-line');
+          line.setAttribute('x1',spec.line[0]);line.setAttribute('y1',spec.line[1]);
+          line.setAttribute('x2',spec.line[2]);line.setAttribute('y2',spec.line[3]);
+          line.setAttribute('vector-effect','non-scaling-stroke');
+          line.setAttribute('pointer-events','none');
+
+          const hit=document.createElementNS(svgNS,'rect');
+          hit.setAttribute('class','lc-splash-edge-hit');
+          hit.setAttribute('data-splash-edge-hit','1');
+          hit.setAttribute('data-splash-edge',edge);
+          hit.setAttribute('x',spec.hit[0]);
+          hit.setAttribute('y',spec.hit[1]);
+          hit.setAttribute('width',Math.max(1,spec.hit[2]));
+          hit.setAttribute('height',Math.max(1,spec.hit[3]));
+          hit.setAttribute('fill','transparent');
+          hit.setAttribute('pointer-events','all');
+          hit.setAttribute('aria-label',occupied?'Splash already attached':'Add 4 inch splash');
+
+          const title=document.createElementNS(svgNS,'title');
+          title.textContent=occupied
+            ? 'Splash already attached to this edge'
+            : 'Click to add a 4" splash';
+          hit.appendChild(title);
+
+          hit.addEventListener('pointerdown',ev=>{
+            ev.preventDefault();
+            ev.stopPropagation();
+            ev.stopImmediatePropagation?.();
+            if(occupied)return;
+            createBacksplashFromEdge(parent,edge);
+          });
+
+          opt.append(preview,line,hit);
+          layer.appendChild(opt);
+        });
+
+        svg.appendChild(layer);
+      }
+
 
 
 
@@ -6524,6 +6626,7 @@ function restore(){
         meta.textContent = `Canvas: ${state.cw}" × ${state.ch}" · Grid ${state.grid}" · Scale ${state.scale}px/in`;
         drawToolPreview();
         drawOverlayInteractionLayer();
+        drawSplashInteractionLayer();
       }
 
 
@@ -8802,17 +8905,21 @@ if(btnAddLayout){
 
       // ------- Canvas interactions -------
 
-      const blockNonOverlayMomentaryInteraction=e=>{
-        if(activeMomentaryTool()!=='overlay')return;
+      const blockNonMomentaryInteraction=e=>{
+        const tool=activeMomentaryTool();
+        if(!tool)return;
         const target=e.target;
-        if(target instanceof Element && target.closest('[data-overlay-hit="1"]'))return;
+        if(target instanceof Element){
+          if(tool==='overlay' && target.closest('[data-overlay-hit="1"]'))return;
+          if(tool==='splash' && target.closest('[data-splash-edge-hit="1"]'))return;
+        }
         e.preventDefault();
         e.stopPropagation();
         e.stopImmediatePropagation?.();
       };
-      svg.addEventListener('pointerdown',blockNonOverlayMomentaryInteraction,true);
-      svg.addEventListener('click',blockNonOverlayMomentaryInteraction,true);
-      svg.addEventListener('dblclick',blockNonOverlayMomentaryInteraction,true);
+      svg.addEventListener('pointerdown',blockNonMomentaryInteraction,true);
+      svg.addEventListener('click',blockNonMomentaryInteraction,true);
+      svg.addEventListener('dblclick',blockNonMomentaryInteraction,true);
 
       svg.addEventListener('pointermove', (e) => {
       if (!state.drag) return;
@@ -8853,6 +8960,7 @@ if(btnAddLayout){
 
       function activeToolCursor(){
         if(activeMomentaryTool()==='overlay')return 'default';
+        if(activeMomentaryTool()==='splash')return 'default';
         return state.noteTool?'text':((state.dimTool||state.lineTool)?'crosshair':'');
       }
       function syncCanvasToolCursor(){
