@@ -284,24 +284,14 @@
         updateInspector?.();
       }
 
-      function clampOverlayToCanvas(o){
-        if(!o)return o;
-        const w=Math.max(1,Number(o.slabW)||1);
-        const h=Math.max(1,Number(o.slabH)||1);
-        const maxX=Math.max(0,(Number(state.cw)||0)-w);
-        const maxY=Math.max(0,(Number(state.ch)||0)-h);
-        o.x=round3(clamp(Number(o.x)||0,0,maxX));
-        o.y=round3(clamp(Number(o.y)||0,0,maxY));
-        return o;
-      }
-
-      // ===== Momentary / locked canvas tools =================================
-      // Held tools disappear on keyup. Locked tools are the discoverable
-      // button-driven version of the same interaction and exit with Escape.
-      const momentaryToolState={held:null,key:null,locked:null};
+      // ===== Momentary canvas tools ==========================================
+      // Hold-key tools temporarily take ownership of canvas interaction and
+      // return control immediately when the key is released. Future tools
+      // (such as Hold S for Add Splash) can reuse this exact mechanism.
+      const momentaryToolState={held:null,key:null};
       let finishActiveOverlayCanvasDrag=()=>{};
 
-      const activeMomentaryTool=()=>momentaryToolState.held||momentaryToolState.locked;
+      const activeMomentaryTool=()=>momentaryToolState.held;
 
       function isTypingTarget(target=document.activeElement){
         if(!(target instanceof Element))return false;
@@ -314,21 +304,12 @@
         if(!root)return;
         const tool=activeMomentaryTool();
         root.classList.toggle('lc-momentary-overlay',tool==='overlay');
-        root.classList.toggle('lc-momentary-splash',tool==='splash');
         root.dataset.momentaryTool=tool||'';
-
-        document.querySelectorAll('.lc-add-splash-action').forEach(btn=>{
-          const locked=momentaryToolState.locked==='splash';
-          btn.classList.toggle('is-active',tool==='splash');
-          btn.setAttribute('aria-pressed',String(locked));
-          btn.textContent=locked?'Splash Tool: On · Esc':'+ Add Splash';
-        });
       }
 
       function setMomentaryTool(tool,key){
         if(momentaryToolState.held===tool)return;
         if(momentaryToolState.held)return;
-        if(momentaryToolState.locked && momentaryToolState.locked!==tool)return;
         momentaryToolState.held=tool;
         momentaryToolState.key=key;
         syncMomentaryToolUI();
@@ -346,27 +327,8 @@
         draw?.();
       }
 
-      function toggleLockedTool(tool){
-        momentaryToolState.locked=momentaryToolState.locked===tool?null:tool;
-        if(momentaryToolState.locked && momentaryToolState.held && momentaryToolState.held!==tool){
-          releaseMomentaryTool();
-        }
-        syncMomentaryToolUI();
-        draw?.();
-      }
-
-      function clearLockedTool(tool=null){
-        if(!momentaryToolState.locked)return false;
-        if(tool && momentaryToolState.locked!==tool)return false;
-        momentaryToolState.locked=null;
-        syncMomentaryToolUI();
-        draw?.();
-        return true;
-      }
-
       const momentaryKeyMap=new Map([
-        ['o','overlay'],
-        ['s','splash']
+        ['o','overlay']
       ]);
 
       window.addEventListener('keydown',e=>{
@@ -935,7 +897,6 @@
         const ids=state.selectedIds.length?[...state.selectedIds]:(state.selectedId?[state.selectedId]:[]);
         if(!ids.length)return;
         const before=state.pieces.length;
-        ids.forEach(detachSplashChildren);
         state.pieces=state.pieces.filter(piece=>!ids.includes(piece.id));
         if(state.pieces.length===before)return;
         clearSelection();
@@ -958,10 +919,6 @@
         if(e.ctrlKey||e.metaKey||e.altKey)return;
 
         if(e.key==='Escape'){
-          if(clearLockedTool?.()){
-            e.preventDefault();
-            return;
-          }
           const hadTool=state.dimTool||state.noteTool||state.lineTool;
           state.dimTool=false;state.noteTool=false;state.lineTool=false;
           dimTempStart=null;lineTempStart=null;
@@ -1115,7 +1072,6 @@
               no.name=(src.name||'Overlay')+' Copy';
               no.x=round3((Number(src.x)||0)+step);
               no.y=round3((Number(src.y)||0)+step);
-              clampOverlayToCanvas(no);
               OL.overlays.push(no);
               state.selectedDimId=null;
               state.selectedLineId=null;
@@ -1134,9 +1090,6 @@
                 const rs=realSize(p),np=JSON.parse(JSON.stringify(p));
                 np.id=uid();
                 np.name=(p.name||'Piece')+' Copy';
-                if(isBacksplashPiece(np) && np.attachment){
-                  np.attachment={...np.attachment,parentPieceId:null,linkedLength:false};
-                }
                 np.x=clamp(snap(p.x+state.grid,state.grid),0,state.cw-rs.w);
                 np.y=clamp(snap(p.y+state.grid,state.grid),0,state.ch-rs.h);
                 np.layer=Math.max(0,...state.pieces.map(x=>x.layer||0))+1;
@@ -2723,10 +2676,10 @@
       });
 
       // Numeric fields
-      inOVW && (inOVW.onchange = e => { const o=currentOverlay(); if(!o) return; o.slabW=Math.max(1,+e.target.value||0); clampOverlayToCanvas(o); draw(); syncOverlayUI?.(); scheduleSave(); pushHistory(); });
-      inOVH && (inOVH.onchange = e => { const o=currentOverlay(); if(!o) return; o.slabH=Math.max(1,+e.target.value||0); clampOverlayToCanvas(o); draw(); syncOverlayUI?.(); scheduleSave(); pushHistory(); });
-      inOVX && (inOVX.onchange = e => { const o=currentOverlay(); if(!o) return; o.x=+e.target.value||0; clampOverlayToCanvas(o); draw(); syncOverlayUI?.(); scheduleSave(); pushHistory(); });
-      inOVY && (inOVY.onchange = e => { const o=currentOverlay(); if(!o) return; o.y=+e.target.value||0; clampOverlayToCanvas(o); draw(); syncOverlayUI?.(); scheduleSave(); pushHistory(); });
+      inOVW && (inOVW.onchange = e => { const o=currentOverlay(); if(!o) return; o.slabW=Math.max(1,+e.target.value||0); draw(); scheduleSave(); pushHistory(); });
+      inOVH && (inOVH.onchange = e => { const o=currentOverlay(); if(!o) return; o.slabH=Math.max(1,+e.target.value||0); draw(); scheduleSave(); pushHistory(); });
+      inOVX && (inOVX.onchange = e => { const o=currentOverlay(); if(!o) return; o.x=+e.target.value||0; draw(); scheduleSave(); pushHistory(); });
+      inOVY && (inOVY.onchange = e => { const o=currentOverlay(); if(!o) return; o.y=+e.target.value||0; draw(); scheduleSave(); pushHistory(); });
 
       // Opacity slider: live + commit
       inOVOP && (inOVOP.oninput  = e => { const o=currentOverlay(); if(!o) return; o.opacity=Math.max(.1,+e.target.value||.75); draw(); });
@@ -5227,152 +5180,7 @@ function restore(){
       }
 
 
-      function clampToCanvas(p){ const rs=realSize(p); p.x=clamp(p.x,0,Math.max(0,state.cw-rs.w)); p.y=clamp(p.y,0,Math.max(0,state.ch-rs.h)); }
-
-      const DEFAULT_SPLASH_HEIGHT=4;
-      const SPLASH_DRAW_GAP=3;
-
-      function isBacksplashPiece(piece){
-        return !!piece && (
-          piece.pieceType==='backsplash' ||
-          (Array.isArray(piece.tags) && piece.tags.includes('backsplash'))
-        );
-      }
-
-      function splashParentForTool(){
-        const ids=state.selectedIds?.length
-          ? state.selectedIds
-          : (state.selectedId?[state.selectedId]:[]);
-        if(ids.length!==1)return null;
-        const p=state.pieces.find(piece=>piece.id===ids[0])||null;
-        if(!p||isBacksplashPiece(p))return null;
-        return p;
-      }
-
-      function splashChildForEdge(parentId,edge){
-        return state.pieces.find(piece=>
-          isBacksplashPiece(piece) &&
-          piece.attachment?.kind==='backsplash' &&
-          piece.attachment?.parentPieceId===parentId &&
-          piece.attachment?.sourceEdge===edge
-        )||null;
-      }
-
-      function detachSplashChildren(parentId){
-        state.pieces.forEach(piece=>{
-          if(piece.attachment?.kind==='backsplash' && piece.attachment?.parentPieceId===parentId){
-            piece.attachment={...piece.attachment,parentPieceId:null,linkedLength:false};
-          }
-        });
-      }
-
-      function syncLinkedSplashLengths(){
-        state.pieces.forEach(piece=>{
-          if(!isBacksplashPiece(piece)||piece.attachment?.kind!=='backsplash'||piece.attachment?.linkedLength===false)return;
-          const parent=state.pieces.find(candidate=>candidate.id===piece.attachment?.parentPieceId);
-          if(!parent)return;
-          const edge=piece.attachment?.sourceEdge;
-          const nextLength=(edge==='left'||edge==='right')
-            ? Math.max(.25,Number(parent.h)||.25)
-            : Math.max(.25,Number(parent.w)||.25);
-          piece.w=round3(nextLength);
-        });
-      }
-
-      function rotateVec(x,y,deg){
-        const t=(Number(deg)||0)*Math.PI/180;
-        const c=Math.cos(t),s=Math.sin(t);
-        return {x:x*c-y*s,y:x*s+y*c};
-      }
-
-      function splashPlacement(parent,edge,height=DEFAULT_SPLASH_HEIGHT){
-        const rs=realSize(parent);
-        const cx=(Number(parent.x)||0)+rs.w/2;
-        const cy=(Number(parent.y)||0)+rs.h/2;
-        const pw=Math.max(.25,Number(parent.w)||.25);
-        const ph=Math.max(.25,Number(parent.h)||.25);
-        const rot=((Number(parent.rotation)||0)%360+360)%360;
-
-        const edgeInfo={
-          top:{ex:0,ey:-ph/2,nx:0,ny:-1,length:pw,rotation:rot,name:'Backsplash',kind:'backsplash'},
-          right:{ex:pw/2,ey:0,nx:1,ny:0,length:ph,rotation:(rot+90)%360,name:'Right Sidesplash',kind:'sidesplash'},
-          bottom:{ex:0,ey:ph/2,nx:0,ny:1,length:pw,rotation:rot,name:'Backsplash',kind:'backsplash'},
-          left:{ex:-pw/2,ey:0,nx:-1,ny:0,length:ph,rotation:(rot+90)%360,name:'Left Sidesplash',kind:'sidesplash'}
-        }[edge]||null;
-        if(!edgeInfo)return null;
-
-        const edgeVec=rotateVec(edgeInfo.ex,edgeInfo.ey,rot);
-        const normal=rotateVec(edgeInfo.nx,edgeInfo.ny,rot);
-        const center={
-          x:cx+edgeVec.x+normal.x*(SPLASH_DRAW_GAP+height/2),
-          y:cy+edgeVec.y+normal.y*(SPLASH_DRAW_GAP+height/2)
-        };
-
-        const temp={w:edgeInfo.length,h:height,rotation:edgeInfo.rotation};
-        const crs=realSize(temp);
-        return {
-          ...edgeInfo,
-          x:center.x-crs.w/2,
-          y:center.y-crs.h/2
-        };
-      }
-
-      function createBacksplashFromEdge(parent,edge){
-        if(!parent||isBacksplashPiece(parent))return null;
-        const existing=splashChildForEdge(parent.id,edge);
-        if(existing)return existing;
-
-        const place=splashPlacement(parent,edge,DEFAULT_SPLASH_HEIGHT);
-        if(!place)return null;
-
-        const topLayer=Math.max(0,...state.pieces.map(x=>Number(x.layer)||0))+1;
-        const child={
-          id:uid(),
-          name:place.name,
-          w:round3(place.length),
-          h:DEFAULT_SPLASH_HEIGHT,
-          x:place.x,
-          y:place.y,
-          rotation:place.rotation,
-          color:parent.color||'#ffffff',
-          fillOpacity:Number.isFinite(Number(parent.fillOpacity))?Number(parent.fillOpacity):1,
-          noFill:!!parent.noFill,
-          layer:topLayer,
-          rTL:false,rTR:false,rBL:false,rBR:false,
-          cornerRadii:{tl:0,tr:0,br:0,bl:0},
-          pieceSeams:[],
-          sinks:[],
-          edgeProfiles:{top:'none',right:'none',bottom:'none',left:'none'},
-          pieceType:'backsplash',
-          tags:['backsplash'],
-          splashKind:place.kind,
-          splashHeight:DEFAULT_SPLASH_HEIGHT,
-          attachment:{
-            kind:'backsplash',
-            parentPieceId:parent.id,
-            sourceEdge:edge,
-            linkedLength:true
-          }
-        };
-        clampToCanvas(child);
-
-        const parentIndex=state.pieces.findIndex(piece=>piece.id===parent.id);
-        let insertAt=parentIndex>=0?parentIndex+1:state.pieces.length;
-        while(insertAt<state.pieces.length && state.pieces[insertAt]?.attachment?.parentPieceId===parent.id){
-          insertAt++;
-        }
-        state.pieces.splice(insertAt,0,child);
-
-        // Keep the parent active so Hold-S can add several sides in one motion.
-        selectOnly(parent.id);
-        renderList();
-        updateInspector();
-        sinksUI?.refresh?.();
-        draw();
-        scheduleSave();
-        pushHistory();
-        return child;
-      }
+      function clampToCanvas(p){ const rs=realSize(p); p.x=clamp(p.x,0,state.cw-rs.w); p.y=clamp(p.y,0,state.ch-rs.h); }
 
       function roundedRectPathCorners(x, y, w, h, r){
         const rtl=r.tl||0, rtr=r.tr||0, rbr=r.br||0, rbl=r.bl||0;
@@ -5777,11 +5585,9 @@ function restore(){
           const q=svgPoint(mv);
           const nextX=round3(startX+p2i(q.x-startPt.x));
           const nextY=round3(startY+p2i(q.y-startPt.y));
-          const beforeX=o.x,beforeY=o.y;
+          if(Math.abs(nextX-o.x)>.001||Math.abs(nextY-o.y)>.001)moved=true;
           o.x=nextX;
           o.y=nextY;
-          clampOverlayToCanvas(o);
-          if(Math.abs(o.x-beforeX)>.001||Math.abs(o.y-beforeY)>.001)moved=true;
           draw();
         };
 
@@ -5843,108 +5649,6 @@ function restore(){
         });
 
         svg.appendChild(g);
-      }
-
-      function drawSplashInteractionLayer(){
-        if(activeMomentaryTool()!=='splash')return;
-
-        const parent=splashParentForTool();
-        if(!parent)return;
-
-        const rs=realSize(parent);
-        const W0=i2p(Math.max(.25,Number(parent.w)||.25));
-        const H0=i2p(Math.max(.25,Number(parent.h)||.25));
-        const cx=i2p((Number(parent.x)||0)+rs.w/2);
-        const cy=i2p((Number(parent.y)||0)+rs.h/2);
-        const left=cx-W0/2;
-        const top=cy-H0/2;
-        const rot=((Number(parent.rotation)||0)%360+360)%360;
-        const splashPx=i2p(DEFAULT_SPLASH_HEIGHT);
-        const gapPx=i2p(SPLASH_DRAW_GAP);
-        const hitPad=Math.max(7,Math.min(12,state.scale*.75));
-
-        const layer=document.createElementNS(svgNS,'g');
-        layer.setAttribute('class','lc-splash-interaction-layer');
-        layer.setAttribute('data-momentary-layer','splash');
-        if(rot)layer.setAttribute('transform',`rotate(${rot} ${cx} ${cy})`);
-
-        const defs={
-          top:{
-            hit:[left,top-hitPad,W0,hitPad*2],
-            line:[left,top,left+W0,top],
-            preview:[left,top-gapPx-splashPx,W0,splashPx]
-          },
-          right:{
-            hit:[left+W0-hitPad,top,hitPad*2,H0],
-            line:[left+W0,top,left+W0,top+H0],
-            preview:[left+W0+gapPx,top,splashPx,H0]
-          },
-          bottom:{
-            hit:[left,top+H0-hitPad,W0,hitPad*2],
-            line:[left,top+H0,left+W0,top+H0],
-            preview:[left,top+H0+gapPx,W0,splashPx]
-          },
-          left:{
-            hit:[left-hitPad,top,hitPad*2,H0],
-            line:[left,top,left,top+H0],
-            preview:[left-gapPx-splashPx,top,splashPx,H0]
-          }
-        };
-
-        ['top','right','bottom','left'].forEach(edge=>{
-          const occupied=!!splashChildForEdge(parent.id,edge);
-          const spec=defs[edge];
-          const opt=document.createElementNS(svgNS,'g');
-          opt.setAttribute('class','lc-splash-edge-option'+(occupied?' is-occupied':''));
-          opt.setAttribute('data-splash-edge',edge);
-
-          const preview=document.createElementNS(svgNS,'rect');
-          preview.setAttribute('class','lc-splash-edge-preview');
-          preview.setAttribute('x',spec.preview[0]);
-          preview.setAttribute('y',spec.preview[1]);
-          preview.setAttribute('width',Math.max(1,spec.preview[2]));
-          preview.setAttribute('height',Math.max(1,spec.preview[3]));
-          preview.setAttribute('rx','1');
-          preview.setAttribute('pointer-events','none');
-
-          const line=document.createElementNS(svgNS,'line');
-          line.setAttribute('class','lc-splash-edge-line');
-          line.setAttribute('x1',spec.line[0]);line.setAttribute('y1',spec.line[1]);
-          line.setAttribute('x2',spec.line[2]);line.setAttribute('y2',spec.line[3]);
-          line.setAttribute('vector-effect','non-scaling-stroke');
-          line.setAttribute('pointer-events','none');
-
-          const hit=document.createElementNS(svgNS,'rect');
-          hit.setAttribute('class','lc-splash-edge-hit');
-          hit.setAttribute('data-splash-edge-hit','1');
-          hit.setAttribute('data-splash-edge',edge);
-          hit.setAttribute('x',spec.hit[0]);
-          hit.setAttribute('y',spec.hit[1]);
-          hit.setAttribute('width',Math.max(1,spec.hit[2]));
-          hit.setAttribute('height',Math.max(1,spec.hit[3]));
-          hit.setAttribute('fill','transparent');
-          hit.setAttribute('pointer-events','all');
-          hit.setAttribute('aria-label',occupied?'Splash already attached':'Add 4 inch splash');
-
-          const title=document.createElementNS(svgNS,'title');
-          title.textContent=occupied
-            ? 'Splash already attached to this edge'
-            : 'Click to add a 4" splash';
-          hit.appendChild(title);
-
-          hit.addEventListener('pointerdown',ev=>{
-            ev.preventDefault();
-            ev.stopPropagation();
-            ev.stopImmediatePropagation?.();
-            if(occupied)return;
-            createBacksplashFromEdge(parent,edge);
-          });
-
-          opt.append(preview,line,hit);
-          layer.appendChild(opt);
-        });
-
-        svg.appendChild(layer);
       }
 
 
@@ -6070,7 +5774,6 @@ function restore(){
 
       // ------- Drawing -------
       function draw(){
-        syncLinkedSplashLengths();
         syncCanvasToolCursor();
         renderEstimateSummary?.();
         const Wpx = i2p(state.cw), Hpx = i2p(state.ch);
@@ -6644,7 +6347,6 @@ function restore(){
         meta.textContent = `Canvas: ${state.cw}" × ${state.ch}" · Grid ${state.grid}" · Scale ${state.scale}px/in`;
         drawToolPreview();
         drawOverlayInteractionLayer();
-        drawSplashInteractionLayer();
       }
 
 
@@ -6680,9 +6382,7 @@ function restore(){
 
       function pieceItem(p, i){
         const div = document.createElement('div');
-        const isSplash=isBacksplashPiece(p);
-        div.className = 'lc-item nav lc-nav-entity-row' + (isSplash?' lc-backsplash-nav-piece':'') + (isSelected(p.id) ? ' selected' : '');
-        if(isSplash && p.attachment?.parentPieceId)div.dataset.parentPieceId=p.attachment.parentPieceId;
+        div.className = 'lc-item nav lc-nav-entity-row' + (isSelected(p.id) ? ' selected' : '');
 
         const bg = p.color || '#DBEAFE';
         div.style.setProperty('--c', bg);
@@ -6716,19 +6416,11 @@ function restore(){
 
         const meta=document.createElement('div');
         meta.className='lc-nav-meta';
-        meta.textContent=(isSplash?'Splash · ':'')+`${fmtCanvasInches(Number(p.w)||0)} × ${fmtCanvasInches(Number(p.h)||0)}`;
+        meta.textContent=`${fmtCanvasInches(Number(p.w)||0)} × ${fmtCanvasInches(Number(p.h)||0)}`;
 
         label.append(title,meta);
         const dragHandle=makeSidebarDragHandle('piece');
-        if(isSplash){
-          const branch=document.createElement('span');
-          branch.className='lc-piece-child-branch';
-          branch.textContent='↳';
-          branch.setAttribute('aria-hidden','true');
-          div.append(branch,dragHandle,label);
-        }else{
-          div.append(dragHandle,label);
-        }
+        div.append(dragHandle,label);
 
         const actions=document.createElement('div');
         actions.className='lc-nav-actions';
@@ -6752,7 +6444,6 @@ function restore(){
           e.stopPropagation();
           const idx=state.pieces.findIndex(x=>x.id===p.id);
           if(idx>-1){
-            detachSplashChildren(p.id);
             state.pieces.splice(idx,1);
             setSelection([]);
             state.selectedId=null;
@@ -7651,18 +7342,18 @@ if(btnAddLayout){
           return input;
         };
         const w=makeNum(o.slabW??126,0.25,input=>{
-          o.slabW=Math.max(1,Number(input.value)||1);clampOverlayToCanvas(o);input.value=String(o.slabW);
+          o.slabW=Math.max(1,Number(input.value)||1);input.value=String(o.slabW);
         });
         const h=makeNum(o.slabH??63,0.25,input=>{
-          o.slabH=Math.max(1,Number(input.value)||1);clampOverlayToCanvas(o);input.value=String(o.slabH);
+          o.slabH=Math.max(1,Number(input.value)||1);input.value=String(o.slabH);
         });
         sizeGrid.append(inspectorField('Width (in)',w),inspectorField('Height (in)',h));
         body.appendChild(sizeGrid);
 
         const posGrid=document.createElement('div');
         posGrid.className='lc-inspector-property-grid';
-        const x=makeNum(o.x??0,0.25,input=>{o.x=Number(input.value)||0;clampOverlayToCanvas(o);input.value=String(o.x);});
-        const y=makeNum(o.y??0,0.25,input=>{o.y=Number(input.value)||0;clampOverlayToCanvas(o);input.value=String(o.y);});
+        const x=makeNum(o.x??0,0.25,input=>{o.x=Number(input.value)||0;input.value=String(o.x);});
+        const y=makeNum(o.y??0,0.25,input=>{o.y=Number(input.value)||0;input.value=String(o.y);});
         posGrid.append(inspectorField('X (in)',x),inspectorField('Y (in)',y));
         body.appendChild(posGrid);
 
@@ -7993,9 +7684,6 @@ if(btnAddLayout){
             const np = JSON.parse(JSON.stringify(p));
             np.id = uid();
             np.name = (p.name || 'Piece') + ' Copy';
-            if(isBacksplashPiece(np) && np.attachment){
-              np.attachment={...np.attachment,parentPieceId:null,linkedLength:false};
-            }
             np.x = clamp(snap(p.x + state.grid, state.grid), 0, state.cw - rs.w);
             np.y = clamp(snap(p.y + state.grid, state.grid), 0, state.ch - rs.h);
             state.pieces.push(np);
@@ -8017,7 +7705,6 @@ if(btnAddLayout){
             e.preventDefault();
             const idx = state.pieces.findIndex(x => x.id === p.id);
             if (idx >= 0) {
-            detachSplashChildren(p.id);
             state.pieces.splice(idx, 1);
             setSelection([]);
             state.selectedId = null;
@@ -8110,31 +7797,6 @@ if(btnAddLayout){
         r3.style.gap='4px';
         r3.append(rotField,sfField);
         pieceBody.appendChild(r3);
-
-        if(!isBacksplashPiece(p)){
-          const addSplash=document.createElement('button');
-          addSplash.type='button';
-          addSplash.className='lc-btn ghost sm lc-inspector-full-action lc-add-splash-action';
-          addSplash.textContent='+ Add Splash';
-          addSplash.title='Lock Add Splash mode. Click a piece edge to create a 4" splash. Hold S for momentary mode; Esc exits locked mode.';
-          addSplash.setAttribute('aria-pressed',String(momentaryToolState.locked==='splash'));
-          addSplash.onclick=e=>{
-            e.preventDefault();
-            e.stopPropagation();
-            toggleLockedTool('splash');
-          };
-          pieceBody.appendChild(addSplash);
-          syncMomentaryToolUI();
-        }else{
-          const splashMeta=document.createElement('div');
-          splashMeta.className='lc-splash-link-summary';
-          const parent=state.pieces.find(piece=>piece.id===p.attachment?.parentPieceId);
-          const edge=String(p.attachment?.sourceEdge||'').replace(/^./,c=>c.toUpperCase());
-          splashMeta.textContent=parent
-            ? `Backsplash · linked to ${parent.name||'Parent Piece'} · ${edge} edge`
-            : 'Backsplash piece · unlinked';
-          pieceBody.appendChild(splashMeta);
-        }
 
         // --- 2) Canvas Appearance -------------------------------------------------
         const appBody = makeSection('Appearance',{collapsible:true,key:'appearance'});
@@ -8963,21 +8625,17 @@ if(btnAddLayout){
 
       // ------- Canvas interactions -------
 
-      const blockNonMomentaryInteraction=e=>{
-        const tool=activeMomentaryTool();
-        if(!tool)return;
+      const blockNonOverlayMomentaryInteraction=e=>{
+        if(activeMomentaryTool()!=='overlay')return;
         const target=e.target;
-        if(target instanceof Element){
-          if(tool==='overlay' && target.closest('[data-overlay-hit="1"]'))return;
-          if(tool==='splash' && target.closest('[data-splash-edge-hit="1"]'))return;
-        }
+        if(target instanceof Element && target.closest('[data-overlay-hit="1"]'))return;
         e.preventDefault();
         e.stopPropagation();
         e.stopImmediatePropagation?.();
       };
-      svg.addEventListener('pointerdown',blockNonMomentaryInteraction,true);
-      svg.addEventListener('click',blockNonMomentaryInteraction,true);
-      svg.addEventListener('dblclick',blockNonMomentaryInteraction,true);
+      svg.addEventListener('pointerdown',blockNonOverlayMomentaryInteraction,true);
+      svg.addEventListener('click',blockNonOverlayMomentaryInteraction,true);
+      svg.addEventListener('dblclick',blockNonOverlayMomentaryInteraction,true);
 
       svg.addEventListener('pointermove', (e) => {
       if (!state.drag) return;
@@ -9018,7 +8676,6 @@ if(btnAddLayout){
 
       function activeToolCursor(){
         if(activeMomentaryTool()==='overlay')return 'default';
-        if(activeMomentaryTool()==='splash')return 'default';
         return state.noteTool?'text':((state.dimTool||state.lineTool)?'crosshair':'');
       }
       function syncCanvasToolCursor(){
@@ -9428,9 +9085,6 @@ if(btnAddLayout){
         const top=Math.max(0,...state.pieces.map(x=>x.layer||0))+1; 
         const rs = realSize(p);
         const d={...p, pieceSeams:Array.isArray(p.pieceSeams)?p.pieceSeams.map(ps=>({...ps,id:uid()})):[], id: uid(), name: p.name+' Copy', x:clamp(p.x+state.grid,0,state.cw-rs.w), y:clamp(p.y+state.grid,0,state.ch-rs.h), layer:top};
-        if(isBacksplashPiece(d) && d.attachment){
-          d.attachment={...d.attachment,parentPieceId:null,linkedLength:false};
-        }
         state.pieces.push(d); 
         state.selectedId=d.id; 
         renderList(); renderDimList(); renderNoteList(); updateInspector(); sinksUI?.refresh(); draw();
@@ -9472,16 +9126,6 @@ if(btnAddLayout){
               rotation: (q.rotation === 90 ? 90 : Number(q.rotation) || 0),
               color: q.color || '#ffffff',
               layer: Number(q.layer) || 0,
-              pieceType: typeof q.pieceType==='string' ? q.pieceType : undefined,
-              tags: Array.isArray(q.tags) ? q.tags.map(String) : [],
-              splashKind: typeof q.splashKind==='string' ? q.splashKind : undefined,
-              splashHeight: Number.isFinite(Number(q.splashHeight)) ? Number(q.splashHeight) : undefined,
-              attachment: q.attachment && typeof q.attachment==='object' ? {
-                kind: q.attachment.kind||null,
-                parentPieceId: q.attachment.parentPieceId||null,
-                sourceEdge: ['top','right','bottom','left'].includes(q.attachment.sourceEdge)?q.attachment.sourceEdge:null,
-                linkedLength: q.attachment.linkedLength!==false
-              } : null,
               rTL: !!q.rTL, rTR: !!q.rTR, rBL: !!q.rBL, rBR: !!q.rBR,
               cornerRadii: q.cornerRadii && typeof q.cornerRadii==='object' ? {
                 tl: Math.max(0,Number(q.cornerRadii.tl)||0),
