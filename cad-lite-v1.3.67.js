@@ -9660,7 +9660,8 @@ if(btnAddLayout){
                 kind: q.attachment.kind||null,
                 parentPieceId: q.attachment.parentPieceId||null,
                 sourceEdge: ['top','right','bottom','left'].includes(q.attachment.sourceEdge)?q.attachment.sourceEdge:null,
-                linkedLength: q.attachment.linkedLength!==false
+                linkedLength: q.attachment.linkedLength!==false,
+                snapped: typeof q.attachment.snapped==='boolean' ? q.attachment.snapped : undefined
               } : null,
               rTL: !!q.rTL, rTR: !!q.rTR, rBL: !!q.rBL, rBR: !!q.rBR,
               cornerRadii: q.cornerRadii && typeof q.cornerRadii==='object' ? {
