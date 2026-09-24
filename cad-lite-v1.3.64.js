@@ -8855,6 +8855,7 @@ if(btnAddLayout){
 
       // Note Tool captures any click inside the SVG before piece/canvas handlers.
       document.addEventListener('pointerdown', (e)=>{
+        if(activeMomentaryTool()) return;
         if(!state.noteTool) return;
         const target=e.target;
         if(!(target instanceof Element) || !svg.contains(target)) return;
