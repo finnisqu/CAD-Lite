@@ -284,14 +284,24 @@
         updateInspector?.();
       }
 
-      // ===== Momentary canvas tools ==========================================
-      // Hold-key tools temporarily take ownership of canvas interaction and
-      // return control immediately when the key is released. Future tools
-      // (such as Hold S for Add Splash) can reuse this exact mechanism.
-      const momentaryToolState={held:null,key:null};
+      function clampOverlayToCanvas(o){
+        if(!o)return o;
+        const w=Math.max(1,Number(o.slabW)||1);
+        const h=Math.max(1,Number(o.slabH)||1);
+        const maxX=Math.max(0,(Number(state.cw)||0)-w);
+        const maxY=Math.max(0,(Number(state.ch)||0)-h);
+        o.x=round3(clamp(Number(o.x)||0,0,maxX));
+        o.y=round3(clamp(Number(o.y)||0,0,maxY));
+        return o;
+      }
+
+      // ===== Momentary / locked canvas tools =================================
+      // Held tools disappear on keyup. Locked tools are the discoverable
+      // button-driven version of the same interaction and exit with Escape.
+      const momentaryToolState={held:null,key:null,locked:null};
       let finishActiveOverlayCanvasDrag=()=>{};
 
-      const activeMomentaryTool=()=>momentaryToolState.held;
+      const activeMomentaryTool=()=>momentaryToolState.held||momentaryToolState.locked;
 
       function isTypingTarget(target=document.activeElement){
         if(!(target instanceof Element))return false;
@@ -304,12 +314,21 @@
         if(!root)return;
         const tool=activeMomentaryTool();
         root.classList.toggle('lc-momentary-overlay',tool==='overlay');
+        root.classList.toggle('lc-momentary-splash',tool==='splash');
         root.dataset.momentaryTool=tool||'';
+
+        document.querySelectorAll('.lc-add-splash-action').forEach(btn=>{
+          const locked=momentaryToolState.locked==='splash';
+          btn.classList.toggle('is-active',tool==='splash');
+          btn.setAttribute('aria-pressed',String(locked));
+          btn.textContent=locked?'Splash Tool: On · Esc':'+ Add Splash';
+        });
       }
 
       function setMomentaryTool(tool,key){
         if(momentaryToolState.held===tool)return;
         if(momentaryToolState.held)return;
+        if(momentaryToolState.locked && momentaryToolState.locked!==tool)return;
         momentaryToolState.held=tool;
         momentaryToolState.key=key;
         syncMomentaryToolUI();
@@ -327,8 +346,27 @@
         draw?.();
       }
 
+      function toggleLockedTool(tool){
+        momentaryToolState.locked=momentaryToolState.locked===tool?null:tool;
+        if(momentaryToolState.locked && momentaryToolState.held && momentaryToolState.held!==tool){
+          releaseMomentaryTool();
+        }
+        syncMomentaryToolUI();
+        draw?.();
+      }
+
+      function clearLockedTool(tool=null){
+        if(!momentaryToolState.locked)return false;
+        if(tool && momentaryToolState.locked!==tool)return false;
+        momentaryToolState.locked=null;
+        syncMomentaryToolUI();
+        draw?.();
+        return true;
+      }
+
       const momentaryKeyMap=new Map([
-        ['o','overlay']
+        ['o','overlay'],
+        ['s','splash']
       ]);
 
       window.addEventListener('keydown',e=>{
