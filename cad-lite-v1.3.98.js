@@ -10258,7 +10258,7 @@ if(btnAddLayout){
             np.slabPlacement={x:srcSlab.x+state.grid,y:srcSlab.y+state.grid,rotation:srcSlab.rotation};
             clampSlabPlacement(np);
             state.pieces.push(np);
-            state.selectedId = np.id;
+            selectOnly(np.id);
             renderList();
             updateInspector();
             sinksUI?.refresh?.();
@@ -12025,7 +12025,7 @@ if(btnAddLayout){
         };
         clampToCanvas(p); 
         state.pieces.push(p); 
-        state.selectedId=p.id; 
+        selectOnly(p.id); 
         renderList(); 
         updateInspector(); 
         sinksUI?.refresh(); 
@@ -12048,7 +12048,7 @@ if(btnAddLayout){
           delete d.attachment;
         }
         state.pieces.push(d); 
-        state.selectedId=d.id; 
+        selectOnly(d.id); 
         renderList(); renderDimList(); renderNoteList(); updateInspector(); sinksUI?.refresh(); draw();
         scheduleSave();
         pushHistory();
@@ -12178,8 +12178,11 @@ if(btnAddLayout){
           })):[];
         }
 
-        state.selectedId = null;
-        renderList(); renderDimList(); renderNoteList(); updateInspector(); sinksUI?.refresh(); draw(); syncTopBar();
+        clearSelection();
+        state.selectedDimId=null;
+        state.selectedLineId=null;
+        state.selectedNoteId=null;
+        renderList(); renderDimList(); renderLineList(); renderNoteList(); updateInspector(); sinksUI?.refresh(); draw(); syncTopBar();
       }
       
       inImport.onchange = (e)=>{
@@ -12268,7 +12271,11 @@ if(btnAddLayout){
 
         // Reset to a single empty layout
         state.layouts = [ makeLayout('Layout 1') ];
-        state.active = 0; state.selectedId = null;
+        state.active = 0;
+        clearSelection();
+        state.selectedDimId=null;
+        state.selectedLineId=null;
+        state.selectedNoteId=null;
 
         syncToolbarFromLayout();
         renderLayouts(); 
