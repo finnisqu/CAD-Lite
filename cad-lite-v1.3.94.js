@@ -11745,10 +11745,17 @@ if(btnAddLayout){
               state.notes       = parsed.project?.notes || '';
 
               if(parsed.ui){
+                state.workspace=parsed.ui.workspace==='slab'?'slab':'layout';
+                if('showGrid' in parsed.ui) state.showGrid=!!parsed.ui.showGrid;
                 if('showLines' in parsed.ui) state.showLines=!!parsed.ui.showLines;
                 if('showNotes' in parsed.ui) state.showNotes=!!parsed.ui.showNotes;
                 if('showPieceFills' in parsed.ui) state.showPieceFills=!!parsed.ui.showPieceFills;
+                if('showSlabMaterial' in parsed.ui) state.showSlabMaterial=!!parsed.ui.showSlabMaterial;
                 if('showDims' in parsed.ui) state.showDims=!!parsed.ui.showDims;
+                if('showManualDims' in parsed.ui) state.showManualDims=!!parsed.ui.showManualDims;
+                if('showEdgeProfiles' in parsed.ui) state.showEdgeProfiles=!!parsed.ui.showEdgeProfiles;
+                if('showLabels' in parsed.ui) state.showLabels=!!parsed.ui.showLabels;
+                if('showLabelDims' in parsed.ui) state.showLabelDims=!!parsed.ui.showLabelDims;
                 if('showSplashLabels' in parsed.ui) state.showSplashLabels=!!parsed.ui.showSplashLabels;
                 if('showSplashDims' in parsed.ui) state.showSplashDims=!!parsed.ui.showSplashDims;
                 if('showSplashLabelDims' in parsed.ui) state.showSplashLabelDims=!!parsed.ui.showSplashLabelDims;
