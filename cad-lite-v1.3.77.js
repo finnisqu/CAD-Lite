@@ -709,6 +709,9 @@
         state.selectedNoteId=null;
         if(typeof setSelection==='function')setSelection([]);
         L.ovSel = L.overlays.length - 1;
+        // Slab assets belong to the fabrication workspace; reveal the asset
+        // immediately after adding it so the action never appears to do nothing.
+        setCanvasWorkspace('slab');
         renderOverlayList(); syncOverlayUI(); draw(); updateInspector?.(); scheduleSave(); pushHistory();
       }
 
