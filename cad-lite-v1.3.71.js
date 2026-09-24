@@ -2469,7 +2469,6 @@
       addToolbarMenuAction(insertDropdown.menu,'Dimension',()=>activateDimTool(),{icon:ICON_MENU.dimension,shortcut:'D'});
       addToolbarMenuAction(insertDropdown.menu,'Line',()=>activateLineTool(),{icon:ICON_MENU.line,shortcut:'L'});
       addToolbarMenuSeparator(insertDropdown.menu);
-      addToolbarMenuSeparator(insertDropdown.menu);
       addToolbarMenuAction(insertDropdown.menu,'Slab Overlay: Upload Image',()=>document.getElementById('ov-add-photo')?.click(),{icon:ICON_MENU.upload});
       addToolbarMenuAction(insertDropdown.menu,'Slab Overlay: Choose From Library',()=>document.getElementById('ov-lib-photo')?.click(),{icon:ICON_MENU.library});
       if(showNotesHost)showNotesHost.appendChild(insertDropdown.host);
