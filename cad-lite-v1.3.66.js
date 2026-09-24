@@ -6680,6 +6680,9 @@ function restore(){
         const div = document.createElement('div');
         const isSplash=isBacksplashPiece(p);
         const isLinkedSplash=!!(isSplash&&p.attachment?.parentPieceId);
+        if(isLinkedSplash && ['Backsplash','Left Sidesplash','Right Sidesplash'].includes(String(p.name||'').trim())){
+          p.name='Splash';
+        }
         div.className = 'lc-item nav lc-nav-entity-row' + (isLinkedSplash?' lc-backsplash-nav-piece':'') + (isSelected(p.id) ? ' selected' : '');
         if(isLinkedSplash)div.dataset.parentPieceId=p.attachment.parentPieceId;
 
