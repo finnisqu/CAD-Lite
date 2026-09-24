@@ -5266,6 +5266,19 @@ function restore(){
         });
       }
 
+      function syncLinkedSplashLengths(){
+        state.pieces.forEach(piece=>{
+          if(!isBacksplashPiece(piece)||piece.attachment?.kind!=='backsplash'||piece.attachment?.linkedLength===false)return;
+          const parent=state.pieces.find(candidate=>candidate.id===piece.attachment?.parentPieceId);
+          if(!parent)return;
+          const edge=piece.attachment?.sourceEdge;
+          const nextLength=(edge==='left'||edge==='right')
+            ? Math.max(.25,Number(parent.h)||.25)
+            : Math.max(.25,Number(parent.w)||.25);
+          piece.w=round3(nextLength);
+        });
+      }
+
       function rotateVec(x,y,deg){
         const t=(Number(deg)||0)*Math.PI/180;
         const c=Math.cos(t),s=Math.sin(t);
@@ -6057,6 +6070,7 @@ function restore(){
 
       // ------- Drawing -------
       function draw(){
+        syncLinkedSplashLengths();
         syncCanvasToolCursor();
         renderEstimateSummary?.();
         const Wpx = i2p(state.cw), Hpx = i2p(state.ch);
