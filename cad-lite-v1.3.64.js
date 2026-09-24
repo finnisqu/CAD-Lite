@@ -957,6 +957,10 @@
         if(e.ctrlKey||e.metaKey||e.altKey)return;
 
         if(e.key==='Escape'){
+          if(clearLockedTool?.()){
+            e.preventDefault();
+            return;
+          }
           const hadTool=state.dimTool||state.noteTool||state.lineTool;
           state.dimTool=false;state.noteTool=false;state.lineTool=false;
           dimTempStart=null;lineTempStart=null;
@@ -1110,6 +1114,7 @@
               no.name=(src.name||'Overlay')+' Copy';
               no.x=round3((Number(src.x)||0)+step);
               no.y=round3((Number(src.y)||0)+step);
+              clampOverlayToCanvas(no);
               OL.overlays.push(no);
               state.selectedDimId=null;
               state.selectedLineId=null;
@@ -2714,10 +2719,10 @@
       });
 
       // Numeric fields
-      inOVW && (inOVW.onchange = e => { const o=currentOverlay(); if(!o) return; o.slabW=Math.max(1,+e.target.value||0); draw(); scheduleSave(); pushHistory(); });
-      inOVH && (inOVH.onchange = e => { const o=currentOverlay(); if(!o) return; o.slabH=Math.max(1,+e.target.value||0); draw(); scheduleSave(); pushHistory(); });
-      inOVX && (inOVX.onchange = e => { const o=currentOverlay(); if(!o) return; o.x=+e.target.value||0; draw(); scheduleSave(); pushHistory(); });
-      inOVY && (inOVY.onchange = e => { const o=currentOverlay(); if(!o) return; o.y=+e.target.value||0; draw(); scheduleSave(); pushHistory(); });
+      inOVW && (inOVW.onchange = e => { const o=currentOverlay(); if(!o) return; o.slabW=Math.max(1,+e.target.value||0); clampOverlayToCanvas(o); draw(); syncOverlayUI?.(); scheduleSave(); pushHistory(); });
+      inOVH && (inOVH.onchange = e => { const o=currentOverlay(); if(!o) return; o.slabH=Math.max(1,+e.target.value||0); clampOverlayToCanvas(o); draw(); syncOverlayUI?.(); scheduleSave(); pushHistory(); });
+      inOVX && (inOVX.onchange = e => { const o=currentOverlay(); if(!o) return; o.x=+e.target.value||0; clampOverlayToCanvas(o); draw(); syncOverlayUI?.(); scheduleSave(); pushHistory(); });
+      inOVY && (inOVY.onchange = e => { const o=currentOverlay(); if(!o) return; o.y=+e.target.value||0; clampOverlayToCanvas(o); draw(); syncOverlayUI?.(); scheduleSave(); pushHistory(); });
 
       // Opacity slider: live + commit
       inOVOP && (inOVOP.oninput  = e => { const o=currentOverlay(); if(!o) return; o.opacity=Math.max(.1,+e.target.value||.75); draw(); });
@@ -5623,9 +5628,11 @@ function restore(){
           const q=svgPoint(mv);
           const nextX=round3(startX+p2i(q.x-startPt.x));
           const nextY=round3(startY+p2i(q.y-startPt.y));
-          if(Math.abs(nextX-o.x)>.001||Math.abs(nextY-o.y)>.001)moved=true;
+          const beforeX=o.x,beforeY=o.y;
           o.x=nextX;
           o.y=nextY;
+          clampOverlayToCanvas(o);
+          if(Math.abs(o.x-beforeX)>.001||Math.abs(o.y-beforeY)>.001)moved=true;
           draw();
         };
 
@@ -7380,18 +7387,18 @@ if(btnAddLayout){
           return input;
         };
         const w=makeNum(o.slabW??126,0.25,input=>{
-          o.slabW=Math.max(1,Number(input.value)||1);input.value=String(o.slabW);
+          o.slabW=Math.max(1,Number(input.value)||1);clampOverlayToCanvas(o);input.value=String(o.slabW);
         });
         const h=makeNum(o.slabH??63,0.25,input=>{
-          o.slabH=Math.max(1,Number(input.value)||1);input.value=String(o.slabH);
+          o.slabH=Math.max(1,Number(input.value)||1);clampOverlayToCanvas(o);input.value=String(o.slabH);
         });
         sizeGrid.append(inspectorField('Width (in)',w),inspectorField('Height (in)',h));
         body.appendChild(sizeGrid);
 
         const posGrid=document.createElement('div');
         posGrid.className='lc-inspector-property-grid';
-        const x=makeNum(o.x??0,0.25,input=>{o.x=Number(input.value)||0;input.value=String(o.x);});
-        const y=makeNum(o.y??0,0.25,input=>{o.y=Number(input.value)||0;input.value=String(o.y);});
+        const x=makeNum(o.x??0,0.25,input=>{o.x=Number(input.value)||0;clampOverlayToCanvas(o);input.value=String(o.x);});
+        const y=makeNum(o.y??0,0.25,input=>{o.y=Number(input.value)||0;clampOverlayToCanvas(o);input.value=String(o.y);});
         posGrid.append(inspectorField('X (in)',x),inspectorField('Y (in)',y));
         body.appendChild(posGrid);
 
