@@ -3304,7 +3304,7 @@
 
         const foot=document.createElement('div');
         foot.className='lc-shortcuts-foot';
-        foot.innerHTML='<strong>Tool tip:</strong> CAD Lite uses one canvas mode at a time. S, R, and O are momentary while held; starting another mode cancels the current one. Inspector buttons can lock Splash and Radius modes on, and holding a shortcut takes over that lock so releasing it returns to neutral. <kbd>Enter</kbd> or a blank-canvas click also exits locked modes.';
+        foot.innerHTML='<strong>Tool tip:</strong> CAD Lite uses one canvas mode at a time. S, R, and O are momentary while held; <kbd>Shift</kbd>+<kbd>E</kbd> toggles Edge Painter. Starting another mode cancels the current one. Inspector buttons can lock Splash, Radius, or Edge Painter modes; <kbd>Enter</kbd> or a blank-canvas click exits locked modes.';
 
         dialog.append(head,grid,foot);
         overlay.appendChild(dialog);
