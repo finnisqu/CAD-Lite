@@ -935,6 +935,7 @@
         const ids=state.selectedIds.length?[...state.selectedIds]:(state.selectedId?[state.selectedId]:[]);
         if(!ids.length)return;
         const before=state.pieces.length;
+        ids.forEach(detachSplashChildren);
         state.pieces=state.pieces.filter(piece=>!ids.includes(piece.id));
         if(state.pieces.length===before)return;
         clearSelection();
@@ -1133,6 +1134,9 @@
                 const rs=realSize(p),np=JSON.parse(JSON.stringify(p));
                 np.id=uid();
                 np.name=(p.name||'Piece')+' Copy';
+                if(isBacksplashPiece(np) && np.attachment){
+                  np.attachment={...np.attachment,parentPieceId:null,linkedLength:false};
+                }
                 np.x=clamp(snap(p.x+state.grid,state.grid),0,state.cw-rs.w);
                 np.y=clamp(snap(p.y+state.grid,state.grid),0,state.ch-rs.h);
                 np.layer=Math.max(0,...state.pieces.map(x=>x.layer||0))+1;
@@ -6662,7 +6666,9 @@ function restore(){
 
       function pieceItem(p, i){
         const div = document.createElement('div');
-        div.className = 'lc-item nav lc-nav-entity-row' + (isSelected(p.id) ? ' selected' : '');
+        const isSplash=isBacksplashPiece(p);
+        div.className = 'lc-item nav lc-nav-entity-row' + (isSplash?' lc-backsplash-nav-piece':'') + (isSelected(p.id) ? ' selected' : '');
+        if(isSplash && p.attachment?.parentPieceId)div.dataset.parentPieceId=p.attachment.parentPieceId;
 
         const bg = p.color || '#DBEAFE';
         div.style.setProperty('--c', bg);
@@ -6696,11 +6702,19 @@ function restore(){
 
         const meta=document.createElement('div');
         meta.className='lc-nav-meta';
-        meta.textContent=`${fmtCanvasInches(Number(p.w)||0)} × ${fmtCanvasInches(Number(p.h)||0)}`;
+        meta.textContent=(isSplash?'Splash · ':'')+`${fmtCanvasInches(Number(p.w)||0)} × ${fmtCanvasInches(Number(p.h)||0)}`;
 
         label.append(title,meta);
         const dragHandle=makeSidebarDragHandle('piece');
-        div.append(dragHandle,label);
+        if(isSplash){
+          const branch=document.createElement('span');
+          branch.className='lc-piece-child-branch';
+          branch.textContent='↳';
+          branch.setAttribute('aria-hidden','true');
+          div.append(branch,dragHandle,label);
+        }else{
+          div.append(dragHandle,label);
+        }
 
         const actions=document.createElement('div');
         actions.className='lc-nav-actions';
@@ -6724,6 +6738,7 @@ function restore(){
           e.stopPropagation();
           const idx=state.pieces.findIndex(x=>x.id===p.id);
           if(idx>-1){
+            detachSplashChildren(p.id);
             state.pieces.splice(idx,1);
             setSelection([]);
             state.selectedId=null;
@@ -7964,6 +7979,9 @@ if(btnAddLayout){
             const np = JSON.parse(JSON.stringify(p));
             np.id = uid();
             np.name = (p.name || 'Piece') + ' Copy';
+            if(isBacksplashPiece(np) && np.attachment){
+              np.attachment={...np.attachment,parentPieceId:null,linkedLength:false};
+            }
             np.x = clamp(snap(p.x + state.grid, state.grid), 0, state.cw - rs.w);
             np.y = clamp(snap(p.y + state.grid, state.grid), 0, state.ch - rs.h);
             state.pieces.push(np);
@@ -7985,6 +8003,7 @@ if(btnAddLayout){
             e.preventDefault();
             const idx = state.pieces.findIndex(x => x.id === p.id);
             if (idx >= 0) {
+            detachSplashChildren(p.id);
             state.pieces.splice(idx, 1);
             setSelection([]);
             state.selectedId = null;
@@ -8077,6 +8096,31 @@ if(btnAddLayout){
         r3.style.gap='4px';
         r3.append(rotField,sfField);
         pieceBody.appendChild(r3);
+
+        if(!isBacksplashPiece(p)){
+          const addSplash=document.createElement('button');
+          addSplash.type='button';
+          addSplash.className='lc-btn ghost sm lc-inspector-full-action lc-add-splash-action';
+          addSplash.textContent='+ Add Splash';
+          addSplash.title='Lock Add Splash mode. Click a piece edge to create a 4" splash. Hold S for momentary mode; Esc exits locked mode.';
+          addSplash.setAttribute('aria-pressed',String(momentaryToolState.locked==='splash'));
+          addSplash.onclick=e=>{
+            e.preventDefault();
+            e.stopPropagation();
+            toggleLockedTool('splash');
+          };
+          pieceBody.appendChild(addSplash);
+          syncMomentaryToolUI();
+        }else{
+          const splashMeta=document.createElement('div');
+          splashMeta.className='lc-splash-link-summary';
+          const parent=state.pieces.find(piece=>piece.id===p.attachment?.parentPieceId);
+          const edge=String(p.attachment?.sourceEdge||'').replace(/^./,c=>c.toUpperCase());
+          splashMeta.textContent=parent
+            ? `Backsplash · linked to ${parent.name||'Parent Piece'} · ${edge} edge`
+            : 'Backsplash piece · unlinked';
+          pieceBody.appendChild(splashMeta);
+        }
 
         // --- 2) Canvas Appearance -------------------------------------------------
         const appBody = makeSection('Appearance',{collapsible:true,key:'appearance'});
@@ -9370,6 +9414,9 @@ if(btnAddLayout){
         const top=Math.max(0,...state.pieces.map(x=>x.layer||0))+1; 
         const rs = realSize(p);
         const d={...p, pieceSeams:Array.isArray(p.pieceSeams)?p.pieceSeams.map(ps=>({...ps,id:uid()})):[], id: uid(), name: p.name+' Copy', x:clamp(p.x+state.grid,0,state.cw-rs.w), y:clamp(p.y+state.grid,0,state.ch-rs.h), layer:top};
+        if(isBacksplashPiece(d) && d.attachment){
+          d.attachment={...d.attachment,parentPieceId:null,linkedLength:false};
+        }
         state.pieces.push(d); 
         state.selectedId=d.id; 
         renderList(); renderDimList(); renderNoteList(); updateInspector(); sinksUI?.refresh(); draw();
@@ -9411,6 +9458,16 @@ if(btnAddLayout){
               rotation: (q.rotation === 90 ? 90 : Number(q.rotation) || 0),
               color: q.color || '#ffffff',
               layer: Number(q.layer) || 0,
+              pieceType: typeof q.pieceType==='string' ? q.pieceType : undefined,
+              tags: Array.isArray(q.tags) ? q.tags.map(String) : [],
+              splashKind: typeof q.splashKind==='string' ? q.splashKind : undefined,
+              splashHeight: Number.isFinite(Number(q.splashHeight)) ? Number(q.splashHeight) : undefined,
+              attachment: q.attachment && typeof q.attachment==='object' ? {
+                kind: q.attachment.kind||null,
+                parentPieceId: q.attachment.parentPieceId||null,
+                sourceEdge: ['top','right','bottom','left'].includes(q.attachment.sourceEdge)?q.attachment.sourceEdge:null,
+                linkedLength: q.attachment.linkedLength!==false
+              } : null,
               rTL: !!q.rTL, rTR: !!q.rTR, rBL: !!q.rBL, rBR: !!q.rBR,
               cornerRadii: q.cornerRadii && typeof q.cornerRadii==='object' ? {
                 tl: Math.max(0,Number(q.cornerRadii.tl)||0),
