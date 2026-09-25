@@ -1144,9 +1144,11 @@
           ctx.clearRect(0,0,preview.width,preview.height);
           ctx.fillStyle='#f3f4f6';
           ctx.fillRect(0,0,preview.width,preview.height);
-          const source=cropFocused
-            ? {x:crop.x,y:crop.y,w:Math.max(1,crop.w),h:Math.max(1,crop.h)}
-            : {x:0,y:0,w:work.width,h:work.height};
+          const source=(mode==='crop'&&drag?.view)
+            ? drag.view
+            : (cropFocused
+              ? {x:crop.x,y:crop.y,w:Math.max(1,crop.w),h:Math.max(1,crop.h)}
+              : {x:0,y:0,w:work.width,h:work.height});
           const fit=Math.min((baseW-36)/source.w,(baseH-36)/source.h);
           const sc=fit*previewZoom;
           const dw=source.w*sc,dh=source.h*sc;
@@ -1158,8 +1160,9 @@
           ctx.lineWidth=Math.max(1.5,2*previewZoom);
           ctx.strokeStyle='#2563eb';
           ctx.fillStyle='rgba(37,99,235,.08)';
-          if(!cropFocused){
-            const rx=ox+crop.x*sc,ry=oy+crop.y*sc,rw=crop.w*sc,rh=crop.h*sc;
+          const cropDragging=mode==='crop'&&!!drag?.view;
+          if(!cropFocused||cropDragging){
+            const rx=ox+(crop.x-source.x)*sc,ry=oy+(crop.y-source.y)*sc,rw=crop.w*sc,rh=crop.h*sc;
             ctx.fillRect(rx,ry,rw,rh);
             ctx.strokeRect(rx,ry,rw,rh);
           }else{
@@ -1228,7 +1231,16 @@
 
         preview.addEventListener('pointerdown',e=>{
           const p=localPoint(e);
-          drag={start:p,current:p,last:p};
+          drag={
+            start:p,
+            current:p,
+            last:p,
+            view:mode==='crop'
+              ? (cropFocused
+                ? {x:crop.x,y:crop.y,w:Math.max(1,crop.w),h:Math.max(1,crop.h)}
+                : {x:0,y:0,w:work.width,h:work.height})
+              : null
+          };
           preview.setPointerCapture?.(e.pointerId);
           if(mode==='level')levelLine={x1:p.x,y1:p.y,x2:p.x,y2:p.y};
           if(mode==='erase'){
