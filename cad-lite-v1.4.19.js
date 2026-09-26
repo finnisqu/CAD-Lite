@@ -378,29 +378,32 @@
         // A calibrated plan is centered in the design canvas. Preserve every
         // existing drawing item's offset from that center instead of leaving
         // the old absolute coordinates behind when the canvas changes size.
-        let halfW=planSize.w/2;
-        let halfH=planSize.h/2;
+        let drawingHalfW=0;
+        let drawingHalfH=0;
+        let hasDrawing=false;
+        const includePoint=(x,y)=>{
+          if(!Number.isFinite(Number(x))||!Number.isFinite(Number(y)))return;
+          hasDrawing=true;
+          drawingHalfW=Math.max(drawingHalfW,Math.abs(Number(x)-oldCx));
+          drawingHalfH=Math.max(drawingHalfH,Math.abs(Number(y)-oldCy));
+        };
+
         (L.pieces||[]).forEach(piece=>{
           const rs=realSize(piece);
-          const x0=(Number(piece.x)||0)-oldCx;
-          const y0=(Number(piece.y)||0)-oldCy;
-          const x1=x0+rs.w;
-          const y1=y0+rs.h;
-          halfW=Math.max(halfW,Math.abs(x0),Math.abs(x1));
-          halfH=Math.max(halfH,Math.abs(y0),Math.abs(y1));
+          includePoint(Number(piece.x)||0,Number(piece.y)||0);
+          includePoint((Number(piece.x)||0)+rs.w,(Number(piece.y)||0)+rs.h);
         });
+        (L.dims||[]).forEach(dim=>{includePoint(dim.x1,dim.y1);includePoint(dim.x2,dim.y2);});
+        (L.lines||[]).forEach(line=>{includePoint(line.x1,line.y1);includePoint(line.x2,line.y2);});
+        (L.notes||[]).forEach(note=>includePoint(note.x,note.y));
 
-        // Keep a small breathing margin around existing pieces so resize
-        // handles remain reachable even when a piece sat on the prior edge.
-        const hasPieces=Array.isArray(L.pieces)&&L.pieces.length>0;
-        if(hasPieces){
-          halfW+=1;
-          halfH+=1;
-        }
-
+        // One inch of breathing room only applies when drawing content itself
+        // determines the required canvas size; it does not inflate a plan that
+        // already comfortably contains the drawing.
+        const pad=hasDrawing?1:0;
         const size={
-          w:Math.max(planSize.w,Math.ceil(halfW*2*1000)/1000),
-          h:Math.max(planSize.h,Math.ceil(halfH*2*1000)/1000)
+          w:Math.max(planSize.w,Math.ceil((drawingHalfW+pad)*2*1000)/1000),
+          h:Math.max(planSize.h,Math.ceil((drawingHalfH+pad)*2*1000)/1000)
         };
         const dx=size.w/2-oldCx;
         const dy=size.h/2-oldCy;
