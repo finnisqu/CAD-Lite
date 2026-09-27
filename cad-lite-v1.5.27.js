@@ -5975,13 +5975,14 @@
         if(!area)return false;
         const affected=(L.pieces||[]).filter(piece=>areaForPiece(piece,L)?.id===areaId);
         const fallback=areas.find(item=>item.id!==areaId);
+        const previousActive=L.activeAreaId;
         if(affected.length){
           const ok=confirm(`Move ${affected.length} piece${affected.length===1?'':'s'} from "${area.name}" to "${fallback.name}" and delete this Area?`);
           if(!ok)return false;
           assignPiecesToArea(affected.map(piece=>piece.id),fallback.id);
         }
         L.areas=areas.filter(item=>item.id!==areaId);
-        if(L.activeAreaId===areaId)L.activeAreaId=fallback.id;
+        L.activeAreaId=previousActive===areaId?fallback.id:previousActive;
         areaCollapseState.delete(`${L.id}:${areaId}`);
         renderList?.();
         updateInspector?.();
@@ -16520,11 +16521,7 @@ function areaHeader(area){
   rename.title='Rename Area';
   rename.onclick=e=>{
     e.preventDefault();e.stopPropagation();
-    beginListRename(title,area,'Area',()=>{
-      renderList();
-      scheduleSave?.();
-      pushHistory?.();
-    });
+    beginListRename(title,area,'Area',()=>renderList());
   };
 
   const del=document.createElement('button');
