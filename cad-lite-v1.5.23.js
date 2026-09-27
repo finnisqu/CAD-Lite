@@ -11664,7 +11664,7 @@ if (window.svg2pdf) {
         for(let i=0;i<infos.length;i++){
           for(let j=i+1;j<infos.length;j++){
             const a=infos[i],b=infos[j];
-            if(!a.owner||!b.owner||a.owner.id!==b.owner.id)continue;
+            if(!a.owner||!b.owner||a.owner!==b.owner)continue;
 
             if(slabPolygonsOverlap(a.poly,b.poly)){
               a.warnings.push(`Overlaps ${String(b.piece.name||'piece')}`);
@@ -11699,6 +11699,7 @@ if (window.svg2pdf) {
         root?.classList.toggle('lc-workspace-slab',slab);
         root?.classList.toggle('lc-workspace-layout',!slab);
         root?.classList.toggle('lc-workspace-design',!slab);
+        if(!slab)meta?.classList.remove('lc-slab-has-warnings','lc-slab-valid');
         syncWorkspaceCommandAvailability?.(document);
       }
 
