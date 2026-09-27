@@ -5864,6 +5864,21 @@
             piece.areaId=L.activeAreaId||L.areas[0].id;
           }
         });
+
+        // Keep Assemblies inside one Area. This also repairs any split Assembly
+        // created while testing the first Areas build.
+        const groupArea=new Map();
+        pieces.forEach(piece=>{
+          if(piece?.attachment?.kind==='backsplash'||!piece?.pieceGroupId)return;
+          if(!groupArea.has(piece.pieceGroupId))groupArea.set(piece.pieceGroupId,piece.areaId);
+          else piece.areaId=groupArea.get(piece.pieceGroupId);
+        });
+        // Re-sync linked splashes after any Assembly repair.
+        pieces.forEach(piece=>{
+          const parentId=piece?.attachment?.kind==='backsplash'?piece.attachment.parentPieceId:null;
+          const parent=parentId?byId.get(parentId):null;
+          if(parent&&validIds.has(parent.areaId))piece.areaId=parent.areaId;
+        });
         return L.areas;
       }
 
@@ -17635,6 +17650,7 @@ function renderLayouts(){
       state.selectedDimId=null;
       state.selectedLineId=null;
       state.selectedNoteId=null;
+      state.selectedAreaId=null;
       renderLayouts();
       syncToolbarFromLayout();
       renderList();
