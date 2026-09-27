@@ -7518,7 +7518,7 @@
             {keys:[['Hold Shift','R']],action:'Radius Label Mode — all pieces',context:'DESIGN'},
             {keys:[['Shift','E']],action:'Toggle Edge Profile Painter — all pieces',context:'DESIGN'},
             {keys:[['Hold S']],action:'Grab / move slab + its pieces',context:'SLAB'},
-            {keys:[['Alt','Hold S']],action:'Move slab only',context:'SLAB'}
+            {keys:[['Hold S'],['Alt','Drag']],action:'Move slab only (hold S, then Alt-drag)',context:'SLAB'}
           ]
         },
         {
