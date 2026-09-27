@@ -4176,7 +4176,7 @@
 
       function ensureAutomaticSlabInventory(){
         const L=ensureOverlaysOnLayout(activeLayout());
-        if(!L)return false;
+        if(!L||L.autoSlabCountLocked===true)return false;
         const required=estimatedAutomaticSlabCount();
         let changed=false;
         while(required>0&&(L.overlays?.length||0)<required&&(L.overlays?.length||0)<MAX_SLABS_PER_LAYOUT){
@@ -4407,8 +4407,8 @@
         commit.onclick=()=>{
           const s=slabImportState;
           if(!s?.img||!s.crop)return;
-          const slabW=Math.max(1,Number(widthInput.value)||126);
-          const slabH=Math.max(1,Number(heightInput.value)||63);
+          const slabW=Math.max(1,Number(widthInput.value)||Number(state.defaultSlabW)||126);
+          const slabH=Math.max(1,Number(heightInput.value)||Number(state.defaultSlabH)||63);
           const crop=s.crop;
           const scale=Math.min(1,1600/Math.max(crop.w,crop.h));
           const out=document.createElement('canvas');
@@ -4444,8 +4444,8 @@
             dragging:false
           };
           ui.nameInput.value=String(name||'Slab').replace(/\.[a-z0-9]+$/i,'');
-          ui.widthInput.value='126';
-          ui.heightInput.value='63';
+          ui.widthInput.value=String(Math.max(24,Number(state.defaultSlabW)||126));
+          ui.heightInput.value=String(Math.max(24,Number(state.defaultSlabH)||63));
           ui.modal.hidden=false;
           ui.render();
         };
@@ -4560,7 +4560,11 @@
         name.title = o.name || `Slab ${idx+1}`;
         const meta=document.createElement('div');
         meta.className='ov-meta';
-        meta.textContent=fmtCanvasInches(Number(o.slabW)||126)+' × '+fmtCanvasInches(Number(o.slabH)||63)+(o.dataURL?' · Image':' · Generic');
+        const navDim=value=>{
+          const v=Math.round((Number(value)||0)*1000)/1000;
+          return (Math.abs(v%1)<1e-9?String(Math.round(v)):v.toFixed(3).replace(/\.?0+$/,''))+'"';
+        };
+        meta.textContent=navDim(Number(o.slabW)||126)+' × '+navDim(Number(o.slabH)||63)+(o.dataURL?' · Image':' · Generic');
         info.append(name,meta);
 
         // Right-side actions: visibility, rename, duplicate, delete.
@@ -4619,6 +4623,7 @@
         del.addEventListener('click', (e)=>{
           e.preventDefault(); e.stopPropagation();
           arr.splice(idx,1);
+          L.autoSlabCountLocked=true;
           if (L.ovSel >= arr.length) L.ovSel = arr.length - 1;
           draw(); scheduleSave(); pushHistory();
           renderOverlayList();
@@ -7140,6 +7145,7 @@
         const overlaySelected=L && L.ovSel>=0 && L.ovSel<(L.overlays?.length||0);
         if(overlaySelected){
           L.overlays.splice(L.ovSel,1);
+          L.autoSlabCountLocked=true;
           if(L.ovSel>=L.overlays.length)L.ovSel=L.overlays.length-1;
           renderOverlayList?.();
           syncOverlayUI?.();
@@ -12219,6 +12225,10 @@ if (window.svg2pdf) {
 
 function scheduleSave(){
   detachShareIdFromUrl();    // Detach on any save
+  const autoSlabChanged=ensureAutomaticSlabInventory?.();
+  if(autoSlabChanged){
+    queueMicrotask(()=>{renderOverlayList?.();syncOverlayUI?.();});
+  }
   if(typeof maybeAdvanceGuidedWorkflow==='function')setTimeout(maybeAdvanceGuidedWorkflow,0);
   clearTimeout(saveTimer);
   saveTimer = setTimeout(()=>{
