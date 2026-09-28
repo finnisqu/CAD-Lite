@@ -2847,7 +2847,7 @@
         setSelection([]);
         state.selectedRoomFeatureId=null;
         state.selectedDimId=null;state.selectedLineId=null;state.selectedNoteId=null;
-        renderRoomFeaturesNavigator();syncCanvasToolCursor?.();draw();
+        renderRoomFeaturesNavigator();syncCanvasToolCursor?.();syncModeHUD?.();draw();
       }
 
       function cancelRoomFeatureTool({redraw=true}={}){
@@ -12381,7 +12381,7 @@ if (window.svg2pdf) {
         const q=svgPoint(e);
         let point=snapRoomWallPoint({x:p2i(q.x),y:p2i(q.y)},{micro:!!e.shiftKey||drawShiftHeld});
         if(!roomFeatureTool.start){
-          roomFeatureTool.start=point;roomFeatureTool.preview=point;draw();blankDown=null;return;
+          roomFeatureTool.start=point;roomFeatureTool.preview=point;syncModeHUD?.();draw();blankDown=null;return;
         }
 
         point=constrainDrawPoint(roomFeatureTool.start,point,false);
