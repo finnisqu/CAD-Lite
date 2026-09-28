@@ -22961,7 +22961,11 @@ if(btnAddLayout){
       if(state.pieceSnap){
         const SNAP_TOL=1.0, movingIds=new Set(state.drag.snapIgnoreIds||state.drag.group.map(gp=>gp.id));
         let minX=Infinity,minY=Infinity,maxX=-Infinity,maxY=-Infinity;
-        state.drag.group.forEach(gp=>{minX=Math.min(minX,gp.x0);minY=Math.min(minY,gp.y0);maxX=Math.max(maxX,gp.x0+gp.rs.w);maxY=Math.max(maxY,gp.y0+gp.rs.h);});
+        // Auto-carried linked splashes remain in the movement/containment group
+        // but do not define the countertop's alignment envelope.
+        const snapGroup=state.drag.group.filter(gp=>!gp.boundOnly);
+        const alignmentGroup=snapGroup.length?snapGroup:state.drag.group;
+        alignmentGroup.forEach(gp=>{minX=Math.min(minX,gp.x0);minY=Math.min(minY,gp.y0);maxX=Math.max(maxX,gp.x0+gp.rs.w);maxY=Math.max(maxY,gp.y0+gp.rs.h);});
         const movingX=[minX+dx,maxX+dx], movingY=[minY+dy,maxY+dy];
         let bestX=null,bestY=null;
         state.pieces.forEach(other=>{
