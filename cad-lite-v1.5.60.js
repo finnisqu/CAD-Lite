@@ -2893,7 +2893,7 @@
         const addPiece=document.querySelector('.lc-add-piece-top');
         if(addPiece){
           addPiece.disabled=false;
-          addPiece.title=state.roomFeatureMode?'Add Room Feature (F)':'Add Piece (P)';
+          addPiece.title=state.roomFeatureMode?'Add Room Feature with options':'Add Piece (P)';
           addPiece.setAttribute('aria-label',addPiece.title);
         }
         syncModeHUD?.();
@@ -22875,41 +22875,41 @@ if(btnAddLayout){
           sp.y=round3(gp.y0+dy);
         });
         draw();
-        if(slabDrag.guideX!=null)svg.appendChild(svgEl('line',{x1:i2p(slabDrag.guideX),y1:0,x2:i2p(slabDrag.guideX),y2:i2p(state.workspace==='slab'?slabCanvasH():state.ch),stroke:'#2563eb','stroke-width':1,'stroke-dasharray':'5 4','vector-effect':'non-scaling-stroke','pointer-events':'none'}));
-        if(slabDrag.guideY!=null)svg.appendChild(svgEl('line',{x1:0,y1:i2p(slabDrag.guideY),x2:i2p(state.workspace==='slab'?slabCanvasW():state.cw),y2:i2p(slabDrag.guideY),stroke:'#2563eb','stroke-width':1,'stroke-dasharray':'5 4','vector-effect':'non-scaling-stroke','pointer-events':'none'}));
+        if(slabDrag.guideX!=null&&!slabDrag.edgeAllowanceX)svg.appendChild(svgEl('line',{x1:i2p(slabDrag.guideX),y1:0,x2:i2p(slabDrag.guideX),y2:i2p(state.workspace==='slab'?slabCanvasH():state.ch),stroke:'#2563eb','stroke-width':1,'stroke-dasharray':'5 4','vector-effect':'non-scaling-stroke','pointer-events':'none'}));
+        if(slabDrag.guideY!=null&&!slabDrag.edgeAllowanceY)svg.appendChild(svgEl('line',{x1:0,y1:i2p(slabDrag.guideY),x2:i2p(state.workspace==='slab'?slabCanvasW():state.cw),y2:i2p(slabDrag.guideY),stroke:'#2563eb','stroke-width':1,'stroke-dasharray':'5 4','vector-effect':'non-scaling-stroke','pointer-events':'none'}));
 
-        const edgeHit=slabDrag.edgeAllowanceX||slabDrag.edgeAllowanceY;
-        if(edgeHit){
-          const rect=edgeHit.rect;
-          if(slabDrag.edgeAllowanceX&&rect){
-            svg.appendChild(svgEl('line',{
-              x1:i2p(slabDrag.guideX),y1:i2p(rect.top),
-              x2:i2p(slabDrag.guideX),y2:i2p(rect.bottom),
-              stroke:'#7c3aed','stroke-width':1.5,'stroke-dasharray':'7 4',
-              'vector-effect':'non-scaling-stroke','pointer-events':'none'
-            }));
-          }
-          if(slabDrag.edgeAllowanceY&&rect){
-            svg.appendChild(svgEl('line',{
-              x1:i2p(rect.left),y1:i2p(slabDrag.guideY),
-              x2:i2p(rect.right),y2:i2p(slabDrag.guideY),
-              stroke:'#7c3aed','stroke-width':1.5,'stroke-dasharray':'7 4',
-              'vector-effect':'non-scaling-stroke','pointer-events':'none'
-            }));
-          }
+        const drawSlabEdgeAllowanceGuide=(hit,axis)=>{
+          if(!hit?.rect)return;
+          const rect=hit.rect;
+          const vertical=axis==='x';
+          svg.appendChild(svgEl('line',vertical
+            ? {
+                x1:i2p(hit.guide),y1:i2p(rect.top),
+                x2:i2p(hit.guide),y2:i2p(rect.bottom),
+                stroke:'#7c3aed','stroke-width':1.5,'stroke-dasharray':'7 4',
+                'vector-effect':'non-scaling-stroke','pointer-events':'none'
+              }
+            : {
+                x1:i2p(rect.left),y1:i2p(hit.guide),
+                x2:i2p(rect.right),y2:i2p(hit.guide),
+                stroke:'#7c3aed','stroke-width':1.5,'stroke-dasharray':'7 4',
+                'vector-effect':'non-scaling-stroke','pointer-events':'none'
+              }));
           const label=svgEl('text',{
-            x:slabDrag.edgeAllowanceX!=null?i2p(slabDrag.guideX)+6:i2p(rect?.left||0)+6,
-            y:slabDrag.edgeAllowanceY!=null?i2p(slabDrag.guideY)-6:i2p(rect?.top||0)+13,
+            x:vertical?i2p(hit.guide)+6:i2p(rect.left)+6,
+            y:vertical?i2p(rect.top)+13:i2p(hit.guide)-6,
             fill:'#6d28d9',
             'font-size':'10',
             'font-weight':'800',
             'pointer-events':'none'
           });
-          label.textContent=edgeHit.allowance>.0005
-            ? fmtCanvasInches(edgeHit.allowance)+' EDGE ALLOWANCE'
+          label.textContent=hit.allowance>.0005
+            ? fmtCanvasInches(hit.allowance)+' EDGE ALLOWANCE'
             : 'SLAB EDGE';
           svg.appendChild(label);
-        }
+        };
+        drawSlabEdgeAllowanceGuide(slabDrag.edgeAllowanceX,'x');
+        drawSlabEdgeAllowanceGuide(slabDrag.edgeAllowanceY,'y');
 
         const clearanceHit=slabDrag.clearanceX||slabDrag.clearanceY;
         if(clearanceHit&&clearanceHit.clearance>.0005){
