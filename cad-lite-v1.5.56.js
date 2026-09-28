@@ -3929,7 +3929,15 @@
             toggleLockedAnnotationTool(tool);
           }else{
             if(tool==='edgePainter')edgePainterScope='selected';
-            toggleLockedTool(tool);
+            const lockedTool=momentaryToolState.locked;
+            const sameFamily=(tool==='splash'&&(lockedTool==='splash'||lockedTool==='splashAll'))
+              ||(tool==='radius'&&(lockedTool==='radius'||lockedTool==='radiusAll'))
+              ||(tool==='edgePainter'&&lockedTool==='edgePainter');
+            if(sameFamily){
+              clearLockedTool();
+            }else{
+              toggleLockedTool(tool);
+            }
           }
           return;
         }
