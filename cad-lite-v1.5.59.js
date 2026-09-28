@@ -12506,6 +12506,7 @@ if (window.svg2pdf) {
         if(Math.hypot(point.x-roomFeatureTool.start.x,point.y-roomFeatureTool.start.y)<.125){blankDown=null;return;}
         const feature=makeRoomWall(roomFeatureTool.start,point);
         clampRoomFeatureToCanvas(feature);
+        const chainPoint={x:round3(Number(feature.x2)||0),y:round3(Number(feature.y2)||0)};
         const L=cur();
         if(L){
           roomFeatures(L).push(normalizeRoomFeature(feature));
@@ -12513,7 +12514,7 @@ if (window.svg2pdf) {
           renderRoomFeaturesNavigator();updateInspector();scheduleSave();pushHistory();syncCanvasToolCursor?.();
         }
         if(roomWallModeState.locked||roomWallModeState.held){
-          roomFeatureTool={kind:'wall',start:{x:point.x,y:point.y},preview:{x:point.x,y:point.y}};
+          roomFeatureTool={kind:'wall',start:{...chainPoint},preview:{...chainPoint}};
           syncModeHUD?.();draw();
         }else{
           roomFeatureTool=null;
