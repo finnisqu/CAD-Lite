@@ -16047,6 +16047,10 @@ function createSinkRadiusAnnotation(piece,sink,corner){
           lock.onclick=e=>{
             e.preventDefault();
             e.stopPropagation();
+            if(roomWallModeActive()){
+              setRoomWallHUDLock(!roomWallModeState.locked);
+              return;
+            }
             const activeTool=activeMomentaryTool();
             if(['splash','splashAll','radius','radiusAll','edgePainter'].includes(activeTool)){
               const nextLocked=momentaryToolState.locked!==activeTool;
@@ -16067,6 +16071,15 @@ function createSinkRadiusAnnotation(piece,sink,corner){
           close.onclick=e=>{
             e.preventDefault();
             e.stopPropagation();
+            if(roomWallModeActive()){
+              cancelRoomFeatureTool();
+              return;
+            }
+            if(roomWallAttachMode){
+              roomWallAttachMode=false;
+              renderRoomFeaturesNavigator();syncCanvasToolCursor?.();syncModeHUD?.();draw();
+              return;
+            }
             if(state.roomFeatureMode){
               setRoomFeatureMode(false);
               return;
@@ -16121,6 +16134,7 @@ function createSinkRadiusAnnotation(piece,sink,corner){
           const roomActionWrap=document.createElement('div');
           roomActionWrap.className='lc-mode-hud-room-actions';
           roomActionWrap.dataset.modeHudRoomOnly='1';
+          roomActionWrap.dataset.modeHudRoomGeneral='1';
 
           const roomFeatureButton=document.createElement('button');
           roomFeatureButton.type='button';
@@ -16141,8 +16155,7 @@ function createSinkRadiusAnnotation(piece,sink,corner){
           roomWallButton.innerHTML='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 17 20 7M5 13l4 6M15 5l4 6" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg><span>Wall</span><kbd>W</kbd>';
           roomWallButton.addEventListener('click',e=>{
             e.preventDefault();e.stopPropagation();
-            if(roomFeatureTool?.kind==='wall')cancelRoomFeatureTool();
-            else activateRoomFeatureTool('wall',{startPoint:canvasHoverPoint});
+            toggleLockedRoomWallMode();
           });
 
           const roomAttachButton=document.createElement('button');
@@ -16156,12 +16169,74 @@ function createSinkRadiusAnnotation(piece,sink,corner){
             setRoomFeatureMode(true,{redraw:false});
             cancelRoomFeatureTool({redraw:false});
             roomWallAttachMode=!roomWallAttachMode;
+            if(roomWallAttachMode)roomWallBrushAction='add';
             renderRoomFeaturesNavigator();
             syncCanvasToolCursor?.();
             syncModeHUD?.();
             draw();
           });
           roomActionWrap.append(roomFeatureButton,roomWallButton,roomAttachButton);
+
+          const roomWallControls=document.createElement('div');
+          roomWallControls.className='lc-mode-hud-room-wall-controls';
+          roomWallControls.dataset.modeHudRoomWallControls='1';
+
+          const roomWallBrush=document.createElement('div');
+          roomWallBrush.className='lc-mode-hud-brush lc-mode-hud-field-group lc-mode-hud-room-wall-brush';
+          roomWallBrush.dataset.modeHudLinkedWallOnly='1';
+          const roomWallBrushLabel=document.createElement('span');
+          roomWallBrushLabel.className='lc-mode-hud-control-label';
+          roomWallBrushLabel.textContent='Brush';
+          const roomWallBrushButtons=document.createElement('div');
+          roomWallBrushButtons.className='lc-mode-hud-brush-buttons';
+          ['add','erase'].forEach(action=>{
+            const button=document.createElement('button');
+            button.type='button';
+            button.className='lc-mode-hud-brush-button';
+            button.dataset.roomWallAction=action;
+            button.title=action==='add'?'Add linked walls':'Remove linked walls';
+            button.setAttribute('aria-label',button.title);
+            button.innerHTML=action==='add'
+              ? '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>'
+              : '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m4.5 15.5 8.5-8.5 6 6-7.5 7.5H7.5l-3-3a1.4 1.4 0 0 1 0-2Z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="m10.5 9.5 6 6M11.5 20.5h8" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>';
+            button.addEventListener('click',()=>{
+              roomWallBrushAction=action;
+              syncModeHUD?.();
+              draw?.();
+            });
+            roomWallBrushButtons.appendChild(button);
+          });
+          roomWallBrush.append(roomWallBrushLabel,roomWallBrushButtons);
+
+          const roomWallTypeWrap=document.createElement('label');
+          roomWallTypeWrap.className='lc-mode-hud-control lc-mode-hud-field-group lc-mode-hud-room-wall-type';
+          const roomWallTypeLabel=document.createElement('span');
+          roomWallTypeLabel.className='lc-mode-hud-control-label';
+          roomWallTypeLabel.textContent='Type';
+          const roomWallTypeSelect=document.createElement('select');
+          roomWallTypeSelect.className='lc-input lc-mode-hud-room-wall-type-select';
+          roomWallTypeSelect.innerHTML='<option value="full">Wall</option><option value="knee">Knee Wall</option>';
+          roomWallTypeSelect.addEventListener('change',()=>setRoomWallDefaults({wallType:roomWallTypeSelect.value}));
+          roomWallTypeWrap.append(roomWallTypeLabel,roomWallTypeSelect);
+
+          const roomWallThicknessWrap=document.createElement('label');
+          roomWallThicknessWrap.className='lc-mode-hud-control lc-mode-hud-field-group lc-mode-hud-room-wall-thickness';
+          const roomWallThicknessLabel=document.createElement('span');
+          roomWallThicknessLabel.className='lc-mode-hud-control-label';
+          roomWallThicknessLabel.textContent='Thickness';
+          const roomWallThicknessInput=document.createElement('input');
+          roomWallThicknessInput.type='number';
+          roomWallThicknessInput.className='lc-input lc-mode-hud-number lc-mode-hud-room-wall-thickness-input';
+          roomWallThicknessInput.min='.25';
+          roomWallThicknessInput.max='24';
+          roomWallThicknessInput.step='.125';
+          roomWallThicknessInput.addEventListener('change',()=>{
+            setRoomWallDefaults({thickness:roomWallThicknessInput.value});
+            roomWallThicknessInput.value=String(roomWallDefaults.thickness);
+          });
+          roomWallThicknessWrap.append(roomWallThicknessLabel,roomWallThicknessInput);
+
+          roomWallControls.append(roomWallBrush,roomWallTypeWrap,roomWallThicknessWrap);
 
           const heightWrap=document.createElement('label');
           heightWrap.className='lc-mode-hud-control lc-mode-hud-field-group';
@@ -16360,7 +16435,7 @@ function createSinkRadiusAnnotation(piece,sink,corner){
           });
           edgeProfileWrap.append(edgeProfileLabel,edgeProfileSelect);
 
-          toolbar.append(roomActionWrap,actionWrap,radiusActionWrap,edgeActionWrap,scopeWrap,radiusPlacementWrap,edgeProfileWrap,heightWrap,offsetWrap);
+          toolbar.append(roomActionWrap,roomWallControls,actionWrap,radiusActionWrap,edgeActionWrap,scopeWrap,radiusPlacementWrap,edgeProfileWrap,heightWrap,offsetWrap);
 
           heightInput.addEventListener('input',()=>{
             const value=Number(heightInput.value);
@@ -16414,7 +16489,11 @@ function createSinkRadiusAnnotation(piece,sink,corner){
           root.appendChild(hud);
         }
 
+        const roomWallActive=roomFeaturesActive&&roomFeatureTool?.kind==='wall';
+        const roomLinkedWallsActive=roomFeaturesActive&&!!roomWallAttachMode;
         hud.classList.toggle('is-room-features-mode',roomFeaturesActive);
+        hud.classList.toggle('is-room-wall-mode',roomWallActive);
+        hud.classList.toggle('is-room-linked-walls-mode',roomLinkedWallsActive);
         hud.classList.toggle('is-splash-mode',splashActive);
         hud.classList.toggle('is-radius-mode',radiusActive);
         hud.classList.toggle('is-edge-painter-mode',edgePainterActive);
@@ -16431,22 +16510,28 @@ function createSinkRadiusAnnotation(piece,sink,corner){
         const shortcut=hud.querySelector('.lc-mode-hud-shortcut');
         const viewButton=hud.querySelector('.lc-mode-hud-view-toggle');
         const toolbar=hud.querySelector('.lc-mode-hud-toolbar');
+        const roomWallTypeSelect=hud.querySelector('.lc-mode-hud-room-wall-type-select');
+        const roomWallThicknessInput=hud.querySelector('.lc-mode-hud-room-wall-thickness-input');
         const close=hud.querySelector('.lc-mode-hud-close');
 
         if(roomFeaturesActive){
-          if(icon)icon.innerHTML='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 19V7l8-3 8 3v12M8 19v-7h8v7M3 19h18" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>';
-          if(title)title.textContent='ROOM FEATURES';
+          if(icon)icon.innerHTML=roomWallActive
+            ? '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 17 20 7M5 13l4 6M15 5l4 6" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>'
+            : (roomLinkedWallsActive
+              ? '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 6h7v7H5zM12 10h7v8M12 14h7" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>'
+              : '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 19V7l8-3 8 3v12M8 19v-7h8v7M3 19h18" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>');
+          if(title)title.textContent=roomWallActive?'WALL':(roomLinkedWallsActive?'LINKED WALLS':'ROOM FEATURES');
           if(help){
-            help.textContent=roomFeatureTool?.kind==='wall'
-              ? (roomFeatureTool.start?'Click second point to finish wall':'Click first point to start wall')
-              : (roomWallAttachMode
-                ? 'Click a feature-group edge to add a linked wall'
+            help.textContent=roomWallActive
+              ? (roomFeatureTool.start?'Click next point · Shift snaps angle':'Click first point to start wall')
+              : (roomLinkedWallsActive
+                ? (roomWallBrushAction==='erase'?'Click linked walls to remove':'Click feature edges to add walls')
                 : 'Select, move, or add room features');
             help.title=help.textContent;
           }
           if(close){
-            close.title='Return to Countertop mode';
-            close.setAttribute('aria-label','Return to Countertop mode');
+            close.title=roomWallActive||roomLinkedWallsActive?'Back to Room Features':'Return to Countertop mode';
+            close.setAttribute('aria-label',close.title);
           }
         }else if(splashActive){
           if(icon)icon.innerHTML='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 15h16v4H4zM4 11h16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/></svg>';
@@ -16552,20 +16637,23 @@ function createSinkRadiusAnnotation(piece,sink,corner){
         const modeLocked=annotationActive
           ? annotationToolState.locked===annotationTool
           : momentaryToolState.locked===tool;
-        const shortcutBase=roomFeaturesActive?'Q'
+        const shortcutBase=roomWallActive?'W'
+          :(roomFeaturesActive&&!roomLinkedWallsActive?'Q'
           :(splashActive?'S'
           :(radiusActive?'R'
           :(edgePainterActive?'E'
           :(dimActive?'D'
           :(noteActive?'N'
-          :(lineActive?'L':''))))));
+          :(lineActive?'L':'')))))));
         const shortcutKeys=shortcutBase
-          ? (roomFeaturesActive?['Q']:['Shift',shortcutBase])
+          ? (roomWallActive?['Shift','W']:(roomFeaturesActive?['Q']:['Shift',shortcutBase]))
           : [];
         const shortcutTitle=shortcutBase
-          ? (roomFeaturesActive
-            ? 'Q toggles Room Features mode'
-            : 'Shift+'+shortcutBase+' locks or unlocks this mode')
+          ? (roomWallActive
+            ? 'Shift+W locks or unlocks Wall mode'
+            : (roomFeaturesActive
+              ? 'Q toggles Room Features mode'
+              : 'Shift+'+shortcutBase+' locks or unlocks this mode'))
           : '';
         if(shortcut){
           shortcut.replaceChildren();
@@ -16587,6 +16675,15 @@ function createSinkRadiusAnnotation(piece,sink,corner){
 
         hud.querySelectorAll('[data-mode-hud-room-only]').forEach(el=>{
           el.hidden=!roomFeaturesActive;
+        });
+        hud.querySelectorAll('[data-mode-hud-room-general]').forEach(el=>{
+          el.hidden=!roomFeaturesActive||roomWallActive||roomLinkedWallsActive;
+        });
+        hud.querySelectorAll('[data-mode-hud-room-wall-controls]').forEach(el=>{
+          el.hidden=!roomWallActive&&!roomLinkedWallsActive;
+        });
+        hud.querySelectorAll('[data-mode-hud-linked-wall-only]').forEach(el=>{
+          el.hidden=!roomLinkedWallsActive;
         });
         hud.querySelectorAll('[data-mode-hud-splash-only]').forEach(el=>{
           el.hidden=!splashActive;
@@ -16640,12 +16737,14 @@ function createSinkRadiusAnnotation(piece,sink,corner){
           });
         }
 
-        const locked=annotationActive
-          ? annotationToolState.locked===annotationToolFromFlags()
-          : momentaryToolState.locked===tool;
+        const locked=roomWallActive
+          ? !!roomWallModeState.locked
+          : (annotationActive
+            ? annotationToolState.locked===annotationToolFromFlags()
+            : momentaryToolState.locked===tool);
         const lock=hud.querySelector('.lc-mode-hud-lock');
         if(lock){
-          lock.hidden=roomFeaturesActive;
+          lock.hidden=roomFeaturesActive&&!roomWallActive;
           lock.classList.toggle('is-locked',locked);
           lock.setAttribute('aria-pressed',String(locked));
           lock.title=locked?'Locked — click to unlock':'Unlocked — click to lock';
@@ -16665,14 +16764,24 @@ function createSinkRadiusAnnotation(piece,sink,corner){
           const wallButton=hud.querySelector('.lc-mode-hud-room-button:nth-child(2)');
           const attachButton=hud.querySelector('.lc-mode-hud-room-attach');
           if(wallButton){
-            const on=roomFeatureTool?.kind==='wall';
-            wallButton.classList.toggle('is-active',on);
-            wallButton.setAttribute('aria-pressed',String(on));
+            wallButton.classList.toggle('is-active',roomWallActive);
+            wallButton.setAttribute('aria-pressed',String(roomWallActive));
           }
           if(attachButton){
-            attachButton.classList.toggle('is-active',!!roomWallAttachMode);
-            attachButton.setAttribute('aria-pressed',String(!!roomWallAttachMode));
+            attachButton.classList.toggle('is-active',roomLinkedWallsActive);
+            attachButton.setAttribute('aria-pressed',String(roomLinkedWallsActive));
           }
+          if(roomWallTypeSelect&&document.activeElement!==roomWallTypeSelect){
+            roomWallTypeSelect.value=roomWallDefaults.wallType;
+            roomWallTypeSelect.disabled=roomLinkedWallsActive&&roomWallBrushAction==='erase';
+          }
+          if(roomWallThicknessInput&&document.activeElement!==roomWallThicknessInput){
+            roomWallThicknessInput.value=String(roomWallDefaults.thickness);
+            roomWallThicknessInput.disabled=roomLinkedWallsActive&&roomWallBrushAction==='erase';
+          }
+          hud.querySelectorAll('[data-room-wall-action]').forEach(button=>{
+            button.setAttribute('aria-pressed',String(button.dataset.roomWallAction===roomWallBrushAction));
+          });
         }
 
         if(edgePainterActive){
