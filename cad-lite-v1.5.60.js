@@ -12633,17 +12633,21 @@ if (window.svg2pdf) {
         if(!roomWallAttachMode)return;
         const target=e.target instanceof Element?e.target:null;
         if(target?.closest('.lc-room-wall-target,.lc-room-wall-attach-btn,.lc-mode-hud'))return;
-        roomWallAttachMode=false;renderRoomFeaturesNavigator();syncModeHUD?.();draw();
+        stopLinkedWallMode();
       },true);
 
       window.addEventListener('keydown',e=>{
-        const target=e.target instanceof Element?e.target:null;
-        if(roomWallAttachMode&&!isTypingTarget(e.target)&&!target?.closest('.lc-mode-hud')&&e.key!=='Shift'&&e.key!=='Control'&&e.key!=='Meta'&&e.key!=='Alt'){
-          roomWallAttachMode=false;renderRoomFeaturesNavigator();syncModeHUD?.();draw();
-          if(e.key==='Escape'){e.preventDefault();return;}
-        }
         if(e.key!=='Escape')return;
-        if(roomFeatureTool){e.preventDefault();cancelRoomFeatureTool();return;}
+        if(roomWallAttachMode){
+          e.preventDefault();
+          stopLinkedWallMode();
+          return;
+        }
+        if(roomFeatureTool){
+          e.preventDefault();
+          cancelRoomFeatureTool();
+          return;
+        }
       },true);
 
       function previewSnapInfo(raw,mode){
@@ -16146,6 +16150,10 @@ function createSinkRadiusAnnotation(piece,sink,corner){
           lock.onclick=e=>{
             e.preventDefault();
             e.stopPropagation();
+            if(linkedWallModeActive()){
+              setLinkedWallHUDLock(!linkedWallModeState.locked);
+              return;
+            }
             if(roomWallModeActive()){
               setRoomWallHUDLock(!roomWallModeState.locked);
               return;
@@ -16175,8 +16183,7 @@ function createSinkRadiusAnnotation(piece,sink,corner){
               return;
             }
             if(roomWallAttachMode){
-              roomWallAttachMode=false;
-              renderRoomFeaturesNavigator();syncCanvasToolCursor?.();syncModeHUD?.();draw();
+              stopLinkedWallMode();
               return;
             }
             if(state.roomFeatureMode){
@@ -16249,9 +16256,9 @@ function createSinkRadiusAnnotation(piece,sink,corner){
           const roomWallButton=document.createElement('button');
           roomWallButton.type='button';
           roomWallButton.className='lc-mode-hud-room-button';
-          roomWallButton.title='Draw Wall (W)';
+          roomWallButton.title='Draw a free wall run';
           roomWallButton.setAttribute('aria-label',roomWallButton.title);
-          roomWallButton.innerHTML='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 17 20 7M5 13l4 6M15 5l4 6" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg><span>Wall</span><kbd>W</kbd>';
+          roomWallButton.innerHTML='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 17 20 7M5 13l4 6M15 5l4 6" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg><span>Draw Wall</span>';
           roomWallButton.addEventListener('click',e=>{
             e.preventDefault();e.stopPropagation();
             toggleLockedRoomWallMode();
@@ -16260,19 +16267,12 @@ function createSinkRadiusAnnotation(piece,sink,corner){
           const roomAttachButton=document.createElement('button');
           roomAttachButton.type='button';
           roomAttachButton.className='lc-mode-hud-room-button lc-mode-hud-room-attach';
-          roomAttachButton.title='Add linked walls from Room Feature edges';
+          roomAttachButton.title='Paint linked walls from Room Feature edges (W)';
           roomAttachButton.setAttribute('aria-label',roomAttachButton.title);
-          roomAttachButton.innerHTML='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 6h7v7H5zM12 10h7v8M12 14h7" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg><span>Wall from Features</span>';
+          roomAttachButton.innerHTML='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 6h7v7H5zM12 10h7v8M12 14h7" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg><span>Wall from Features</span><kbd>W</kbd>';
           roomAttachButton.addEventListener('click',e=>{
             e.preventDefault();e.stopPropagation();
-            setRoomFeatureMode(true,{redraw:false});
-            cancelRoomFeatureTool({redraw:false});
-            roomWallAttachMode=!roomWallAttachMode;
-            if(roomWallAttachMode)roomWallBrushAction='add';
-            renderRoomFeaturesNavigator();
-            syncCanvasToolCursor?.();
-            syncModeHUD?.();
-            draw();
+            toggleLockedLinkedWallMode();
           });
           roomActionWrap.append(roomFeatureButton,roomWallButton,roomAttachButton);
 
@@ -16736,20 +16736,21 @@ function createSinkRadiusAnnotation(piece,sink,corner){
         const modeLocked=annotationActive
           ? annotationToolState.locked===annotationTool
           : momentaryToolState.locked===tool;
-        const shortcutBase=roomWallActive?'W'
-          :(roomFeaturesActive&&!roomLinkedWallsActive?'Q'
+        const shortcutBase=roomLinkedWallsActive?'W'
+          :(roomWallActive?''
+          :(roomFeaturesActive?'Q'
           :(splashActive?'S'
           :(radiusActive?'R'
           :(edgePainterActive?'E'
           :(dimActive?'D'
           :(noteActive?'N'
-          :(lineActive?'L':'')))))));
+          :(lineActive?'L':''))))))));
         const shortcutKeys=shortcutBase
-          ? (roomWallActive?['Shift','W']:(roomFeaturesActive?['Q']:['Shift',shortcutBase]))
+          ? (roomLinkedWallsActive?['Shift','W']:(roomFeaturesActive?['Q']:['Shift',shortcutBase]))
           : [];
         const shortcutTitle=shortcutBase
-          ? (roomWallActive
-            ? 'Shift+W locks or unlocks Wall mode'
+          ? (roomLinkedWallsActive
+            ? 'Shift+W locks or unlocks Linked Walls'
             : (roomFeaturesActive
               ? 'Q toggles Room Features mode'
               : 'Shift+'+shortcutBase+' locks or unlocks this mode'))
@@ -16836,14 +16837,16 @@ function createSinkRadiusAnnotation(piece,sink,corner){
           });
         }
 
-        const locked=roomWallActive
-          ? !!roomWallModeState.locked
-          : (annotationActive
+        const locked=roomLinkedWallsActive
+          ? !!linkedWallModeState.locked
+          : (roomWallActive
+            ? !!roomWallModeState.locked
+            : (annotationActive
             ? annotationToolState.locked===annotationToolFromFlags()
-            : momentaryToolState.locked===tool);
+            : momentaryToolState.locked===tool));
         const lock=hud.querySelector('.lc-mode-hud-lock');
         if(lock){
-          lock.hidden=roomFeaturesActive&&!roomWallActive;
+          lock.hidden=roomFeaturesActive&&!roomWallActive&&!roomLinkedWallsActive;
           lock.classList.toggle('is-locked',locked);
           lock.setAttribute('aria-pressed',String(locked));
           lock.title=locked?'Locked — click to unlock':'Unlocked — click to lock';
