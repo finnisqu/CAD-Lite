@@ -6188,12 +6188,27 @@
         e.preventDefault();
 
         if(state.workspace==='slab'){
-          targets.forEach(p=>{
+          // Arrow nudging must preserve the selected pieces as a rigid group.
+          // The requested step is already based on the grid, so do not snap
+          // each piece independently and disturb existing cut clearance.
+          const moving=targets.map(p=>{
             const sp=ensureSlabPlacement(p);
             const rs=slabRealSize(p);
-            sp.x=clamp(snap(sp.x+dx,state.grid),0,state.cw-rs.w);
-            sp.y=clamp(snap(sp.y+dy,state.grid),0,state.ch-rs.h);
+            const x=Number(sp.x)||0,y=Number(sp.y)||0;
+            return {sp,x,y,minX:x,minY:y,maxX:x+rs.w,maxY:y+rs.h};
           });
+          if(moving.length){
+            const minX=Math.min(...moving.map(item=>item.minX));
+            const minY=Math.min(...moving.map(item=>item.minY));
+            const maxX=Math.max(...moving.map(item=>item.maxX));
+            const maxY=Math.max(...moving.map(item=>item.maxY));
+            dx=clamp(dx,-minX,slabCanvasW()-maxX);
+            dy=clamp(dy,-minY,slabCanvasH()-maxY);
+            moving.forEach(item=>{
+              item.sp.x=round3(item.x+dx);
+              item.sp.y=round3(item.y+dy);
+            });
+          }
         }else{
           const requestedIds=targets.map(p=>p.id);
           const assemblyIds=expandIdsWithFabricationAssemblies(requestedIds);
