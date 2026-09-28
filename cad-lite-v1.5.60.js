@@ -10782,18 +10782,36 @@
           }
         }
 
-        // Slab fabrication-placement dragging
+        // Slab fabrication-placement dragging. Snap one translation for the
+        // entire selection; never re-snap individual members on pointer-up.
         if (slabDrag) {
           const snappedX=!!slabDrag.snappedX;
           const snappedY=!!slabDrag.snappedY;
-          slabDrag.group.forEach(gp=>{
+          const live=slabDrag.group.map(gp=>{
             const piece=state.pieces.find(x=>x.id===gp.id);
-            if(!piece)return;
-            const sp=ensureSlabPlacement(piece);
-            if(!snappedX)sp.x=snap(sp.x,state.grid);
-            if(!snappedY)sp.y=snap(sp.y,state.grid);
-            clampSlabPlacement(piece);
-          });
+            return piece?{gp,piece,sp:ensureSlabPlacement(piece)}:null;
+          }).filter(Boolean);
+
+          if(live.length&&state.gridSnap!==false&&(!snappedX||!snappedY)){
+            const anchor=live.find(item=>item.gp.id===slabDrag.anchorId)||live[0];
+            let gridDx=!snappedX?round3(snap(anchor.sp.x,state.grid)-anchor.sp.x):0;
+            let gridDy=!snappedY?round3(snap(anchor.sp.y,state.grid)-anchor.sp.y):0;
+
+            let minX=Infinity,minY=Infinity,maxX=-Infinity,maxY=-Infinity;
+            live.forEach(({gp,sp})=>{
+              minX=Math.min(minX,sp.x);minY=Math.min(minY,sp.y);
+              maxX=Math.max(maxX,sp.x+gp.rs.w);maxY=Math.max(maxY,sp.y+gp.rs.h);
+            });
+            if(Number.isFinite(minX)){
+              gridDx=clamp(gridDx,-minX,slabCanvasW()-maxX);
+              gridDy=clamp(gridDy,-minY,slabCanvasH()-maxY);
+            }
+            live.forEach(({sp})=>{
+              sp.x=round3(sp.x+gridDx);
+              sp.y=round3(sp.y+gridDy);
+            });
+          }
+
           slabDrag=null;
           changed=true;
         }
@@ -13377,8 +13395,10 @@ if (window.svg2pdf) {
             slabDrag={
               startI,
               group:start,
+              anchorId:p.id,
               limits:{dxMin:-minX,dxMax:slabCanvasW()-maxX,dyMin:-minY,dyMax:slabCanvasH()-maxY},
-              snappedX:false,snappedY:false,guideX:null,guideY:null
+              snappedX:false,snappedY:false,guideX:null,guideY:null,
+              edgeAllowanceX:null,edgeAllowanceY:null
             };
             gPiece.setPointerCapture?.(e.pointerId);
           });
@@ -22598,6 +22618,7 @@ if(btnAddLayout){
         let dx=Math.max(dxMin,Math.min(dxMax,rawDx));
         let dy=Math.max(dyMin,Math.min(dyMax,rawDy));
         slabDrag.snappedX=false;slabDrag.snappedY=false;slabDrag.guideX=null;slabDrag.guideY=null;
+        slabDrag.edgeAllowanceX=null;slabDrag.edgeAllowanceY=null;
 
         if(state.pieceSnap){
           const SNAP_TOL=1.0;
@@ -22618,10 +22639,12 @@ if(btnAddLayout){
           const consider=(axis,candidate)=>{
             const ad=Math.abs(candidate.d);
             if(ad>SNAP_TOL)return;
+            const priority=Number.isFinite(Number(candidate.priority))?Number(candidate.priority):9;
+            const next={...candidate,ad,priority};
             if(axis==='x'){
-              if(!bestX||ad<bestX.ad)bestX={...candidate,ad};
+              if(!bestX||priority<bestX.priority||(priority===bestX.priority&&ad<bestX.ad))bestX=next;
             }else{
-              if(!bestY||ad<bestY.ad)bestY={...candidate,ad};
+              if(!bestY||priority<bestY.priority||(priority===bestY.priority&&ad<bestY.ad))bestY=next;
             }
           };
 
@@ -22635,10 +22658,10 @@ if(btnAddLayout){
 
             // Same-edge alignment remains exact. Clearance is only inserted
             // when one fabrication piece nests beside another.
-            consider('x',{d:target.left-moving.left,guide:target.left,kind:'align'});
-            consider('x',{d:target.right-moving.right,guide:target.right,kind:'align'});
-            consider('y',{d:target.top-moving.top,guide:target.top,kind:'align'});
-            consider('y',{d:target.bottom-moving.bottom,guide:target.bottom,kind:'align'});
+            consider('x',{d:target.left-moving.left,guide:target.left,kind:'align',priority:3});
+            consider('x',{d:target.right-moving.right,guide:target.right,kind:'align',priority:3});
+            consider('y',{d:target.top-moving.top,guide:target.top,kind:'align',priority:3});
+            consider('y',{d:target.bottom-moving.bottom,guide:target.bottom,kind:'align',priority:3});
 
             const yOverlap=Math.min(moving.bottom,target.bottom)-Math.max(moving.top,target.top);
             if(yOverlap>=-SNAP_TOL){
@@ -22648,6 +22671,7 @@ if(btnAddLayout){
                 d:rightOfTarget-moving.left,
                 guide:rightOfTarget,
                 kind:'clearance',
+                priority:1,
                 clearance,
                 targetEdge:target.right
               });
@@ -22655,6 +22679,7 @@ if(btnAddLayout){
                 d:leftOfTarget-moving.right,
                 guide:leftOfTarget,
                 kind:'clearance',
+                priority:1,
                 clearance,
                 targetEdge:target.left
               });
@@ -22668,6 +22693,7 @@ if(btnAddLayout){
                 d:belowTarget-moving.top,
                 guide:belowTarget,
                 kind:'clearance',
+                priority:1,
                 clearance,
                 targetEdge:target.bottom
               });
@@ -22675,8 +22701,61 @@ if(btnAddLayout){
                 d:aboveTarget-moving.bottom,
                 guide:aboveTarget,
                 kind:'clearance',
+                priority:1,
                 clearance,
                 targetEdge:target.top
+              });
+            }
+          });
+
+          // The slab's usable perimeter is a first-class snap target. This is
+          // based on the slab's actual fractional dimensions, never the grid.
+          const slabLayout=ensureOverlaysOnLayout(activeLayout());
+          const slabs=Array.isArray(slabLayout?.overlays)?slabLayout.overlays.filter(Boolean):[];
+          slabs.forEach(slab=>{
+            const rect=slabValidationRect(slab,{usable:true});
+            if(!rect)return;
+            const allowance=slabUsableSize(slab).allowance;
+            const yOverlap=Math.min(moving.bottom,rect.bottom)-Math.max(moving.top,rect.top);
+            if(yOverlap>=-SNAP_TOL){
+              consider('x',{
+                d:rect.left-moving.left,
+                guide:rect.left,
+                kind:'edgeAllowance',
+                priority:0,
+                allowance,
+                rect,
+                slabName:String(slab.name||'Slab')
+              });
+              consider('x',{
+                d:rect.right-moving.right,
+                guide:rect.right,
+                kind:'edgeAllowance',
+                priority:0,
+                allowance,
+                rect,
+                slabName:String(slab.name||'Slab')
+              });
+            }
+            const xOverlap=Math.min(moving.right,rect.right)-Math.max(moving.left,rect.left);
+            if(xOverlap>=-SNAP_TOL){
+              consider('y',{
+                d:rect.top-moving.top,
+                guide:rect.top,
+                kind:'edgeAllowance',
+                priority:0,
+                allowance,
+                rect,
+                slabName:String(slab.name||'Slab')
+              });
+              consider('y',{
+                d:rect.bottom-moving.bottom,
+                guide:rect.bottom,
+                kind:'edgeAllowance',
+                priority:0,
+                allowance,
+                rect,
+                slabName:String(slab.name||'Slab')
               });
             }
           });
@@ -22687,12 +22766,14 @@ if(btnAddLayout){
             slabDrag.snappedX=true;
             slabDrag.guideX=bestX.guide;
             if(bestX.kind==='clearance')slabDrag.clearanceX=bestX;
+            if(bestX.kind==='edgeAllowance')slabDrag.edgeAllowanceX=bestX;
           }
           if(bestY){
             dy+=bestY.d;
             slabDrag.snappedY=true;
             slabDrag.guideY=bestY.guide;
             if(bestY.kind==='clearance')slabDrag.clearanceY=bestY;
+            if(bestY.kind==='edgeAllowance')slabDrag.edgeAllowanceY=bestY;
           }
           dx=Math.max(dxMin,Math.min(dxMax,dx));
           dy=Math.max(dyMin,Math.min(dyMax,dy));
@@ -22741,6 +22822,7 @@ if(btnAddLayout){
           }
         }else{
           slabDrag.clearanceX=null;slabDrag.clearanceY=null;
+          slabDrag.edgeAllowanceX=null;slabDrag.edgeAllowanceY=null;
         }
 
         slabDrag.group.forEach(gp=>{
@@ -22753,6 +22835,39 @@ if(btnAddLayout){
         draw();
         if(slabDrag.guideX!=null)svg.appendChild(svgEl('line',{x1:i2p(slabDrag.guideX),y1:0,x2:i2p(slabDrag.guideX),y2:i2p(state.workspace==='slab'?slabCanvasH():state.ch),stroke:'#2563eb','stroke-width':1,'stroke-dasharray':'5 4','vector-effect':'non-scaling-stroke','pointer-events':'none'}));
         if(slabDrag.guideY!=null)svg.appendChild(svgEl('line',{x1:0,y1:i2p(slabDrag.guideY),x2:i2p(state.workspace==='slab'?slabCanvasW():state.cw),y2:i2p(slabDrag.guideY),stroke:'#2563eb','stroke-width':1,'stroke-dasharray':'5 4','vector-effect':'non-scaling-stroke','pointer-events':'none'}));
+
+        const edgeHit=slabDrag.edgeAllowanceX||slabDrag.edgeAllowanceY;
+        if(edgeHit){
+          const rect=edgeHit.rect;
+          if(slabDrag.edgeAllowanceX&&rect){
+            svg.appendChild(svgEl('line',{
+              x1:i2p(slabDrag.guideX),y1:i2p(rect.top),
+              x2:i2p(slabDrag.guideX),y2:i2p(rect.bottom),
+              stroke:'#7c3aed','stroke-width':1.5,'stroke-dasharray':'7 4',
+              'vector-effect':'non-scaling-stroke','pointer-events':'none'
+            }));
+          }
+          if(slabDrag.edgeAllowanceY&&rect){
+            svg.appendChild(svgEl('line',{
+              x1:i2p(rect.left),y1:i2p(slabDrag.guideY),
+              x2:i2p(rect.right),y2:i2p(slabDrag.guideY),
+              stroke:'#7c3aed','stroke-width':1.5,'stroke-dasharray':'7 4',
+              'vector-effect':'non-scaling-stroke','pointer-events':'none'
+            }));
+          }
+          const label=svgEl('text',{
+            x:slabDrag.edgeAllowanceX!=null?i2p(slabDrag.guideX)+6:i2p(rect?.left||0)+6,
+            y:slabDrag.edgeAllowanceY!=null?i2p(slabDrag.guideY)-6:i2p(rect?.top||0)+13,
+            fill:'#6d28d9',
+            'font-size':'10',
+            'font-weight':'800',
+            'pointer-events':'none'
+          });
+          label.textContent=edgeHit.allowance>.0005
+            ? fmtCanvasInches(edgeHit.allowance)+' EDGE ALLOWANCE'
+            : 'SLAB EDGE';
+          svg.appendChild(label);
+        }
 
         const clearanceHit=slabDrag.clearanceX||slabDrag.clearanceY;
         if(clearanceHit&&clearanceHit.clearance>.0005){
