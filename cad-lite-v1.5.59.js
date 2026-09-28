@@ -8274,7 +8274,7 @@
             {keys:[['P']],action:'Add Piece',context:'COUNTERTOP MODE'},
             {keys:[['Q']],action:'Toggle Countertop / Room Feature Mode'},
             {keys:[['F']],action:'Add Room Feature at pointer',context:'ROOM FEATURES'},
-            {keys:[['W']],action:'Start Wall from pointer',context:'ROOM FEATURES'},
+            {keys:[['Hold W'],['Shift','W']],action:'Wall Mode — temporary / locked',context:'ROOM FEATURES'},
             {keys:[['Hold D'],['Shift','D']],action:'Dimension Mode — temporary / locked',context:'DESIGN'},
             {keys:[['Hold N'],['Shift','N']],action:'Note Mode — temporary / locked',context:'DESIGN'},
             {keys:[['Hold L'],['Shift','L']],action:'Line Mode — temporary / locked',context:'DESIGN'},
