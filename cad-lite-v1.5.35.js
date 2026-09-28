@@ -18753,6 +18753,7 @@ if(btnAddLayout){
             renderMaterialsNavigator();
             scheduleSave();
             pushHistory();
+            updateInspector();
           };
           body.appendChild(inspectorField(label,input));
         };
