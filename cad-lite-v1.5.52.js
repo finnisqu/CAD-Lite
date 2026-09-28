@@ -16252,8 +16252,8 @@ function createSinkRadiusAnnotation(piece,sink,corner){
               option.setAttribute('data-edge-side',side);
 
               const railInset=side==='top'||side==='bottom'
-                ? Math.max(2,Math.min(6,H0*.22))
-                : Math.max(2,Math.min(6,W0*.22));
+                ? Math.max(3,Math.min(8,H0*.30))
+                : Math.max(3,Math.min(8,W0*.30));
               let hx1=x1,hy1=y1,hx2=x2,hy2=y2;
               if(side==='top'){hy1+=railInset;hy2+=railInset;}
               else if(side==='bottom'){hy1-=railInset;hy2-=railInset;}
@@ -16275,7 +16275,7 @@ function createSinkRadiusAnnotation(piece,sink,corner){
               const hit=svgEl('line',{
                 x1:hx1,y1:hy1,x2:hx2,y2:hy2,
                 stroke:'rgba(0,0,0,.001)',
-                'stroke-width':14,
+                'stroke-width':12,
                 'vector-effect':'non-scaling-stroke',
                 'pointer-events':'stroke'
               });
@@ -21484,11 +21484,19 @@ if(btnAddLayout){
   
 
       function drawLines(){
-        const L=cur(); if(!viewVisible('showLines')||!L||!Array.isArray(L.lines)) return;
+        const L=cur();
+        const radiusMode=toolForcesView('showRadiusLabels');
+        if((!viewVisible('showLines')&&!radiusMode)||!L||!Array.isArray(L.lines))return;
         L.lines.forEach(lineObj=>{
-          if(isRadiusAnnotation(lineObj)&&!viewVisible('showRadiusLabels'))return;
-          // A leader is part of its Note annotation, so Hide Notes hides the leader too.
-          if(lineObj.attachedNoteId&&!viewVisible('showNotes'))return;
+          const radiusAnnotation=isRadiusAnnotation(lineObj);
+          if(radiusAnnotation){
+            if(!viewVisible('showRadiusLabels'))return;
+          }else if(!viewVisible('showLines')){
+            return;
+          }
+          // Radius leaders are part of Radius Mode and remain visible there even
+          // when the general Notes layer is hidden. Ordinary Note leaders still follow Notes.
+          if(lineObj.attachedNoteId&&!radiusAnnotation&&!viewVisible('showNotes'))return;
 
           let attachedNote=null;
           if(lineObj.attachedNoteId&&Array.isArray(L.notes)){
@@ -21675,10 +21683,16 @@ if(btnAddLayout){
 
       function drawNotes(){
         const L=cur();
-        if(!viewVisible('showNotes')||!L||!Array.isArray(L.notes))return;
+        const radiusMode=toolForcesView('showRadiusLabels');
+        if((!viewVisible('showNotes')&&!radiusMode)||!L||!Array.isArray(L.notes))return;
 
         L.notes.forEach(note=>{
-          if(isRadiusAnnotation(note)&&!viewVisible('showRadiusLabels'))return;
+          const radiusAnnotation=isRadiusAnnotation(note);
+          if(radiusAnnotation){
+            if(!viewVisible('showRadiusLabels'))return;
+          }else if(!viewVisible('showNotes')){
+            return;
+          }
           const g=document.createElementNS(svgNS,'g');
           g.setAttribute('data-note-id',note.id);
           g.style.cursor='move';
