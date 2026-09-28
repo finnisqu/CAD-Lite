@@ -8275,7 +8275,7 @@
         rBL:false,
         rBR:false,
         cornerRadii:{tl:0,tr:0,br:0,bl:0},
-        overhangs:{...DEFAULT_PIECE_OVERHANGS},
+        overhangs:defaultPieceOverhangs(),
         pieceSeams:[],
         sinks:Array.isArray(spec.sinks)?spec.sinks.map(makeQuickVanitySink):[],
         edgeProfiles:{top:'none',right:'none',bottom:'none',left:'none'}
@@ -14395,12 +14395,15 @@ function restore(){
         return EDGE_PROFILE_VALUES.includes(value)?value:'none';
       }
 
-      const DEFAULT_PIECE_OVERHANGS={front:1.5,back:0,left:0,right:0};
+      function defaultPieceOverhangs(){
+        return {front:1.5,back:0,left:0,right:0};
+      }
 
       function normalizePieceOverhangs(piece){
         if(!piece||isBacksplashPiece(piece))return {front:0,back:0,left:0,right:0};
         const src=piece.overhangs&&typeof piece.overhangs==='object'?piece.overhangs:{};
-        const value=(side)=>Math.max(0,Number.isFinite(Number(src[side]))?Number(src[side]):DEFAULT_PIECE_OVERHANGS[side]);
+        const defaults=defaultPieceOverhangs();
+        const value=side=>Math.max(0,Number.isFinite(Number(src[side]))?Number(src[side]):defaults[side]);
         let left=value('left'),right=value('right'),back=value('back'),front=value('front');
         const w=Math.max(.25,Number(piece.w)||.25),h=Math.max(.25,Number(piece.h)||.25);
         const fitPair=(a,b,limit)=>{
@@ -14480,14 +14483,13 @@ function restore(){
         if(state.workspace==='slab'||!pieceHasSupportInset(piece))return;
         const pts=pieceSupportPolygon(piece);
         if(!pts?.length)return;
-        const guide=svgEl('polygon',{
+        svg.appendChild(svgEl('polygon',{
           points:pts.map(pt=>i2p(pt.x)+','+i2p(pt.y)).join(' '),
           class:'lc-piece-support-footprint-guide',
           fill:'none',
           'pointer-events':'none',
           'vector-effect':'non-scaling-stroke'
-        });
-        svg.appendChild(guide);
+        }));
       }
 
       function migratePieceGeometry(piece){
@@ -21421,15 +21423,10 @@ if(btnAddLayout){
 
           const overhangGrid=document.createElement('div');
           overhangGrid.className='lc-piece-overhang-grid';
-          [
-            ['Front','front'],['Back','back'],['Left','left'],['Right','right']
-          ].forEach(([label,side])=>{
+          [['Front','front'],['Back','back'],['Left','left'],['Right','right']].forEach(([label,side])=>{
             const field=makeNumField(label+' (in)',overhangs[side],'insp-overhang-'+side,.125,(v)=>{
               setPieceOverhang(p,side,v);
-              draw();
-              updateInspector();
-              scheduleSave();
-              pushHistory();
+              draw();updateInspector();scheduleSave();pushHistory();
             });
             const input=field.querySelector('input');
             if(input){
@@ -23626,7 +23623,7 @@ if(btnAddLayout){
           rBL:false, 
           rBR:false, 
           cornerRadii:{tl:0,tr:0,br:0,bl:0},
-          overhangs:{...DEFAULT_PIECE_OVERHANGS},
+          overhangs:defaultPieceOverhangs(),
           pieceSeams: [],
           edgeProfiles: {
             top: 'none',
@@ -23652,7 +23649,7 @@ if(btnAddLayout){
         const rs = realSize(p);
         const sourceWasSplash=isBacksplashPiece(p);
         const srcSlab=ensureSlabPlacement(p);
-        const d={...p, overhangs:isBacksplashPiece(p)?undefined:{...normalizePieceOverhangs(p)}, pieceSeams:Array.isArray(p.pieceSeams)?p.pieceSeams.map(ps=>({...ps,id:uid()})):[], slabPlacement:{x:srcSlab.x+state.grid,y:srcSlab.y+state.grid,rotation:srcSlab.rotation}, id: uid(), name: sourceWasSplash?'Splash':p.name+' Copy', x:clamp(p.x+state.grid,0,state.cw-rs.w), y:clamp(p.y+state.grid,0,state.ch-rs.h), layer:top};
+        const d={...p, overhangs:sourceWasSplash?undefined:{...normalizePieceOverhangs(p)}, pieceSeams:Array.isArray(p.pieceSeams)?p.pieceSeams.map(ps=>({...ps,id:uid()})):[], slabPlacement:{x:srcSlab.x+state.grid,y:srcSlab.y+state.grid,rotation:srcSlab.rotation}, id: uid(), name: sourceWasSplash?'Splash':p.name+' Copy', x:clamp(p.x+state.grid,0,state.cw-rs.w), y:clamp(p.y+state.grid,0,state.ch-rs.h), layer:top};
         clampSlabPlacement(d);
         if(sourceWasSplash){
           d.pieceType='backsplash';
