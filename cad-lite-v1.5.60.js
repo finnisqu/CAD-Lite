@@ -11783,10 +11783,52 @@
       leftRail?.classList.add('lc-left-rail');
       if(leftRail&&!leftRail.querySelector(':scope > .lc-left-rail-head')){
         const navHead=document.createElement('div');
-        navHead.className='lc-left-rail-head';
+        navHead.className='lc-left-rail-head lc-left-rail-collapse-all';
+        navHead.setAttribute('role','button');
+        navHead.setAttribute('tabindex','0');
+        navHead.title='Collapse all Navigator sections; click again to restore';
+        navHead.setAttribute('aria-label',navHead.title);
+
         const navTitle=document.createElement('h3');
         navTitle.textContent='NAVIGATOR';
-        navHead.appendChild(navTitle);
+        const collapseIcon=document.createElement('span');
+        collapseIcon.className='lc-left-rail-collapse-all-icon';
+        collapseIcon.textContent='⇅';
+        collapseIcon.setAttribute('aria-hidden','true');
+        navHead.append(navTitle,collapseIcon);
+
+        let navigatorRestoreRows=[];
+        const navigatorSectionRows=()=>Array.from(
+          leftRail.querySelectorAll(':scope > .lc-left-section > .lc-card-head .lc-head-title-row[aria-expanded]')
+        );
+        const toggleAllNavigatorSections=()=>{
+          const rows=navigatorSectionRows();
+          const openRows=rows.filter(row=>row.getAttribute('aria-expanded')==='true');
+          if(openRows.length){
+            navigatorRestoreRows=[...openRows];
+            openRows.forEach(row=>row.click());
+            navHead.classList.add('is-collapsed-all');
+            navHead.setAttribute('aria-expanded','false');
+            navHead.title='Restore previously open Navigator sections';
+          }else{
+            const restore=navigatorRestoreRows.filter(row=>row?.isConnected);
+            restore.forEach(row=>{
+              if(row.getAttribute('aria-expanded')!=='true')row.click();
+            });
+            navHead.classList.remove('is-collapsed-all');
+            navHead.setAttribute('aria-expanded','true');
+            navHead.title='Collapse all Navigator sections';
+          }
+          navHead.setAttribute('aria-label',navHead.title);
+        };
+        navHead.addEventListener('click',toggleAllNavigatorSections);
+        navHead.addEventListener('keydown',e=>{
+          if(e.key==='Enter'||e.key===' '){
+            e.preventDefault();
+            toggleAllNavigatorSections();
+          }
+        });
+        navHead.setAttribute('aria-expanded','true');
         leftRail.prepend(navHead);
       }
       canvasCol?.classList.add('lc-canvas-col');
@@ -16265,9 +16307,9 @@ function createSinkRadiusAnnotation(piece,sink,corner){
           const roomFeatureButton=document.createElement('button');
           roomFeatureButton.type='button';
           roomFeatureButton.className='lc-mode-hud-room-button';
-          roomFeatureButton.title='Add Room Feature (F)';
+          roomFeatureButton.title='Add Room Feature with options';
           roomFeatureButton.setAttribute('aria-label',roomFeatureButton.title);
-          roomFeatureButton.innerHTML='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 5h14v14H5zM12 8v8M8 12h8" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg><span>Feature</span><kbd>F</kbd>';
+          roomFeatureButton.innerHTML='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 5h14v14H5zM12 8v8M8 12h8" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg><span>Add Feature</span>';
           roomFeatureButton.addEventListener('click',e=>{
             e.preventDefault();e.stopPropagation();
             openRoomFeatureDialog({spawnPoint:canvasHoverPoint});
