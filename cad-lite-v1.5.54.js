@@ -21586,12 +21586,12 @@ if(btnAddLayout){
 
       function drawLines(){
         const L=cur();
-        const radiusMode=toolForcesView('showRadiusLabels');
-        if((!viewVisible('showLines')&&!radiusMode)||!L||!Array.isArray(L.lines))return;
+        const radiusVisible=viewVisible('showRadiusLabels');
+        if((!viewVisible('showLines')&&!radiusVisible)||!L||!Array.isArray(L.lines))return;
         L.lines.forEach(lineObj=>{
           const radiusAnnotation=isRadiusAnnotation(lineObj);
           if(radiusAnnotation){
-            if(!viewVisible('showRadiusLabels'))return;
+            if(!radiusVisible)return;
           }else if(!viewVisible('showLines')){
             return;
           }
@@ -21784,14 +21784,14 @@ if(btnAddLayout){
 
       function drawNotes(){
         const L=cur();
-        const radiusMode=toolForcesView('showRadiusLabels');
+        const radiusVisible=viewVisible('showRadiusLabels');
         const inlineNoteVisible=!!inlineNoteVisibilityId;
-        if((!viewVisible('showNotes')&&!radiusMode&&!inlineNoteVisible)||!L||!Array.isArray(L.notes))return;
+        if((!viewVisible('showNotes')&&!radiusVisible&&!inlineNoteVisible)||!L||!Array.isArray(L.notes))return;
 
         L.notes.forEach(note=>{
           const radiusAnnotation=isRadiusAnnotation(note);
           if(radiusAnnotation){
-            if(!viewVisible('showRadiusLabels'))return;
+            if(!radiusVisible)return;
           }else if(!viewVisible('showNotes')&&note.id!==inlineNoteVisibilityId){
             return;
           }
