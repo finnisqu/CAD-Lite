@@ -1787,8 +1787,6 @@
         if(!layoutCard)return null;
         const lineCardNow=document.getElementById('lc-line-list')?.closest('.lc-card')||null;
         if(card){
-          const anchor=lineCardNow||layoutCard;
-          if(anchor?.parentElement&&card.previousElementSibling!==anchor)anchor.insertAdjacentElement('afterend',card);
           return card;
         }
 
@@ -2872,7 +2870,8 @@
 
       function ensureRoomFeaturesNavigatorCard(){
         const planCard=ensurePlanNavigatorCard?.();
-        const anchor=planCard||document.getElementById('lc-line-list')?.closest('.lc-card')||layoutsEl?.closest('.lc-card');
+        const lineCard=document.getElementById('lc-line-list')?.closest('.lc-card')||null;
+        const anchor=lineCard||layoutsEl?.closest('.lc-card')||planCard;
         if(!anchor?.parentElement)return null;
 
         let card=document.getElementById('lc-room-features-card');
