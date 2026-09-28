@@ -2931,6 +2931,19 @@
         return !!(state.roomFeatureMode&&roomWallAttachMode);
       }
 
+      function stopLinkedWallMode({redraw=true}={}){
+        const wasActive=!!roomWallAttachMode;
+        roomWallAttachMode=false;
+        linkedWallModeState.held=false;
+        linkedWallModeState.key=null;
+        linkedWallModeState.locked=false;
+        renderRoomFeaturesNavigator();
+        syncCanvasToolCursor?.();
+        syncModeHUD?.();
+        if(redraw&&wasActive)draw();
+        return wasActive;
+      }
+
       function startLinkedWallMode({locked=false,heldKey=null}={}){
         setRoomFeatureMode(true,{redraw:false});
         cancelRoomFeatureTool({redraw:false});
@@ -2947,11 +2960,7 @@
 
       function toggleLockedLinkedWallMode(){
         if(linkedWallModeActive()&&linkedWallModeState.locked&&!linkedWallModeState.held){
-          roomWallAttachMode=false;
-          linkedWallModeState.locked=false;
-          linkedWallModeState.held=false;
-          linkedWallModeState.key=null;
-          renderRoomFeaturesNavigator();syncCanvasToolCursor?.();syncModeHUD?.();draw();
+          stopLinkedWallMode();
           return;
         }
         startLinkedWallMode({locked:true});
@@ -2962,10 +2971,8 @@
         if(key&&linkedWallModeState.key!==key)return false;
         linkedWallModeState.held=false;
         linkedWallModeState.key=null;
-        if(!linkedWallModeState.locked&&linkedWallModeActive()){
-          roomWallAttachMode=false;
-          renderRoomFeaturesNavigator();syncCanvasToolCursor?.();syncModeHUD?.();draw();
-        }
+        if(!linkedWallModeState.locked&&linkedWallModeActive())stopLinkedWallMode();
+
         return true;
       }
 
@@ -2974,12 +2981,8 @@
         linkedWallModeState.held=false;
         linkedWallModeState.key=null;
         linkedWallModeState.locked=!!locked;
-        if(!locked){
-          roomWallAttachMode=false;
-          renderRoomFeaturesNavigator();syncCanvasToolCursor?.();syncModeHUD?.();draw();
-        }else{
-          syncModeHUD?.();
-        }
+        if(!locked)stopLinkedWallMode();
+        else syncModeHUD?.();
         return true;
       }
 
