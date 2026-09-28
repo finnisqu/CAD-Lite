@@ -2361,6 +2361,20 @@
         };
       }
 
+      function roomFeaturePieceSnapAxes(feature){
+        normalizeRoomFeature(feature);
+        if(feature.kind==='wall'){
+          const x1=Number(feature.x1)||0,y1=Number(feature.y1)||0;
+          const x2=Number(feature.x2)||0,y2=Number(feature.y2)||0;
+          const dx=x2-x1,dy=y2-y1,EPS=.001;
+          if(Math.abs(dy)<=EPS)return {x:[x1,x2],y:[y1]};
+          if(Math.abs(dx)<=EPS)return {x:[x1],y:[y1,y2]};
+          return {x:[x1,x2],y:[y1,y2]};
+        }
+        const b=roomFeatureBounds(feature);
+        return {x:[b.minX,b.maxX],y:[b.minY,b.maxY]};
+      }
+
       function roomFeatureGroupMembers(feature){
         if(!feature||feature.kind!=='feature'||!feature.groupId)return feature?[feature]:[];
         return normalizeRoomFeatures().filter(item=>item.kind==='feature'&&item.groupId===feature.groupId);
@@ -22977,7 +22991,7 @@ if(btnAddLayout){
         if(state.workspace!=='slab'){
           normalizeRoomFeatures().forEach(feature=>{
             if(feature.visible===false||!roomFeatureVisibleByView(feature))return;
-            const b=roomFeatureBounds(feature),targetX=[b.minX,b.maxX],targetY=[b.minY,b.maxY];
+            const axes=roomFeaturePieceSnapAxes(feature),targetX=axes.x,targetY=axes.y;
             movingX.forEach(mx=>targetX.forEach(tx=>{const d=tx-mx,ad=Math.abs(d);if(ad<=SNAP_TOL&&(!bestX||ad<bestX.ad))bestX={d,ad,guide:tx};}));
             movingY.forEach(my=>targetY.forEach(ty=>{const d=ty-my,ad=Math.abs(d);if(ad<=SNAP_TOL&&(!bestY||ad<bestY.ad))bestY={d,ad,guide:ty};}));
           });
