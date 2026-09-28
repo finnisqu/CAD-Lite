@@ -2361,26 +2361,6 @@
         };
       }
 
-      // Countertops align to the meaningful Room Feature datum, not always the
-      // full rendered footprint. A wall's reference segment is its cabinet/top
-      // contact face; wall thickness extends away from that line and must not
-      // pull a countertop into the wall when a linked splash is present.
-      function roomFeaturePieceSnapAxes(feature){
-        normalizeRoomFeature(feature);
-        if(feature.kind==='wall'){
-          const x1=Number(feature.x1)||0,y1=Number(feature.y1)||0;
-          const x2=Number(feature.x2)||0,y2=Number(feature.y2)||0;
-          const dx=x2-x1,dy=y2-y1,EPS=.001;
-          if(Math.abs(dy)<=EPS)return {x:[x1,x2],y:[y1]};
-          if(Math.abs(dx)<=EPS)return {x:[x1],y:[y1,y2]};
-          // Existing piece snapping is axis based, so angled walls expose only
-          // coordinates that actually belong to the reference segment.
-          return {x:[x1,x2],y:[y1,y2]};
-        }
-        const b=roomFeatureBounds(feature);
-        return {x:[b.minX,b.maxX],y:[b.minY,b.maxY]};
-      }
-
       function roomFeatureGroupMembers(feature){
         if(!feature||feature.kind!=='feature'||!feature.groupId)return feature?[feature]:[];
         return normalizeRoomFeatures().filter(item=>item.kind==='feature'&&item.groupId===feature.groupId);
@@ -6208,27 +6188,12 @@
         e.preventDefault();
 
         if(state.workspace==='slab'){
-          // Nudge the selection as one rigid slab group. The arrow step already
-          // follows the grid; re-snapping each piece independently can destroy
-          // intentional fractional cut-clearance relationships between pieces.
-          const moving=targets.map(p=>{
+          targets.forEach(p=>{
             const sp=ensureSlabPlacement(p);
             const rs=slabRealSize(p);
-            const x=Number(sp.x)||0,y=Number(sp.y)||0;
-            return {sp,x,y,minX:x,minY:y,maxX:x+rs.w,maxY:y+rs.h};
+            sp.x=clamp(snap(sp.x+dx,state.grid),0,state.cw-rs.w);
+            sp.y=clamp(snap(sp.y+dy,state.grid),0,state.ch-rs.h);
           });
-          if(moving.length){
-            const minX=Math.min(...moving.map(item=>item.minX));
-            const minY=Math.min(...moving.map(item=>item.minY));
-            const maxX=Math.max(...moving.map(item=>item.maxX));
-            const maxY=Math.max(...moving.map(item=>item.maxY));
-            dx=clamp(dx,-minX,slabCanvasW()-maxX);
-            dy=clamp(dy,-minY,slabCanvasH()-maxY);
-            moving.forEach(item=>{
-              item.sp.x=round3(item.x+dx);
-              item.sp.y=round3(item.y+dy);
-            });
-          }
         }else{
           const requestedIds=targets.map(p=>p.id);
           const assemblyIds=expandIdsWithFabricationAssemblies(requestedIds);
@@ -17784,9 +17749,7 @@ function createSinkRadiusAnnotation(piece,sink,corner){
               .map(x => ({ id:x.id, x0:x.x, y0:x.y, rs: realSize(x) }));
 
             // Snapped splash children move with their selected parent even when
-            // the child itself is not selected. Keep them in the movement/
-            // containment group, but mark them boundOnly so they do not define
-            // the parent's alignment envelope while snapping.
+            // the child itself is not selected, so include them in drag bounds.
             const startIds=new Set(start.map(gp=>gp.id));
             const boundItems=[...start];
             start.forEach(gp=>{
@@ -22982,12 +22945,8 @@ if(btnAddLayout){
 
       if(state.pieceSnap){
         const SNAP_TOL=1.0, movingIds=new Set(state.drag.snapIgnoreIds||state.drag.group.map(gp=>gp.id));
-        // Auto-carried linked splashes remain part of movement/containment but
-        // do not change the countertop's alignment envelope.
-        const snapGroup=state.drag.group.filter(gp=>!gp.boundOnly);
-        const alignmentGroup=snapGroup.length?snapGroup:state.drag.group;
         let minX=Infinity,minY=Infinity,maxX=-Infinity,maxY=-Infinity;
-        alignmentGroup.forEach(gp=>{minX=Math.min(minX,gp.x0);minY=Math.min(minY,gp.y0);maxX=Math.max(maxX,gp.x0+gp.rs.w);maxY=Math.max(maxY,gp.y0+gp.rs.h);});
+        state.drag.group.forEach(gp=>{minX=Math.min(minX,gp.x0);minY=Math.min(minY,gp.y0);maxX=Math.max(maxX,gp.x0+gp.rs.w);maxY=Math.max(maxY,gp.y0+gp.rs.h);});
         const movingX=[minX+dx,maxX+dx], movingY=[minY+dy,maxY+dy];
         let bestX=null,bestY=null;
         state.pieces.forEach(other=>{
@@ -22999,7 +22958,7 @@ if(btnAddLayout){
         if(state.workspace!=='slab'){
           normalizeRoomFeatures().forEach(feature=>{
             if(feature.visible===false||!roomFeatureVisibleByView(feature))return;
-            const axes=roomFeaturePieceSnapAxes(feature),targetX=axes.x,targetY=axes.y;
+            const b=roomFeatureBounds(feature),targetX=[b.minX,b.maxX],targetY=[b.minY,b.maxY];
             movingX.forEach(mx=>targetX.forEach(tx=>{const d=tx-mx,ad=Math.abs(d);if(ad<=SNAP_TOL&&(!bestX||ad<bestX.ad))bestX={d,ad,guide:tx};}));
             movingY.forEach(my=>targetY.forEach(ty=>{const d=ty-my,ad=Math.abs(d);if(ad<=SNAP_TOL&&(!bestY||ad<bestY.ad))bestY={d,ad,guide:ty};}));
           });
