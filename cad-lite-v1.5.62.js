@@ -14438,10 +14438,10 @@ function restore(){
         if(!piece||isBacksplashPiece(piece))return null;
         const o=normalizePieceOverhangs(piece);
         const w=Math.max(.25,Number(piece.w)||.25),h=Math.max(.25,Number(piece.h)||.25);
-        const rot=Number.isFinite(Number(rotation))?Number(rotation):(Number(piece.rotation)||0);
+        const rot=rotation!=null&&Number.isFinite(Number(rotation))?Number(rotation):(Number(piece.rotation)||0);
         const rs=realSize({w,h,rotation:rot});
-        const px=Number.isFinite(Number(x))?Number(x):(Number(piece.x)||0);
-        const py=Number.isFinite(Number(y))?Number(y):(Number(piece.y)||0);
+        const px=x!=null&&Number.isFinite(Number(x))?Number(x):(Number(piece.x)||0);
+        const py=y!=null&&Number.isFinite(Number(y))?Number(y):(Number(piece.y)||0);
         const cx=px+rs.w/2,cy=py+rs.h/2;
         const angle=rot*Math.PI/180,cos=Math.cos(angle),sin=Math.sin(angle);
         const left=-w/2+o.left,right=w/2-o.right;
