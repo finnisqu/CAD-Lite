@@ -13832,6 +13832,18 @@ if (window.svg2pdf) {
             gPiece.appendChild(sinksG);
           }
 
+          migratePieceForCutouts(p);
+          if(p.cutouts.length){
+            const leftPx=cx-W0/2,topPx=cy-H0/2;
+            const cutoutsG=document.createElementNS(svgNS,'g');
+            cutoutsG.setAttribute('pointer-events','none');
+            if(p.cutouts.some(cutout=>!!cutout.fabricationSplitCutoutId)){
+              cutoutsG.setAttribute('clip-path',attachPieceGeometryClip(gPiece,path.getAttribute('d'),'cutouts-slab-'+p.id));
+            }
+            p.cutouts.forEach(cutout=>appendCutoutShape(cutoutsG,cutout,leftPx,topPx,{label:true}));
+            gPiece.appendChild(cutoutsG);
+          }
+
           // Existing Piece Seams remain visible in the fabrication workspace.
           if(state.showSeams&&Array.isArray(p.pieceSeams)&&p.pieceSeams.length){
             const seams=document.createElementNS(svgNS,'g');
@@ -18278,6 +18290,21 @@ function createSinkRadiusAnnotation(piece,sink,corner){
             gg.appendChild(sinksG);
           }
 
+          migratePieceForCutouts(p);
+          if(p.cutouts.length){
+            const leftPx=cx-W0/2,topPx=cy-H0/2;
+            const cutoutsG=document.createElementNS(svgNS,'g');
+            cutoutsG.setAttribute('class','lc-piece-cutouts');
+            cutoutsG.setAttribute('pointer-events','none');
+            const shapeG=document.createElementNS(svgNS,'g');
+            if(p.cutouts.some(cutout=>!!cutout.fabricationSplitCutoutId)){
+              shapeG.setAttribute('clip-path',attachPieceGeometryClip(gg,path.getAttribute('d'),'cutouts-design-'+p.id));
+            }
+            p.cutouts.forEach(cutout=>appendCutoutShape(shapeG,cutout,leftPx,topPx,{label:true}));
+            cutoutsG.appendChild(shapeG);
+            gg.appendChild(cutoutsG);
+          }
+
           // Piece-based seams: exact offsets in the piece's own coordinate system.
           if(state.showSeams&&Array.isArray(p.pieceSeams) && p.pieceSeams.length){
             const seamLeft=cx-W0/2;
@@ -21810,6 +21837,33 @@ if(btnAddLayout){
             });
           }
 
+          if(mode==='cutouts'){
+            migratePieceForCutouts(p);
+            p.cutouts.forEach(cutout=>{
+              const pcx=x+(Number(cutout.cx)||0)*sx;
+              const pcy=y+(Number(cutout.cy)||0)*sy;
+              const g=document.createElementNS(svgNS,'g');
+              const rot=cutout.kind==='circle'?0:(Number(cutout.rotation)||0);
+              g.setAttribute('transform',`translate(${pcx} ${pcy}) rotate(${rot})`);
+              const polished=cutout.insideFinish==='polished';
+              if(cutout.kind==='circle'){
+                g.appendChild(svgEl('circle',{
+                  cx:0,cy:0,r:Math.max(2,(Number(cutout.diameter)||0)*Math.min(sx,sy)/2),
+                  fill:'none',stroke:'#111','stroke-width':polished?2:1
+                }));
+              }else{
+                const cw=Math.max(3,(Number(cutout.w)||0)*sx);
+                const ch=Math.max(3,(Number(cutout.h)||0)*sy);
+                g.appendChild(svgEl('rect',{
+                  x:-cw/2,y:-ch/2,width:cw,height:ch,
+                  rx:Math.min(5,(Number(cutout.cornerR)||0)*Math.min(sx,sy)),
+                  fill:'none',stroke:'#111','stroke-width':polished?2:1
+                }));
+              }
+              visualSvg.appendChild(g);
+            });
+          }
+
           if(mode==='edgeOptions'&&p.edgeProfiles){
             const symbol=state.edgeLabelMode==='symbol';
             const inset=symbol?0:9;
@@ -22512,7 +22566,175 @@ if(btnAddLayout){
           root.appendChild(sinksSec);
         }
 
-        // --- 4) Piece Seams --------------------------------------------------------
+        // --- 4) General Cutouts ----------------------------------------------------
+        if(state.workspace!=='slab'&&!isBacksplashPiece(p)){
+          migratePieceForCutouts(p);
+          const cutoutBody=makeSection('Cutouts',{collapsible:true,key:'cutouts',collapsed:true});
+
+          const cutoutAddRow=document.createElement('div');
+          cutoutAddRow.className='lc-piece-group-inspector-actions';
+          cutoutAddRow.style.marginBottom='6px';
+          [['Cooktop','cooktop'],['Rectangle','rectangle'],['Circle','circle']].forEach(([label,kind])=>{
+            const btn=document.createElement('button');
+            btn.type='button';
+            btn.className='lc-btn ghost sm';
+            btn.textContent='+ '+label;
+            btn.title='Add '+label+' cutout';
+            btn.onclick=e=>{
+              e.preventDefault();e.stopPropagation();
+              p.cutouts.push(createDefaultCutout(kind,p));
+              updateInspector();draw();scheduleSave();pushHistory();
+              setExclusiveInspectorSection('cutouts',true);
+            };
+            cutoutAddRow.appendChild(btn);
+          });
+          cutoutBody.appendChild(cutoutAddRow);
+
+          if(!p.cutouts.length){
+            const empty=document.createElement('div');
+            empty.className='lc-small';
+            empty.textContent='No general cutouts. Sinks and faucet holes stay in Sinks.';
+            cutoutBody.appendChild(empty);
+          }
+
+          p.cutouts.forEach((cutout,index)=>{
+            normalizeCutout(cutout,p);
+            const card=document.createElement('div');
+            card.className='lc-seam-row';
+            card.style.display='grid';
+            card.style.gap='6px';
+
+            const head=document.createElement('div');
+            head.style.display='flex';
+            head.style.alignItems='center';
+            head.style.gap='6px';
+
+            const name=document.createElement('input');
+            name.className='lc-input';
+            name.type='text';
+            name.value=cutout.name||defaultCutoutName(cutout.kind);
+            name.setAttribute('aria-label','Cutout name');
+            name.style.minWidth='0';
+            name.style.flex='1';
+            name.onchange=()=>{
+              cutout.name=String(name.value||'').trim()||defaultCutoutName(cutout.kind);
+              draw();scheduleSave();pushHistory();
+            };
+
+            const duplicate=document.createElement('button');
+            duplicate.type='button';
+            duplicate.className='lc-btn ghost lc-iconbtn';
+            duplicate.title='Duplicate cutout';
+            duplicate.textContent='⧉';
+            duplicate.onclick=e=>{
+              e.preventDefault();e.stopPropagation();
+              const copy=JSON.parse(JSON.stringify(cutout));
+              copy.id='cutout_'+uid();
+              copy.name=(String(cutout.name||cutoutKindLabel(cutout.kind)).trim()||cutoutKindLabel(cutout.kind))+' Copy';
+              copy.cx=round3(clamp((Number(copy.cx)||0)+1,0,Number(p.w)||0));
+              copy.cy=round3(clamp((Number(copy.cy)||0)+1,0,Number(p.h)||0));
+              delete copy.fabricationSplitCutoutId;
+              p.cutouts.splice(index+1,0,copy);
+              updateInspector();draw();scheduleSave();pushHistory();
+              setExclusiveInspectorSection('cutouts',true);
+            };
+
+            const del=document.createElement('button');
+            del.type='button';
+            del.className='lc-btn red lc-iconbtn';
+            del.title='Delete cutout';
+            del.innerHTML='<svg class="lc-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 3h8l1 2h4v2H3V5h4l1-2Zm-2 6h12l-1 11H7L6 9Zm3 2v7h2v-7H9Zm4 0v7h2v-7h-2Z" fill="currentColor"/></svg>';
+            del.onclick=e=>{
+              e.preventDefault();e.stopPropagation();
+              p.cutouts.splice(index,1);
+              updateInspector();draw();scheduleSave();pushHistory();
+              setExclusiveInspectorSection('cutouts',true);
+            };
+            head.append(name,duplicate,del);
+            card.appendChild(head);
+
+            const pairRow=()=>{const row=document.createElement('div');row.style.display='grid';row.style.gridTemplateColumns='1fr 1fr';row.style.gap='4px';return row;};
+
+            const row1=pairRow();
+            const typeLabel=document.createElement('label');
+            typeLabel.className='lc-label';
+            typeLabel.textContent='Type';
+            const type=document.createElement('select');
+            type.className='lc-input';
+            [['cooktop','Cooktop'],['rectangle','Rectangle'],['circle','Circle']].forEach(([value,label])=>{
+              const option=document.createElement('option');option.value=value;option.textContent=label;type.appendChild(option);
+            });
+            type.value=cutout.kind;
+            type.onchange=()=>{
+              cutout.kind=type.value;
+              normalizeCutout(cutout,p);
+              updateInspector();draw();scheduleSave();pushHistory();
+              setExclusiveInspectorSection('cutouts',true);
+            };
+            typeLabel.appendChild(type);
+
+            const finishLabel=document.createElement('label');
+            finishLabel.className='lc-label';
+            finishLabel.textContent='Inside Edge';
+            const finish=document.createElement('select');
+            finish.className='lc-input';
+            [['unpolished','Unpolished'],['polished','Polished']].forEach(([value,label])=>{
+              const option=document.createElement('option');option.value=value;option.textContent=label;finish.appendChild(option);
+            });
+            finish.value=cutout.insideFinish;
+            finish.onchange=()=>{
+              cutout.insideFinish=finish.value==='polished'?'polished':'unpolished';
+              updateInspector();draw();scheduleSave();pushHistory();
+              setExclusiveInspectorSection('cutouts',true);
+            };
+            finishLabel.appendChild(finish);
+            row1.append(typeLabel,finishLabel);
+            card.appendChild(row1);
+
+            const dims=pairRow();
+            if(cutout.kind==='circle'){
+              dims.appendChild(makeNumField('Diameter (in)',cutout.diameter,'cutout-dia-'+cutout.id,.125,(v)=>{
+                cutout.diameter=Math.max(.125,v);normalizeCutout(cutout,p);draw();scheduleSave();pushHistory();
+              }));
+            }else{
+              dims.append(
+                makeNumField('Width (in)',cutout.w,'cutout-w-'+cutout.id,.125,(v)=>{cutout.w=Math.max(.125,v);normalizeCutout(cutout,p);draw();scheduleSave();pushHistory();}),
+                makeNumField('Height (in)',cutout.h,'cutout-h-'+cutout.id,.125,(v)=>{cutout.h=Math.max(.125,v);normalizeCutout(cutout,p);draw();scheduleSave();pushHistory();})
+              );
+            }
+            card.appendChild(dims);
+
+            const pos=pairRow();
+            pos.append(
+              makeNumField('CL from Left',cutout.cx,'cutout-x-'+cutout.id,.125,(v)=>{cutout.cx=round3(clamp(v,0,p.w));draw();scheduleSave();pushHistory();}),
+              makeNumField('CL from Back',cutout.cy,'cutout-y-'+cutout.id,.125,(v)=>{cutout.cy=round3(clamp(v,0,p.h));draw();scheduleSave();pushHistory();})
+            );
+            card.appendChild(pos);
+
+            if(cutout.kind!=='circle'){
+              const detail=pairRow();
+              detail.append(
+                makeNumField('Rotation (°)',cutout.rotation,'cutout-rot-'+cutout.id,1,(v)=>{cutout.rotation=round3(((v%360)+360)%360);draw();scheduleSave();pushHistory();}),
+                makeNumField('Corner R (in)',cutout.cornerR,'cutout-r-'+cutout.id,.125,(v)=>{cutout.cornerR=Math.max(0,v);normalizeCutout(cutout,p);draw();scheduleSave();pushHistory();})
+              );
+              card.appendChild(detail);
+            }
+
+            const meta=document.createElement('div');
+            meta.className='lc-small';
+            meta.textContent=(cutout.insideFinish==='polished'?'Polished':'Unpolished')+' perimeter · '+(cutoutPerimeterInches(cutout)/12).toFixed(2)+' LF';
+            card.appendChild(meta);
+            cutoutBody.appendChild(card);
+          });
+
+          const note=document.createElement('div');
+          note.className='lc-small';
+          note.style.marginTop='6px';
+          note.textContent='General cutouts default to unpolished. Polished perimeter is stored for future edge-LF and estimating intelligence.';
+          cutoutBody.appendChild(note);
+        }
+
+        // --- 5) Piece Seams --------------------------------------------------------
         const seamBody = makeSection('Seams',{collapsible:true,key:'seams',collapsed:true});
         const seamSec=seamBody.closest('.lc-subcard');
         const seamHead=seamSec?.querySelector(':scope > .lc-inspector-section-toggle');
