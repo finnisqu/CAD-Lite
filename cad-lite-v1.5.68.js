@@ -56,6 +56,7 @@
         showRoomAppliances: true,
         showRoomWalls: true,
         showLabels: true,
+        showCutoutLabels: true,
         showSplashLabels: false,
         showSplashDims: false,
         showSplashLabelDims: false,
@@ -73,7 +74,7 @@
       // Number format, zoom, canvas size and theme stay shared.
       const WORKSPACE_VIEW_KEYS=[
         'showGrid','showDims','showSinkCenterlines','showManualDims','showSeams','showEdgeProfiles',
-        'showPieceFills','showSlabMaterial','showNotes','showLines','showLabels',
+        'showPieceFills','showSlabMaterial','showNotes','showLines','showLabels','showCutoutLabels',
         'showSplashLabels','showSplashDims','showSplashLabelDims','showLabelDims',
         'showRadiusLabels'
       ];
@@ -7843,6 +7844,7 @@
 
       addViewGroup('Labels');
       addViewToggle('Piece Labels','showLabels');
+      addViewToggle('Cutout Labels','showCutoutLabels');
       addViewToggle('Piece Label Dims','showLabelDims');
       addViewToggle('Piece Dims','showDims');
 
@@ -10149,7 +10151,7 @@
               defaultSlabW: Math.max(24,Number(state.defaultSlabW)||126),
               defaultSlabH: Math.max(24,Number(state.defaultSlabH)||63),
               cw: state.cw, ch: state.ch, scale: state.scale, grid: state.grid,
-              showGrid: !!state.showGrid, showDims: !!state.showDims, showSplashDims: !!state.showSplashDims, showSinkCenterlines: !!state.showSinkCenterlines, showManualDims: !!state.showManualDims, showSeams: !!state.showSeams, showEdgeProfiles: !!state.showEdgeProfiles, edgeLabelMode: state.edgeLabelMode==='symbol'?'symbol':'text', showEdgeLegend: !!state.showEdgeLegend, showPieceFills: !!state.showPieceFills, pieceFillOpacity: Number(state.pieceFillOpacity ?? 1), showSlabMaterial: !!state.showSlabMaterial, workspace: state.workspace==='slab'?'slab':'layout', showNotes: !!state.showNotes, showLines: !!state.showLines, showLabels: !!state.showLabels, showSplashLabels: !!state.showSplashLabels, showSplashLabelDims: !!state.showSplashLabelDims, showLabelDims: !!state.showLabelDims, showRadiusLabels: !!state.showRadiusLabels, showRoomFeatures: state.showRoomFeatures!==false, roomFeatureOpacity: Number(state.roomFeatureOpacity ?? 1), roomFeatureExportOpacity: Number(state.roomFeatureExportOpacity ?? 1), showRoomFeatureLabels: state.showRoomFeatureLabels!==false, showRoomCabinetLabels: state.showRoomCabinetLabels!==false, showRoomFillerLabels: state.showRoomFillerLabels!==false, showRoomApplianceLabels: state.showRoomApplianceLabels!==false, showRoomWallLabels: state.showRoomWallLabels!==false, showRoomCabinets: state.showRoomCabinets!==false, showRoomFillersPanels: state.showRoomFillersPanels!==false, showRoomAppliances: state.showRoomAppliances!==false, showRoomWalls: state.showRoomWalls!==false, workspaceViews: state.workspaceViews, dimPrecision: state.dimPrecision, dimFormat: state.dimFormat,
+              showGrid: !!state.showGrid, showDims: !!state.showDims, showSplashDims: !!state.showSplashDims, showSinkCenterlines: !!state.showSinkCenterlines, showManualDims: !!state.showManualDims, showSeams: !!state.showSeams, showEdgeProfiles: !!state.showEdgeProfiles, edgeLabelMode: state.edgeLabelMode==='symbol'?'symbol':'text', showEdgeLegend: !!state.showEdgeLegend, showPieceFills: !!state.showPieceFills, pieceFillOpacity: Number(state.pieceFillOpacity ?? 1), showSlabMaterial: !!state.showSlabMaterial, workspace: state.workspace==='slab'?'slab':'layout', showNotes: !!state.showNotes, showLines: !!state.showLines, showLabels: !!state.showLabels, showCutoutLabels: !!state.showCutoutLabels, showSplashLabels: !!state.showSplashLabels, showSplashLabelDims: !!state.showSplashLabelDims, showLabelDims: !!state.showLabelDims, showRadiusLabels: !!state.showRadiusLabels, showRoomFeatures: state.showRoomFeatures!==false, roomFeatureOpacity: Number(state.roomFeatureOpacity ?? 1), roomFeatureExportOpacity: Number(state.roomFeatureExportOpacity ?? 1), showRoomFeatureLabels: state.showRoomFeatureLabels!==false, showRoomCabinetLabels: state.showRoomCabinetLabels!==false, showRoomFillerLabels: state.showRoomFillerLabels!==false, showRoomApplianceLabels: state.showRoomApplianceLabels!==false, showRoomWallLabels: state.showRoomWallLabels!==false, showRoomCabinets: state.showRoomCabinets!==false, showRoomFillersPanels: state.showRoomFillersPanels!==false, showRoomAppliances: state.showRoomAppliances!==false, showRoomWalls: state.showRoomWalls!==false, workspaceViews: state.workspaceViews, dimPrecision: state.dimPrecision, dimFormat: state.dimFormat,
               overlay: state.overlay ? { ...state.overlay } : null,
               selectedId: state.selectedId ?? null,
               selectedIds: Array.isArray(state.selectedIds)?[...state.selectedIds]:[],
@@ -10250,6 +10252,7 @@
             state.showNotes = 'showNotes' in data ? !!data.showNotes : state.showNotes;
             state.showLines = 'showLines' in data ? !!data.showLines : state.showLines;
             state.showLabels = 'showLabels' in data ? !!data.showLabels : state.showLabels;
+            state.showCutoutLabels = 'showCutoutLabels' in data ? !!data.showCutoutLabels : state.showCutoutLabels;
             state.showSplashLabels = 'showSplashLabels' in data ? !!data.showSplashLabels : state.showSplashLabels;
             state.showSplashDims = 'showSplashDims' in data ? !!data.showSplashDims : state.showSplashDims;
             state.showSplashLabelDims = 'showSplashLabelDims' in data ? !!data.showSplashLabelDims : state.showSplashLabelDims;
@@ -13908,7 +13911,7 @@ if (window.svg2pdf) {
             const cutoutsG=document.createElementNS(svgNS,'g');
             cutoutsG.setAttribute('pointer-events','none');
             cutoutsG.setAttribute('clip-path',attachPieceGeometryClip(gPiece,path.getAttribute('d'),'cutouts-slab-'+p.id));
-            p.cutouts.forEach(cutout=>appendCutoutShape(cutoutsG,cutout,leftPx,topPx,{label:true}));
+            p.cutouts.forEach(cutout=>appendCutoutShape(cutoutsG,cutout,leftPx,topPx,{label:!!state.showCutoutLabels}));
             gPiece.appendChild(cutoutsG);
           }
 
@@ -14287,6 +14290,7 @@ if (window.svg2pdf) {
             showNotes: !!state.showNotes,
             showLines: !!state.showLines,
             showLabels: !!state.showLabels,
+            showCutoutLabels: !!state.showCutoutLabels,
             showSplashLabels: !!state.showSplashLabels,
             showSplashDims: !!state.showSplashDims,
             showSplashLabelDims: !!state.showSplashLabelDims,
@@ -14381,6 +14385,7 @@ function restore(){
         if ('showNotes' in data.ui) state.showNotes = !!data.ui.showNotes;
         if ('showLines' in data.ui) state.showLines = !!data.ui.showLines;
         if ('showLabels' in data.ui) state.showLabels = !!data.ui.showLabels;
+        if ('showCutoutLabels' in data.ui) state.showCutoutLabels = !!data.ui.showCutoutLabels;
         if ('showSplashLabels' in data.ui) state.showSplashLabels = !!data.ui.showSplashLabels;
         if ('showSplashDims' in data.ui) state.showSplashDims = !!data.ui.showSplashDims;
         if ('showSplashLabelDims' in data.ui) state.showSplashLabelDims = !!data.ui.showSplashLabelDims;
@@ -16082,20 +16087,21 @@ function restore(){
 
 
       // ===== General countertop cutouts ===========================================
-      const CUTOUT_KINDS=['cooktop','rectangle','circle'];
+      const CUTOUT_KINDS=['rectangle','circle','oval'];
       function cutoutKindLabel(kind){
-        if(kind==='cooktop')return 'Cooktop';
         if(kind==='circle')return 'Circle';
+        if(kind==='oval')return 'Oval';
         return 'Rectangle';
       }
       function defaultCutoutName(kind){
-        if(kind==='cooktop')return 'Cooktop';
         if(kind==='circle')return 'Circular Cutout';
+        if(kind==='oval')return 'Oval Cutout';
         return 'Rectangular Cutout';
       }
       function normalizeCutout(cutout,piece){
         if(!cutout||typeof cutout!=='object')cutout={};
-        const kind=CUTOUT_KINDS.includes(cutout.kind)?cutout.kind:'rectangle';
+        const rawKind=cutout.kind;
+        const kind=rawKind==='cooktop'?'rectangle':(CUTOUT_KINDS.includes(rawKind)?rawKind:'rectangle');
         cutout.kind=kind;
         if(!cutout.id)cutout.id='cutout_'+uid();
         if(typeof cutout.name!=='string'||!cutout.name.trim())cutout.name=defaultCutoutName(kind);
@@ -16120,27 +16126,26 @@ function restore(){
           cutout.cornerR=cutout.diameter/2;
           cutout.rotation=0;
         }else{
-          const defaultW=kind==='cooktop'?30:6;
-          const defaultH=kind==='cooktop'?20:4;
-          cutout.w=round3(Math.max(.125,Number(cutout.w)||defaultW));
-          cutout.h=round3(Math.max(.125,Number(cutout.h)||defaultH));
-          const defaultR=kind==='cooktop'?.125:0;
-          cutout.cornerR=round3(clamp(Number.isFinite(Number(cutout.cornerR))?Number(cutout.cornerR):defaultR,0,Math.min(cutout.w,cutout.h)/2));
+          cutout.w=round3(Math.max(.125,Number(cutout.w)||6));
+          cutout.h=round3(Math.max(.125,Number(cutout.h)||4));
+          cutout.cornerR=kind==='oval'
+            ? 0
+            : round3(clamp(Number.isFinite(Number(cutout.cornerR))?Number(cutout.cornerR):0,0,Math.min(cutout.w,cutout.h)/2));
           delete cutout.diameter;
         }
         return cutout;
       }
       function applyCutoutKind(cutout,nextKind,piece){
         if(!cutout)return cutout;
-        const previous=CUTOUT_KINDS.includes(cutout.kind)?cutout.kind:'rectangle';
+        const previous=cutout.kind==='cooktop'?'rectangle':(CUTOUT_KINDS.includes(cutout.kind)?cutout.kind:'rectangle');
         const oldName=String(cutout.name||'').trim();
         const generic=!oldName||oldName===defaultCutoutName(previous)||oldName===cutoutKindLabel(previous);
         const kind=CUTOUT_KINDS.includes(nextKind)?nextKind:'rectangle';
         cutout.kind=kind;
         if(kind==='circle'){
           cutout.diameter=2;cutout.w=2;cutout.h=2;cutout.cornerR=1;cutout.rotation=0;
-        }else if(kind==='cooktop'){
-          cutout.w=30;cutout.h=20;cutout.cornerR=.125;delete cutout.diameter;
+        }else if(kind==='oval'){
+          cutout.w=6;cutout.h=4;cutout.cornerR=0;cutout.rotation=0;delete cutout.diameter;
         }else{
           cutout.w=6;cutout.h=4;cutout.cornerR=0;delete cutout.diameter;
         }
@@ -16164,6 +16169,12 @@ function restore(){
       function cutoutPerimeterInches(cutout){
         if(!cutout)return 0;
         if(cutout.kind==='circle')return Math.PI*Math.max(.125,Number(cutout.diameter)||Number(cutout.w)||0);
+        if(cutout.kind==='oval'){
+          const a=Math.max(.0625,(Number(cutout.w)||0)/2);
+          const b=Math.max(.0625,(Number(cutout.h)||0)/2);
+          const q=((a-b)*(a-b))/((a+b)*(a+b)||1);
+          return Math.PI*(a+b)*(1+(3*q)/(10+Math.sqrt(Math.max(0,4-3*q))));
+        }
         const w=Math.max(.125,Number(cutout.w)||0);
         const h=Math.max(.125,Number(cutout.h)||0);
         const r=clamp(Number(cutout.cornerR)||0,0,Math.min(w,h)/2);
@@ -16206,6 +16217,16 @@ function restore(){
           for(let i=0;i<n;i++){const a=2*Math.PI*i/n;pts.push({x:cx+Math.cos(a)*rad,y:cy+Math.sin(a)*rad});}
           return pts;
         }
+        if(cutout.kind==='oval'){
+          const a=Math.max(.0625,(Number(cutout.w)||0)/2),b=Math.max(.0625,(Number(cutout.h)||0)/2);
+          const approx=Math.PI*(3*(a+b)-Math.sqrt((3*a+b)*(a+3*b)));
+          const n=Math.max(24,Math.ceil(approx/maxStep));
+          for(let i=0;i<n;i++){
+            const t=2*Math.PI*i/n;
+            pts.push(map(Math.cos(t)*a,Math.sin(t)*b));
+          }
+          return pts;
+        }
         const w=Math.max(.125,Number(cutout.w)||0),h=Math.max(.125,Number(cutout.h)||0);
         const hw=w/2,hh=h/2,rad=clamp(Number(cutout.cornerR)||0,0,Math.min(w,h)/2);
         if(rad<=.0001){
@@ -16239,8 +16260,15 @@ function restore(){
         }
         const w=Math.max(.125,Number(cutout.w)||0),h=Math.max(.125,Number(cutout.h)||0);
         const t=(Number(cutout.rotation)||0)*Math.PI/180;
-        const hx=Math.abs(Math.cos(t))*w/2+Math.abs(Math.sin(t))*h/2;
-        const hy=Math.abs(Math.sin(t))*w/2+Math.abs(Math.cos(t))*h/2;
+        let hx,hy;
+        if(cutout.kind==='oval'){
+          const a=w/2,b=h/2,c=Math.cos(t),sn=Math.sin(t);
+          hx=Math.sqrt(a*a*c*c+b*b*sn*sn);
+          hy=Math.sqrt(a*a*sn*sn+b*b*c*c);
+        }else{
+          hx=Math.abs(Math.cos(t))*w/2+Math.abs(Math.sin(t))*h/2;
+          hy=Math.abs(Math.sin(t))*w/2+Math.abs(Math.cos(t))*h/2;
+        }
         return {minX:cx-hx,maxX:cx+hx,minY:cy-hy,maxY:cy+hy,cx,cy};
       }
       function appendCutoutShape(host,cutout,leftPx,topPx,{fill='none',stroke='#333',strokeWidth=1,label=false}={}){
@@ -16255,6 +16283,8 @@ function restore(){
         const sw=polished?Math.max(2,strokeWidth):strokeWidth;
         if(cutout.kind==='circle'){
           g.appendChild(svgEl('circle',{cx:0,cy:0,r:i2p((Number(cutout.diameter)||Number(cutout.w)||0)/2),fill,stroke,'stroke-width':sw,'vector-effect':'non-scaling-stroke'}));
+        }else if(cutout.kind==='oval'){
+          g.appendChild(svgEl('ellipse',{cx:0,cy:0,rx:i2p((Number(cutout.w)||0)/2),ry:i2p((Number(cutout.h)||0)/2),fill,stroke,'stroke-width':sw,'vector-effect':'non-scaling-stroke'}));
         }else{
           const w2=i2p((Number(cutout.w)||0)/2),h2=i2p((Number(cutout.h)||0)/2);
           const rr=i2p(clamp(Number(cutout.cornerR)||0,0,Math.min(Number(cutout.w)||0,Number(cutout.h)||0)/2));
@@ -18543,7 +18573,7 @@ function createSinkRadiusAnnotation(piece,sink,corner){
             cutoutsG.setAttribute('pointer-events','none');
             const shapeG=document.createElementNS(svgNS,'g');
             shapeG.setAttribute('clip-path',attachPieceGeometryClip(gg,path.getAttribute('d'),'cutouts-design-'+p.id));
-            p.cutouts.forEach(cutout=>appendCutoutShape(shapeG,cutout,leftPx,topPx,{label:true}));
+            p.cutouts.forEach(cutout=>appendCutoutShape(shapeG,cutout,leftPx,topPx,{label:!!state.showCutoutLabels}));
             cutoutsG.appendChild(shapeG);
             gg.appendChild(cutoutsG);
           }
@@ -22094,6 +22124,11 @@ if(btnAddLayout){
                   cx:0,cy:0,r:Math.max(2,(Number(cutout.diameter)||0)*Math.min(sx,sy)/2),
                   fill:'none',stroke:'#111','stroke-width':polished?2:1
                 }));
+              }else if(cutout.kind==='oval'){
+                g.appendChild(svgEl('ellipse',{
+                  cx:0,cy:0,rx:Math.max(2,(Number(cutout.w)||0)*sx/2),ry:Math.max(2,(Number(cutout.h)||0)*sy/2),
+                  fill:'none',stroke:'#111','stroke-width':polished?2:1
+                }));
               }else{
                 const cw=Math.max(3,(Number(cutout.w)||0)*sx);
                 const ch=Math.max(3,(Number(cutout.h)||0)*sy);
@@ -24980,7 +25015,7 @@ if(btnAddLayout){
               cutouts: Array.isArray(q.cutouts) ? q.cutouts.map(c => ({
                 id: c?.id || ('cutout_' + Math.random().toString(36).slice(2,9)),
                 name: typeof c?.name==='string' ? c.name : defaultCutoutName(c?.kind),
-                kind: CUTOUT_KINDS.includes(c?.kind) ? c.kind : 'rectangle',
+                kind: c?.kind==='cooktop'?'rectangle':(CUTOUT_KINDS.includes(c?.kind) ? c.kind : 'rectangle'),
                 cx: Number(c?.cx), cy: Number(c?.cy),
                 w: Number(c?.w), h: Number(c?.h), diameter: Number(c?.diameter),
                 cornerR: Number(c?.cornerR), rotation: Number(c?.rotation)||0,
@@ -25090,6 +25125,7 @@ if(btnAddLayout){
                 if('showManualDims' in parsed.ui) state.showManualDims=!!parsed.ui.showManualDims;
                 if('showEdgeProfiles' in parsed.ui) state.showEdgeProfiles=!!parsed.ui.showEdgeProfiles;
                 if('showLabels' in parsed.ui) state.showLabels=!!parsed.ui.showLabels;
+                if('showCutoutLabels' in parsed.ui) state.showCutoutLabels=!!parsed.ui.showCutoutLabels;
                 if('showLabelDims' in parsed.ui) state.showLabelDims=!!parsed.ui.showLabelDims;
                 if('showSplashLabels' in parsed.ui) state.showSplashLabels=!!parsed.ui.showSplashLabels;
                 if('showSplashDims' in parsed.ui) state.showSplashDims=!!parsed.ui.showSplashDims;
