@@ -14941,7 +14941,17 @@ function restore(){
         piece.rTR=piece.cornerRadii.tr>0;
         piece.rBR=piece.cornerRadii.br>0;
         piece.rBL=piece.cornerRadii.bl>0;
-        if(!isBacksplashPiece(piece))normalizePieceOverhangs(piece);
+        if(!isBacksplashPiece(piece)){
+          const overhangs=normalizePieceOverhangs(piece);
+          (Array.isArray(piece.assemblyLinks)?piece.assemblyLinks:[]).forEach(link=>{
+            if(link?.kind!=='seam')return;
+            if(link.side==='left')overhangs.left=0;
+            else if(link.side==='right')overhangs.right=0;
+            else if(link.side==='top')overhangs.back=0;
+            else if(link.side==='bottom')overhangs.front=0;
+          });
+          piece.overhangs=overhangs;
+        }
         return piece;
       }
 
@@ -21879,6 +21889,13 @@ if(btnAddLayout){
 
           const overhangGrid=document.createElement('div');
           overhangGrid.className='lc-piece-overhang-grid';
+          const seamEdges=fabricationSeamSides(p);
+          const seamOverhangSides=new Set([
+            ...(seamEdges.has('left')?['left']:[]),
+            ...(seamEdges.has('right')?['right']:[]),
+            ...(seamEdges.has('top')?['back']:[]),
+            ...(seamEdges.has('bottom')?['front']:[])
+          ]);
           [['Front','front'],['Back','back'],['Left','left'],['Right','right']].forEach(([label,side])=>{
             const field=makeNumField(label+' (in)',overhangs[side],'insp-overhang-'+side,.125,(v)=>{
               setPieceOverhang(p,side,v);
@@ -21888,7 +21905,13 @@ if(btnAddLayout){
             if(input){
               input.min='0';
               input.step='.125';
-              input.title=label+' stone overhang beyond the cabinet/support footprint.';
+              if(seamOverhangSides.has(side)){
+                input.value='0';
+                input.disabled=true;
+                input.title='Fabrication seam edge — internal edges do not have cabinet overhang.';
+              }else{
+                input.title=label+' stone overhang beyond the cabinet/support footprint.';
+              }
             }
             overhangGrid.appendChild(field);
           });
