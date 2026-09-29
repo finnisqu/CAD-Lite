@@ -12664,6 +12664,7 @@ if (window.svg2pdf) {
             faucetSetback: DEFAULT_FAUCET_SETBACK,
             faucetHoleDiameter: DEFAULT_FAUCET_HOLE_DIAMETER,
             faucetHoleSpacing: DEFAULT_FAUCET_SPACING,
+            insideFinish: 'polished',
             rotation: 0
           };
         }
@@ -16007,6 +16008,7 @@ function restore(){
       // Ensure any piece has a sinks array
       function normalizeSinkFaucetSettings(sink){
         if(!sink)return sink;
+        sink.insideFinish=sink.insideFinish==='unpolished'?'unpolished':'polished';
         const setback=Number(sink.faucetSetback);
         const diameter=Number(sink.faucetHoleDiameter);
         const spacing=Number(sink.faucetHoleSpacing);
@@ -16047,6 +16049,19 @@ function restore(){
         sink.h       = model.h;
         sink.cornerR = clamp(model.cornerR ?? 0, 0, 4);
       }
+      function sinkPerimeterInches(sink){
+        if(!sink)return 0;
+        const w=Math.max(.125,Number(sink.w)||0);
+        const h=Math.max(.125,Number(sink.h)||0);
+        if(sink.shape==='oval'){
+          const a=w/2,b=h/2;
+          const q=((a-b)*(a-b))/((a+b)*(a+b)||1);
+          return Math.PI*(a+b)*(1+(3*q)/(10+Math.sqrt(Math.max(0,4-3*q))));
+        }
+        const r=clamp(Number(sink.cornerR)||0,0,Math.min(w,h)/2);
+        return Math.max(0,2*(w+h-4*r)+2*Math.PI*r);
+      }
+
 
       // ===== General countertop cutouts ===========================================
       const CUTOUT_KINDS=['cooktop','rectangle','circle'];
@@ -24845,6 +24860,7 @@ if(btnAddLayout){
                 faucetSetback: Number.isFinite(Number(s.faucetSetback)) ? Math.max(0,Number(s.faucetSetback)) : DEFAULT_FAUCET_SETBACK,
                 faucetHoleDiameter: Number.isFinite(Number(s.faucetHoleDiameter)) && Number(s.faucetHoleDiameter)>0 ? Number(s.faucetHoleDiameter) : DEFAULT_FAUCET_HOLE_DIAMETER,
                 faucetHoleSpacing: Number.isFinite(Number(s.faucetHoleSpacing)) && Number(s.faucetHoleSpacing)>0 ? Number(s.faucetHoleSpacing) : DEFAULT_FAUCET_SPACING,
+                insideFinish: s?.insideFinish==='unpolished'?'unpolished':'polished',
                 fabricationSplitSinkId: typeof s.fabricationSplitSinkId==='string' ? s.fabricationSplitSinkId : undefined,
                 fabricationPose: s.fabricationPose&&Number.isFinite(Number(s.fabricationPose.cx))&&Number.isFinite(Number(s.fabricationPose.cy))
                   ? {cx:Number(s.fabricationPose.cx),cy:Number(s.fabricationPose.cy)}
