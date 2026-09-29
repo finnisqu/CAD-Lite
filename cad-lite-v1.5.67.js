@@ -16069,8 +16069,17 @@ function restore(){
         cutout.insideFinish=cutout.insideFinish==='polished'?'polished':'unpolished';
         cutout.rotation=round3((((Number(cutout.rotation)||0)%360)+360)%360);
         const pw=Math.max(.25,Number(piece?.w)||.25),ph=Math.max(.25,Number(piece?.h)||.25);
-        cutout.cx=round3(clamp(Number.isFinite(Number(cutout.cx))?Number(cutout.cx):pw/2,0,pw));
-        cutout.cy=round3(clamp(Number.isFinite(Number(cutout.cy))?Number(cutout.cy):ph/2,0,ph));
+        const cxRaw=Number.isFinite(Number(cutout.cx))?Number(cutout.cx):pw/2;
+        const cyRaw=Number.isFinite(Number(cutout.cy))?Number(cutout.cy):ph/2;
+        // A cutout split by a fabrication seam keeps the original opening center,
+        // which may intentionally lie outside one clipped child piece.
+        if(cutout.fabricationSplitCutoutId){
+          cutout.cx=round3(cxRaw);
+          cutout.cy=round3(cyRaw);
+        }else{
+          cutout.cx=round3(clamp(cxRaw,0,pw));
+          cutout.cy=round3(clamp(cyRaw,0,ph));
+        }
         if(kind==='circle'){
           const diameter=Math.max(.125,Number(cutout.diameter)||Number(cutout.w)||2);
           cutout.diameter=round3(diameter);
