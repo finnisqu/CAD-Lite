@@ -22845,14 +22845,14 @@ if(btnAddLayout){
         }
 
         // --- 4) General Cutouts ----------------------------------------------------
-        if(state.workspace!=='slab'&&!isBacksplashPiece(p)){
+        if(!isBacksplashPiece(p)){
           migratePieceForCutouts(p);
           const cutoutBody=makeSection('Cutouts',{collapsible:true,key:'cutouts',collapsed:true});
 
           const cutoutAddRow=document.createElement('div');
           cutoutAddRow.className='lc-piece-group-inspector-actions';
           cutoutAddRow.style.marginBottom='6px';
-          [['Cooktop','cooktop'],['Rectangle','rectangle'],['Circle','circle']].forEach(([label,kind])=>{
+          [['Rectangle','rectangle'],['Circle','circle'],['Oval','oval']].forEach(([label,kind])=>{
             const btn=document.createElement('button');
             btn.type='button';
             btn.className='lc-btn ghost sm';
@@ -22985,7 +22985,7 @@ if(btnAddLayout){
                 typeLabel.textContent='Type';
                 const type=document.createElement('select');
                 type.className='lc-input';
-                [['cooktop','Cooktop'],['rectangle','Rectangle'],['circle','Circle']].forEach(([value,text])=>{
+                [['rectangle','Rectangle'],['circle','Circle'],['oval','Oval']].forEach(([value,text])=>{
                   const option=document.createElement('option');option.value=value;option.textContent=text;type.appendChild(option);
                 });
                 type.value=cutout.kind;
@@ -23034,10 +23034,14 @@ if(btnAddLayout){
 
                 if(cutout.kind!=='circle'){
                   const detail=pairRow();
-                  detail.append(
-                    makeNumField('Rotation (°)',cutout.rotation,'cutout-rot-'+cutout.id,1,(v)=>{cutout.rotation=round3(((v%360)+360)%360);commitGeometry();}),
-                    makeNumField('Corner R (in)',cutout.cornerR,'cutout-r-'+cutout.id,.125,(v)=>{cutout.cornerR=Math.max(0,v);normalizeCutout(cutout,p);commitGeometry();})
+                  detail.appendChild(
+                    makeNumField('Rotation (°)',cutout.rotation,'cutout-rot-'+cutout.id,1,(v)=>{cutout.rotation=round3(((v%360)+360)%360);commitGeometry();})
                   );
+                  if(cutout.kind==='rectangle'){
+                    detail.appendChild(
+                      makeNumField('Corner R (in)',cutout.cornerR,'cutout-r-'+cutout.id,.125,(v)=>{cutout.cornerR=Math.max(0,v);normalizeCutout(cutout,p);commitGeometry();})
+                    );
+                  }
                   card.appendChild(detail);
                 }
 
