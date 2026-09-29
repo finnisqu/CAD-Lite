@@ -22825,7 +22825,9 @@ if(btnAddLayout){
             btn.title='Add '+label+' cutout';
             btn.onclick=e=>{
               e.preventDefault();e.stopPropagation();
-              p.cutouts.push(createDefaultCutout(kind,p));
+              const added=createDefaultCutout(kind,p);
+              p.cutouts.push(added);
+              cutoutOpenIndex.set(p.id,added.id);
               updateInspector();draw();scheduleSave();pushHistory();
               setExclusiveInspectorSection('cutouts',true);
             };
@@ -22834,146 +22836,194 @@ if(btnAddLayout){
           cutoutBody.appendChild(cutoutAddRow);
 
           if(!p.cutouts.length){
+            cutoutOpenIndex.delete(p.id);
             const empty=document.createElement('div');
-            empty.className='lc-small';
-            empty.textContent='No general cutouts. Sinks and faucet holes stay in Sinks.';
+            empty.className='lc-small lc-sink-empty';
+            empty.textContent='This piece has no general cutouts.';
             cutoutBody.appendChild(empty);
-          }
+          }else{
+            const list=document.createElement('div');
+            list.className='lc-list lc-nav lc-sink-list lc-cutout-list';
+            const openId=cutoutOpenIndex.get(p.id)||null;
 
-          p.cutouts.forEach((cutout,index)=>{
-            normalizeCutout(cutout,p);
-            const card=document.createElement('div');
-            card.className='lc-seam-row';
-            card.style.display='grid';
-            card.style.gap='6px';
-
-            const head=document.createElement('div');
-            head.style.display='flex';
-            head.style.alignItems='center';
-            head.style.gap='6px';
-
-            const name=document.createElement('input');
-            name.className='lc-input';
-            name.type='text';
-            name.value=cutout.name||defaultCutoutName(cutout.kind);
-            name.setAttribute('aria-label','Cutout name');
-            name.style.minWidth='0';
-            name.style.flex='1';
-            name.onchange=()=>{
-              cutout.name=String(name.value||'').trim()||defaultCutoutName(cutout.kind);
-              draw();scheduleSave();pushHistory();
-            };
-
-            const duplicate=document.createElement('button');
-            duplicate.type='button';
-            duplicate.className='lc-btn ghost lc-iconbtn';
-            duplicate.title='Duplicate cutout';
-            duplicate.textContent='⧉';
-            duplicate.onclick=e=>{
-              e.preventDefault();e.stopPropagation();
-              const copy=JSON.parse(JSON.stringify(cutout));
-              copy.id='cutout_'+uid();
-              copy.name=(String(cutout.name||cutoutKindLabel(cutout.kind)).trim()||cutoutKindLabel(cutout.kind))+' Copy';
-              copy.cx=round3(clamp((Number(copy.cx)||0)+1,0,Number(p.w)||0));
-              copy.cy=round3(clamp((Number(copy.cy)||0)+1,0,Number(p.h)||0));
-              delete copy.fabricationSplitCutoutId;
-              p.cutouts.splice(index+1,0,copy);
-              updateInspector();draw();scheduleSave();pushHistory();
+            const reopen=()=>{
               setExclusiveInspectorSection('cutouts',true);
             };
 
-            const del=document.createElement('button');
-            del.type='button';
-            del.className='lc-btn red lc-iconbtn';
-            del.title='Delete cutout';
-            del.innerHTML='<svg class="lc-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 3h8l1 2h4v2H3V5h4l1-2Zm-2 6h12l-1 11H7L6 9Zm3 2v7h2v-7H9Zm4 0v7h2v-7h-2Z" fill="currentColor"/></svg>';
-            del.onclick=e=>{
-              e.preventDefault();e.stopPropagation();
-              p.cutouts.splice(index,1);
-              updateInspector();draw();scheduleSave();pushHistory();
-              setExclusiveInspectorSection('cutouts',true);
-            };
-            head.append(name,duplicate,del);
-            card.appendChild(head);
-
-            const pairRow=()=>{const row=document.createElement('div');row.style.display='grid';row.style.gridTemplateColumns='1fr 1fr';row.style.gap='4px';return row;};
-
-            const row1=pairRow();
-            const typeLabel=document.createElement('label');
-            typeLabel.className='lc-label';
-            typeLabel.textContent='Type';
-            const type=document.createElement('select');
-            type.className='lc-input';
-            [['cooktop','Cooktop'],['rectangle','Rectangle'],['circle','Circle']].forEach(([value,label])=>{
-              const option=document.createElement('option');option.value=value;option.textContent=label;type.appendChild(option);
-            });
-            type.value=cutout.kind;
-            type.onchange=()=>{
-              cutout.kind=type.value;
+            p.cutouts.forEach((cutout,index)=>{
               normalizeCutout(cutout,p);
-              updateInspector();draw();scheduleSave();pushHistory();
-              setExclusiveInspectorSection('cutouts',true);
-            };
-            typeLabel.appendChild(type);
+              const isOpen=openId===cutout.id;
+              const row=document.createElement('div');
+              row.className='lc-item nav lc-sink-row lc-cutout-row'+(isOpen?' selected':'');
+              row.dataset.cutoutId=cutout.id;
 
-            const finishLabel=document.createElement('label');
-            finishLabel.className='lc-label';
-            finishLabel.textContent='Inside Edge';
-            const finish=document.createElement('select');
-            finish.className='lc-input';
-            [['unpolished','Unpolished'],['polished','Polished']].forEach(([value,label])=>{
-              const option=document.createElement('option');option.value=value;option.textContent=label;finish.appendChild(option);
+              const label=document.createElement('div');
+              label.className='lc-sink-row-main';
+              const title=document.createElement('div');
+              title.className='lc-sink-row-title';
+              const displayName=String(cutout.name||defaultCutoutName(cutout.kind)).trim();
+              title.textContent='Cutout '+(index+1)+' — '+displayName;
+              title.title=title.textContent;
+
+              const meta=document.createElement('div');
+              meta.className='lc-sink-row-meta';
+              const cutLf=cutoutEffectivePerimeterInches(cutout,p)/12;
+              const finishText=cutout.insideFinish==='polished'?'Polished':'Unpolished';
+              meta.textContent=cutoutKindLabel(cutout.kind)+' · '+cutLf.toFixed(2)+' LF · '+finishText;
+              label.append(title,meta);
+
+              const actions=document.createElement('div');
+              actions.className='lc-sink-row-actions';
+
+              const rename=document.createElement('button');
+              rename.type='button';
+              rename.className='lc-btn ghost lc-iconbtn lc-rename-btn';
+              rename.title='Rename cutout';
+              rename.textContent='✎';
+              rename.onclick=e=>{
+                e.stopPropagation();
+                beginListRename(title,cutout,defaultCutoutName(cutout.kind),()=>{
+                  updateInspector();reopen();draw();
+                });
+              };
+
+              const duplicate=document.createElement('button');
+              duplicate.type='button';
+              duplicate.className='lc-btn ghost lc-iconbtn';
+              duplicate.title='Duplicate cutout';
+              duplicate.innerHTML='<svg class="lc-icon" viewBox="0 0 24 24"><path d="M9 9V5a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-4M5 9a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2z" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+              duplicate.onclick=e=>{
+                e.stopPropagation();
+                const copy=JSON.parse(JSON.stringify(cutout));
+                copy.id='cutout_'+uid();
+                copy.name=displayName+' Copy';
+                copy.cx=round3(clamp((Number(copy.cx)||0)+1,0,Number(p.w)||0));
+                copy.cy=round3(clamp((Number(copy.cy)||0)+1,0,Number(p.h)||0));
+                delete copy.fabricationSplitCutoutId;
+                p.cutouts.splice(index+1,0,copy);
+                cutoutOpenIndex.set(p.id,copy.id);
+                updateInspector();reopen();draw();scheduleSave();pushHistory();
+              };
+
+              const del=document.createElement('button');
+              del.type='button';
+              del.className='lc-btn red lc-iconbtn lc-delete-btn';
+              del.title='Delete cutout';
+              del.innerHTML='<svg class="lc-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 3h8l1 2h4v2H3V5h4l1-2Zm-2 6h12l-1 11H7L6 9Zm3 2v7h2v-7H9Zm4 0v7h2v-7h-2Z" fill="currentColor"/></svg>';
+              del.onclick=e=>{
+                e.stopPropagation();
+                p.cutouts.splice(index,1);
+                if(cutoutOpenIndex.get(p.id)===cutout.id)cutoutOpenIndex.delete(p.id);
+                updateInspector();reopen();draw();scheduleSave();pushHistory();
+              };
+
+              actions.append(rename,duplicate,del);
+              row.append(label,actions);
+              row.addEventListener('click',e=>{
+                if(e.target.closest('button,input,select'))return;
+                if(isOpen)cutoutOpenIndex.delete(p.id);
+                else cutoutOpenIndex.set(p.id,cutout.id);
+                updateInspector();reopen();
+              });
+              list.appendChild(row);
+
+              if(isOpen){
+                const card=document.createElement('div');
+                card.className='sink-editor lc-cutout-editor';
+
+                const pairRow=()=>{
+                  const r=document.createElement('div');
+                  r.className='row';
+                  r.style.display='grid';
+                  r.style.gridTemplateColumns='1fr 1fr';
+                  r.style.gap='6px';
+                  return r;
+                };
+                const commitGeometry=()=>{
+                  cutoutOpenIndex.set(p.id,cutout.id);
+                  draw();scheduleSave();pushHistory();updateInspector();reopen();
+                };
+
+                const row1=pairRow();
+                const typeLabel=document.createElement('label');
+                typeLabel.className='lc-label';
+                typeLabel.textContent='Type';
+                const type=document.createElement('select');
+                type.className='lc-input';
+                [['cooktop','Cooktop'],['rectangle','Rectangle'],['circle','Circle']].forEach(([value,text])=>{
+                  const option=document.createElement('option');option.value=value;option.textContent=text;type.appendChild(option);
+                });
+                type.value=cutout.kind;
+                type.onchange=()=>{
+                  applyCutoutKind(cutout,type.value,p);
+                  commitGeometry();
+                };
+                typeLabel.appendChild(type);
+
+                const finishLabel=document.createElement('label');
+                finishLabel.className='lc-label';
+                finishLabel.textContent='Inside Edge';
+                const finish=document.createElement('select');
+                finish.className='lc-input';
+                [['unpolished','Unpolished'],['polished','Polished']].forEach(([value,text])=>{
+                  const option=document.createElement('option');option.value=value;option.textContent=text;finish.appendChild(option);
+                });
+                finish.value=cutout.insideFinish;
+                finish.onchange=()=>{
+                  cutout.insideFinish=finish.value==='polished'?'polished':'unpolished';
+                  commitGeometry();
+                };
+                finishLabel.appendChild(finish);
+                row1.append(typeLabel,finishLabel);
+                card.appendChild(row1);
+
+                const dims=pairRow();
+                if(cutout.kind==='circle'){
+                  dims.appendChild(makeNumField('Diameter (in)',cutout.diameter,'cutout-dia-'+cutout.id,.125,(v)=>{
+                    cutout.diameter=Math.max(.125,v);normalizeCutout(cutout,p);commitGeometry();
+                  }));
+                }else{
+                  dims.append(
+                    makeNumField('Width (in)',cutout.w,'cutout-w-'+cutout.id,.125,(v)=>{cutout.w=Math.max(.125,v);normalizeCutout(cutout,p);commitGeometry();}),
+                    makeNumField('Height (in)',cutout.h,'cutout-h-'+cutout.id,.125,(v)=>{cutout.h=Math.max(.125,v);normalizeCutout(cutout,p);commitGeometry();})
+                  );
+                }
+                card.appendChild(dims);
+
+                const pos=pairRow();
+                pos.append(
+                  makeNumField('CL from Left',cutout.cx,'cutout-x-'+cutout.id,.125,(v)=>{cutout.cx=round3(clamp(v,0,p.w));commitGeometry();}),
+                  makeNumField('CL from Back',cutout.cy,'cutout-y-'+cutout.id,.125,(v)=>{cutout.cy=round3(clamp(v,0,p.h));commitGeometry();})
+                );
+                card.appendChild(pos);
+
+                if(cutout.kind!=='circle'){
+                  const detail=pairRow();
+                  detail.append(
+                    makeNumField('Rotation (°)',cutout.rotation,'cutout-rot-'+cutout.id,1,(v)=>{cutout.rotation=round3(((v%360)+360)%360);commitGeometry();}),
+                    makeNumField('Corner R (in)',cutout.cornerR,'cutout-r-'+cutout.id,.125,(v)=>{cutout.cornerR=Math.max(0,v);normalizeCutout(cutout,p);commitGeometry();})
+                  );
+                  card.appendChild(detail);
+                }
+
+                const perimeter=document.createElement('div');
+                perimeter.className='lc-small';
+                const actual=cutoutEffectivePerimeterInches(cutout,p);
+                const full=cutoutPerimeterInches(cutout);
+                perimeter.textContent=(cutout.insideFinish==='polished'?'Polished':'Unpolished')+
+                  ' cut edge · '+(actual/12).toFixed(2)+' LF'+
+                  (actual<full-.03?' · clipped by piece edge':'');
+                card.appendChild(perimeter);
+                list.appendChild(card);
+              }
             });
-            finish.value=cutout.insideFinish;
-            finish.onchange=()=>{
-              cutout.insideFinish=finish.value==='polished'?'polished':'unpolished';
-              updateInspector();draw();scheduleSave();pushHistory();
-              setExclusiveInspectorSection('cutouts',true);
-            };
-            finishLabel.appendChild(finish);
-            row1.append(typeLabel,finishLabel);
-            card.appendChild(row1);
-
-            const dims=pairRow();
-            if(cutout.kind==='circle'){
-              dims.appendChild(makeNumField('Diameter (in)',cutout.diameter,'cutout-dia-'+cutout.id,.125,(v)=>{
-                cutout.diameter=Math.max(.125,v);normalizeCutout(cutout,p);draw();scheduleSave();pushHistory();
-              }));
-            }else{
-              dims.append(
-                makeNumField('Width (in)',cutout.w,'cutout-w-'+cutout.id,.125,(v)=>{cutout.w=Math.max(.125,v);normalizeCutout(cutout,p);draw();scheduleSave();pushHistory();}),
-                makeNumField('Height (in)',cutout.h,'cutout-h-'+cutout.id,.125,(v)=>{cutout.h=Math.max(.125,v);normalizeCutout(cutout,p);draw();scheduleSave();pushHistory();})
-              );
-            }
-            card.appendChild(dims);
-
-            const pos=pairRow();
-            pos.append(
-              makeNumField('CL from Left',cutout.cx,'cutout-x-'+cutout.id,.125,(v)=>{cutout.cx=round3(clamp(v,0,p.w));draw();scheduleSave();pushHistory();}),
-              makeNumField('CL from Back',cutout.cy,'cutout-y-'+cutout.id,.125,(v)=>{cutout.cy=round3(clamp(v,0,p.h));draw();scheduleSave();pushHistory();})
-            );
-            card.appendChild(pos);
-
-            if(cutout.kind!=='circle'){
-              const detail=pairRow();
-              detail.append(
-                makeNumField('Rotation (°)',cutout.rotation,'cutout-rot-'+cutout.id,1,(v)=>{cutout.rotation=round3(((v%360)+360)%360);draw();scheduleSave();pushHistory();}),
-                makeNumField('Corner R (in)',cutout.cornerR,'cutout-r-'+cutout.id,.125,(v)=>{cutout.cornerR=Math.max(0,v);normalizeCutout(cutout,p);draw();scheduleSave();pushHistory();})
-              );
-              card.appendChild(detail);
-            }
-
-            const meta=document.createElement('div');
-            meta.className='lc-small';
-            meta.textContent=(cutout.insideFinish==='polished'?'Polished':'Unpolished')+' perimeter · '+(cutoutPerimeterInches(cutout)/12).toFixed(2)+' LF';
-            card.appendChild(meta);
-            cutoutBody.appendChild(card);
-          });
+            cutoutBody.appendChild(list);
+          }
 
           const note=document.createElement('div');
           note.className='lc-small';
           note.style.marginTop='6px';
-          note.textContent='General cutouts default to unpolished. Polished perimeter is stored for future edge-LF and estimating intelligence.';
+          note.textContent='General cutouts default to unpolished. LF counts only the cut edge that actually passes through stone.';
           cutoutBody.appendChild(note);
         }
 
