@@ -12798,7 +12798,9 @@ if (window.svg2pdf) {
             const model = sink.type==='model'
               ? (SINK_MODELS.find(m=>m.id===sink.modelId)?.label || 'Model')
               : 'Custom';
-            meta.textContent=`${model} · CL ${fmtCanvasInches(sink.centerline||0)}`;
+            const sinkLf=sinkPerimeterInches(sink)/12;
+            const sinkFinish=sink.insideFinish==='unpolished'?'Unpolished':'Polished';
+            meta.textContent=`${model} · ${sinkLf.toFixed(2)} LF · ${sinkFinish} · CL ${fmtCanvasInches(sink.centerline||0)}`;
             label.append(title,meta);
 
             const actions=el('div','lc-sink-row-actions');
@@ -12931,6 +12933,23 @@ if (window.svg2pdf) {
           rad.oninput=()=>{sink.cornerR=clamp(round3(rad.value),0,4);draw();scheduleSave?.();};
           sinkDetailRow.append(labelWrap('Rotation (°)',rot),labelWrap('Corner R (in)',rad));
           sinkBody.appendChild(sinkDetailRow);
+
+          const sinkFinishRow=el('div','row sink-detail-row');
+          const sinkFinish=select(
+            [{v:'polished',t:'Polished'},{v:'unpolished',t:'Unpolished'}],
+            sink.insideFinish==='unpolished'?'unpolished':'polished'
+          );
+          sinkFinish.onchange=()=>{
+            sink.insideFinish=sinkFinish.value==='unpolished'?'unpolished':'polished';
+            onStateChange?.();
+          };
+          const sinkPerimeterReadout=el('div','lc-label');
+          sinkPerimeterReadout.append(
+            el('span',null,'Perimeter'),
+            el('div','lc-small',(sinkPerimeterInches(sink)/12).toFixed(2)+' LF')
+          );
+          sinkFinishRow.append(labelWrap('Inside Edge',sinkFinish),sinkPerimeterReadout);
+          sinkBody.appendChild(sinkFinishRow);
 
           const positionBody=makeSinkSection('Position','position',true);
           const sideSel=select(
