@@ -6229,6 +6229,15 @@
           }
         }));
 
+        const cutoutIdMap=new Map();
+        const splitCutoutIdMap=new Map();
+        originals.forEach(piece=>(Array.isArray(piece.cutouts)?piece.cutouts:[]).forEach(cutout=>{
+          if(cutout?.id&&!cutoutIdMap.has(cutout.id))cutoutIdMap.set(cutout.id,'cutout_'+uid());
+          if(cutout?.fabricationSplitCutoutId&&!splitCutoutIdMap.has(cutout.fabricationSplitCutoutId)){
+            splitCutoutIdMap.set(cutout.fabricationSplitCutoutId,'cutoutsplit_'+uid());
+          }
+        }));
+
         const sameLayout=clip.sourceLayoutId===L.id;
         const validAreaIds=new Set(ensureLayoutAreas(L).map(area=>area.id));
         const targetAreaId=preferredAreaIdForNewPiece()||activeAreaIdForLayout(L);
@@ -6276,6 +6285,17 @@
               next.id=sink?.id&&sinkIdMap.has(sink.id)?sinkIdMap.get(sink.id):uid();
               if(sink?.fabricationSplitSinkId){
                 next.fabricationSplitSinkId=splitSinkIdMap.get(sink.fabricationSplitSinkId)||uid();
+              }
+              return next;
+            });
+          }
+
+          if(Array.isArray(piece.cutouts)){
+            piece.cutouts=piece.cutouts.map(cutout=>{
+              const next={...cutout};
+              next.id=cutout?.id&&cutoutIdMap.has(cutout.id)?cutoutIdMap.get(cutout.id):('cutout_'+uid());
+              if(cutout?.fabricationSplitCutoutId){
+                next.fabricationSplitCutoutId=splitCutoutIdMap.get(cutout.fabricationSplitCutoutId)||('cutoutsplit_'+uid());
               }
               return next;
             });
@@ -6580,6 +6600,12 @@
               originalGroupCounts.forEach((count,groupId)=>{
                 if(count>=2&&count===pieceGroupById(groupId).length)copiedGroupIds.set(groupId,uid());
               });
+              const duplicatedSplitCutoutIds=new Map();
+              originals.forEach(piece=>(Array.isArray(piece.cutouts)?piece.cutouts:[]).forEach(cutout=>{
+                if(cutout?.fabricationSplitCutoutId&&!duplicatedSplitCutoutIds.has(cutout.fabricationSplitCutoutId)){
+                  duplicatedSplitCutoutIds.set(cutout.fabricationSplitCutoutId,'cutoutsplit_'+uid());
+                }
+              }));
               let nextLayer=Math.max(0,...state.pieces.map(x=>Number(x.layer)||0))+1;
               const copies=originals.map(p=>{
                 const np=JSON.parse(JSON.stringify(p));
@@ -6591,6 +6617,15 @@
                 const srcSlab=ensureSlabPlacement(p);
                 np.slabPlacement={x:round3(srcSlab.x+dx),y:round3(srcSlab.y+dy),rotation:srcSlab.rotation};
                 np.layer=nextLayer++;
+                if(Array.isArray(np.cutouts)){
+                  np.cutouts=np.cutouts.map(cutout=>({
+                    ...cutout,
+                    id:'cutout_'+uid(),
+                    fabricationSplitCutoutId:cutout?.fabricationSplitCutoutId
+                      ? duplicatedSplitCutoutIds.get(cutout.fabricationSplitCutoutId)
+                      : undefined
+                  }));
+                }
                 if(p.pieceGroupId&&!sourceWasSplash&&copiedGroupIds.has(p.pieceGroupId)){
                   np.pieceGroupId=copiedGroupIds.get(p.pieceGroupId);
                   np.pieceGroupName=(String(p.pieceGroupName||'Group')+' Copy').trim();
@@ -10652,6 +10687,11 @@
             cy:round3((Number(sink.fabricationPose.cy)||0)+fabricationPoseShift.y)
           };
         });
+        (Array.isArray(piece.cutouts)?piece.cutouts:[]).forEach(cutout=>{
+          if(!cutout?.fabricationSplitCutoutId)return;
+          cutout.cx=round3((Number(cutout.cx)||0)+fabricationPoseShift.x);
+          cutout.cy=round3((Number(cutout.cy)||0)+fabricationPoseShift.y);
+        });
 
         const place=(pose,workspace)=>{
           if(!pose)return;
@@ -13626,6 +13666,15 @@ if (window.svg2pdf) {
           });
         }
 
+        migratePieceForCutouts(p);
+        if(p.cutouts.length){
+          const leftPx=layoutCx-i2p(p.w)/2;
+          const topPx=layoutCy-i2p(p.h)/2;
+          p.cutouts.forEach(cutout=>{
+            appendCutoutShape(mask,cutout,leftPx,topPx,{fill:'#000',stroke:'none',strokeWidth:0,label:false});
+          });
+        }
+
         defs.appendChild(mask);
 
         const materialG=document.createElementNS(svgNS,'g');
@@ -15199,6 +15248,36 @@ function restore(){
         );
       }
 
+      function splitCutoutsForSeam(source,childA,childB,vertical,cutCoord){
+        migratePieceForCutouts(source);
+        childA.cutouts=[];
+        childB.cutouts=[];
+        source.cutouts.forEach(cutout=>{
+          const bounds=cutoutLocalBounds(cutout);
+          const spansCut=vertical
+            ? bounds.minX<cutCoord-.001&&bounds.maxX>cutCoord+.001
+            : bounds.minY<cutCoord-.001&&bounds.maxY>cutCoord+.001;
+
+          if(spansCut){
+            const splitId=cutout.fabricationSplitCutoutId||('cutoutsplit_'+uid());
+            childA.cutouts.push(cutoutAtLocalPose(cutout,cutout.cx,cutout.cy,{splitId}));
+            childB.cutouts.push(cutoutAtLocalPose(
+              cutout,
+              vertical?(Number(cutout.cx)||0)-cutCoord:(Number(cutout.cx)||0),
+              vertical?(Number(cutout.cy)||0):(Number(cutout.cy)||0)-cutCoord,
+              {splitId}
+            ));
+            return;
+          }
+
+          const inA=vertical?bounds.maxX<=cutCoord+.001:bounds.maxY<=cutCoord+.001;
+          const splitId=cutout.fabricationSplitCutoutId||null;
+          const cx=inA?(Number(cutout.cx)||0):(vertical?(Number(cutout.cx)||0)-cutCoord:(Number(cutout.cx)||0));
+          const cy=inA?(Number(cutout.cy)||0):(!vertical?(Number(cutout.cy)||0)-cutCoord:(Number(cutout.cy)||0));
+          (inA?childA:childB).cutouts.push(cutoutAtLocalPose(cutout,cx,cy,{splitId}));
+        });
+      }
+
       function splitOtherSeams(source,cutSeam,cutCoord,childA,childB){
         const vertical=cutSeam.orientation!=='horizontal';
         childA.pieceSeams=[];
@@ -15568,6 +15647,7 @@ function restore(){
           target.sinks.push(remapSinkToSplitPiece(source,sink,target,originX,originY));
         });
 
+        splitCutoutsForSeam(source,childA,childB,vertical,cutCoord);
         splitOtherSeams(source,cutSeam,cutCoord,childA,childB);
 
         childA.assemblyLinks=[];
@@ -15854,6 +15934,42 @@ function restore(){
           delete seed.fabricationSplitSinkId;
           delete seed.fabricationPose;
           return sinkAtLocalPose(seed,merged,pose.cx,pose.cy);
+        });
+
+        merged.cutouts=[];
+        migratePieceForCutouts(first);migratePieceForCutouts(second);
+        const mergedCutoutSplits=new Set();
+        const addMergedCutout=(cutout,dx,dy)=>{
+          const splitId=cutout.fabricationSplitCutoutId||null;
+          if(splitId&&mergedCutoutSplits.has(splitId))return;
+          if(splitId)mergedCutoutSplits.add(splitId);
+          const next=cutoutAtLocalPose(
+            cutout,
+            (Number(cutout.cx)||0)+dx,
+            (Number(cutout.cy)||0)+dy,
+            {splitId}
+          );
+          merged.cutouts.push(next);
+        };
+        first.cutouts.forEach(cutout=>addMergedCutout(cutout,0,0));
+        second.cutouts.forEach(cutout=>addMergedCutout(
+          cutout,
+          vertical?(Number(first.w)||0):0,
+          horizontal?(Number(first.h)||0):0
+        ));
+
+        const outsideCutoutSplits=new Set();
+        state.pieces.forEach(piece=>{
+          if(piece.id===first.id||piece.id===second.id)return;
+          (Array.isArray(piece.cutouts)?piece.cutouts:[]).forEach(cutout=>{
+            if(cutout?.fabricationSplitCutoutId)outsideCutoutSplits.add(cutout.fabricationSplitCutoutId);
+          });
+        });
+        merged.cutouts=merged.cutouts.map(cutout=>{
+          if(cutout.fabricationSplitCutoutId&&!outsideCutoutSplits.has(cutout.fabricationSplitCutoutId)){
+            delete cutout.fabricationSplitCutoutId;
+          }
+          return normalizeCutout(cutout,merged);
         });
 
         mergePieceSeams(first,second,merged,vertical?'vertical':'horizontal');
@@ -16225,6 +16341,14 @@ function restore(){
 
               gPiece.appendChild(gSink);
             }
+          }
+
+          migratePieceForCutouts(p);
+          if(p.cutouts.length){
+            const leftPx=cx-W0/2,topPx=cy-H0/2;
+            p.cutouts.forEach(cutout=>{
+              appendCutoutShape(gPiece,cutout,leftPx,topPx,{fill:'#000',stroke:'none',strokeWidth:0,label:false});
+            });
           }
 
           mask.appendChild(gPiece);
