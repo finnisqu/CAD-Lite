@@ -14499,3 +14499,21 @@ body.lc-theater-page-lock{
   border-color:var(--lc-dark-border-strong,#505861);
   background:rgba(148,163,184,.07);
 }
+
+
+/* =========================================================
+   CAD Lite v1.5.68 — Selections dark-mode surface correction
+   ========================================================= */
+.lite-cad.lc-theme-dark #lc-selections-card .lc-selection-nav-item{
+  background:var(--lc-dark-panel, #2b3036) !important;
+  border-color:var(--lc-dark-border, #434a52) !important;
+  color:var(--lc-dark-text, #eef2f6) !important;
+}
+
+.lite-cad.lc-theme-dark #lc-selections-card .lc-selection-nav-item:hover{
+  background:#343a41 !important;
+}
+
+.lite-cad.lc-theme-dark #lc-selections-card .lc-selection-nav-item.selected{
+  background:#2d3742 !important;
+}
