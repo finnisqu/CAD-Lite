@@ -16131,6 +16131,24 @@ function restore(){
         }
         return cutout;
       }
+      function applyCutoutKind(cutout,nextKind,piece){
+        if(!cutout)return cutout;
+        const previous=CUTOUT_KINDS.includes(cutout.kind)?cutout.kind:'rectangle';
+        const oldName=String(cutout.name||'').trim();
+        const generic=!oldName||oldName===defaultCutoutName(previous)||oldName===cutoutKindLabel(previous);
+        const kind=CUTOUT_KINDS.includes(nextKind)?nextKind:'rectangle';
+        cutout.kind=kind;
+        if(kind==='circle'){
+          cutout.diameter=2;cutout.w=2;cutout.h=2;cutout.cornerR=1;cutout.rotation=0;
+        }else if(kind==='cooktop'){
+          cutout.w=30;cutout.h=20;cutout.cornerR=.125;delete cutout.diameter;
+        }else{
+          cutout.w=6;cutout.h=4;cutout.cornerR=0;delete cutout.diameter;
+        }
+        if(generic)cutout.name=defaultCutoutName(kind);
+        return normalizeCutout(cutout,piece);
+      }
+
       function migratePieceForCutouts(piece){
         if(!piece)return piece;
         if(!Array.isArray(piece.cutouts))piece.cutouts=[];
@@ -16139,7 +16157,7 @@ function restore(){
       }
       function createDefaultCutout(kind,piece){
         const cutout={id:'cutout_'+uid(),kind:CUTOUT_KINDS.includes(kind)?kind:'rectangle',insideFinish:'unpolished'};
-        normalizeCutout(cutout,piece);
+        applyCutoutKind(cutout,cutout.kind,piece);
         cutout.cx=round3((Number(piece?.w)||0)/2);
         cutout.cy=round3((Number(piece?.h)||0)/2);
         return cutout;
@@ -16152,6 +16170,67 @@ function restore(){
         const r=clamp(Number(cutout.cornerR)||0,0,Math.min(w,h)/2);
         return Math.max(0,2*(w+h-4*r)+2*Math.PI*r);
       }
+      function pointInsidePieceLocal(piece,x,y,epsilon=.002){
+        const w=Math.max(.25,Number(piece?.w)||.25),h=Math.max(.25,Number(piece?.h)||.25);
+        if(!(x>epsilon&&x<w-epsilon&&y>epsilon&&y<h-epsilon))return false;
+        const r=piece?.cornerRadii||{};
+        const checks=[
+          [Number(r.tl)||0,x,y],[Number(r.tr)||0,w-x,y],
+          [Number(r.br)||0,w-x,h-y],[Number(r.bl)||0,x,h-y]
+        ];
+        for(const [rad,dx,dy] of checks){
+          if(rad>0&&dx<rad&&dy<rad){
+            const ox=dx-rad,oy=dy-rad;
+            if(ox*ox+oy*oy>rad*rad)return false;
+          }
+        }
+        return true;
+      }
+      function cutoutBoundaryPolyline(cutout,maxStep=.08){
+        const pts=[];
+        if(!cutout)return pts;
+        const cx=Number(cutout.cx)||0,cy=Number(cutout.cy)||0;
+        const angle=(cutout.kind==='circle'?0:(Number(cutout.rotation)||0))*Math.PI/180;
+        const c=Math.cos(angle),sn=Math.sin(angle);
+        const map=(x,y)=>({x:cx+x*c-y*sn,y:cy+x*sn+y*c});
+        const line=(x1,y1,x2,y2)=>{
+          const n=Math.max(1,Math.ceil(Math.hypot(x2-x1,y2-y1)/maxStep));
+          for(let i=0;i<n;i++){const t=i/n;pts.push(map(x1+(x2-x1)*t,y1+(y2-y1)*t));}
+        };
+        const arc=(ccx,ccy,rad,a1,a2)=>{
+          const n=Math.max(2,Math.ceil(Math.abs(a2-a1)*rad/maxStep));
+          for(let i=0;i<n;i++){const t=i/n,a=a1+(a2-a1)*t;pts.push(map(ccx+Math.cos(a)*rad,ccy+Math.sin(a)*rad));}
+        };
+        if(cutout.kind==='circle'){
+          const rad=Math.max(.0625,(Number(cutout.diameter)||Number(cutout.w)||0)/2);
+          const n=Math.max(24,Math.ceil(2*Math.PI*rad/maxStep));
+          for(let i=0;i<n;i++){const a=2*Math.PI*i/n;pts.push({x:cx+Math.cos(a)*rad,y:cy+Math.sin(a)*rad});}
+          return pts;
+        }
+        const w=Math.max(.125,Number(cutout.w)||0),h=Math.max(.125,Number(cutout.h)||0);
+        const hw=w/2,hh=h/2,rad=clamp(Number(cutout.cornerR)||0,0,Math.min(w,h)/2);
+        if(rad<=.0001){
+          line(-hw,-hh,hw,-hh);line(hw,-hh,hw,hh);line(hw,hh,-hw,hh);line(-hw,hh,-hw,-hh);
+          return pts;
+        }
+        line(-hw+rad,-hh,hw-rad,-hh);arc(hw-rad,-hh+rad,rad,-Math.PI/2,0);
+        line(hw,-hh+rad,hw,hh-rad);arc(hw-rad,hh-rad,rad,0,Math.PI/2);
+        line(hw-rad,hh,-hw+rad,hh);arc(-hw+rad,hh-rad,rad,Math.PI/2,Math.PI);
+        line(-hw,hh-rad,-hw,-hh+rad);arc(-hw+rad,-hh+rad,rad,Math.PI,Math.PI*1.5);
+        return pts;
+      }
+      function cutoutEffectivePerimeterInches(cutout,piece){
+        const pts=cutoutBoundaryPolyline(cutout);
+        if(pts.length<2)return 0;
+        let total=0;
+        for(let i=0;i<pts.length;i++){
+          const a=pts[i],z=pts[(i+1)%pts.length];
+          const mx=(a.x+z.x)/2,my=(a.y+z.y)/2;
+          if(pointInsidePieceLocal(piece,mx,my))total+=Math.hypot(z.x-a.x,z.y-a.y);
+        }
+        return total;
+      }
+
       function cutoutLocalBounds(cutout){
         if(!cutout)return {minX:0,maxX:0,minY:0,maxY:0};
         const cx=Number(cutout.cx)||0,cy=Number(cutout.cy)||0;
