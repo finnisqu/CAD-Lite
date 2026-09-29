@@ -11668,6 +11668,7 @@
         seams:false,
         edgeOptions:false
       };
+      const cutoutOpenIndex=new Map();
       let pieceInspectorPreviewSync=()=>{};
 
       function syncInspectorAccordionDom(){
@@ -13906,9 +13907,7 @@ if (window.svg2pdf) {
             const leftPx=cx-W0/2,topPx=cy-H0/2;
             const cutoutsG=document.createElementNS(svgNS,'g');
             cutoutsG.setAttribute('pointer-events','none');
-            if(p.cutouts.some(cutout=>!!cutout.fabricationSplitCutoutId)){
-              cutoutsG.setAttribute('clip-path',attachPieceGeometryClip(gPiece,path.getAttribute('d'),'cutouts-slab-'+p.id));
-            }
+            cutoutsG.setAttribute('clip-path',attachPieceGeometryClip(gPiece,path.getAttribute('d'),'cutouts-slab-'+p.id));
             p.cutouts.forEach(cutout=>appendCutoutShape(cutoutsG,cutout,leftPx,topPx,{label:true}));
             gPiece.appendChild(cutoutsG);
           }
@@ -18543,9 +18542,7 @@ function createSinkRadiusAnnotation(piece,sink,corner){
             cutoutsG.setAttribute('class','lc-piece-cutouts');
             cutoutsG.setAttribute('pointer-events','none');
             const shapeG=document.createElementNS(svgNS,'g');
-            if(p.cutouts.some(cutout=>!!cutout.fabricationSplitCutoutId)){
-              shapeG.setAttribute('clip-path',attachPieceGeometryClip(gg,path.getAttribute('d'),'cutouts-design-'+p.id));
-            }
+            shapeG.setAttribute('clip-path',attachPieceGeometryClip(gg,path.getAttribute('d'),'cutouts-design-'+p.id));
             p.cutouts.forEach(cutout=>appendCutoutShape(shapeG,cutout,leftPx,topPx,{label:true}));
             cutoutsG.appendChild(shapeG);
             gg.appendChild(cutoutsG);
