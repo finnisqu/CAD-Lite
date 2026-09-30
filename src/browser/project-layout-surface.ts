@@ -1198,7 +1198,7 @@ export class ProjectLayoutSurface {
 
     const summary = document.createElement('div');
     summary.className = 'lc-piece-group-summary';
-    [
+    const summaryItems: Array<[string, string]> = [
       ['Pieces', String(group.stats.pieceCount)],
       ['Total SF', group.stats.totalSf.toFixed(2)],
       [
@@ -1208,7 +1208,8 @@ export class ProjectLayoutSurface {
       ['Sinks', String(group.stats.sinkCount)],
       ['Seams', String(group.stats.seamCount)],
       ['Splashes', String(group.stats.splashCount)],
-    ].forEach(([label, value]) => {
+    ];
+    summaryItems.forEach(([label, value]) => {
       const item = document.createElement('div');
       item.className = 'lc-piece-group-summary__item';
       const key = document.createElement('span');
