@@ -7,6 +7,8 @@ export {
 export type { LegacyRuntimeBridge } from './bridge';
 
 export * from './commands';
+export * from './interaction';
+export * from './selection';
 
 export {
   emptySelection,

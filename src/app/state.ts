@@ -1,6 +1,7 @@
 import type { ProjectState } from '../domain/project';
 import type { JsonObject } from '../domain/types';
 import type { EditorPreferences, Workspace } from '../persistence';
+import type { InteractionState } from './interaction/types';
 
 export type Selection =
   | { kind: 'none' }
@@ -19,6 +20,7 @@ export interface SessionState {
   activeLayoutId: string | null;
   workspace: Workspace;
   selection: Selection;
+  interaction: InteractionState;
   transient: JsonObject;
 }
 

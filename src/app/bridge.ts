@@ -5,6 +5,7 @@ import {
   normalizeCanonicalFile,
   type CadLiteFile,
 } from '../persistence';
+import { createDefaultInteractionState } from './interaction';
 import {
   emptySelection,
   type ApplicationState,
@@ -20,6 +21,7 @@ export function applicationStateFromCadLiteFile(file: CadLiteFile): ApplicationS
       activeLayoutId: normalized.editor.activeLayoutId,
       workspace: normalized.editor.workspace,
       selection: emptySelection(),
+      interaction: createDefaultInteractionState(),
       transient: {},
     },
     preferences: normalized.editor.preferences,

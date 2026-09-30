@@ -1,3 +1,5 @@
+import { createDefaultInteractionState } from '../interaction/state';
+import type { InteractionState } from '../interaction/types';
 import type { Selection } from '../state';
 import type { AppCommand } from './types';
 
@@ -34,6 +36,26 @@ export function setSelection(selection: Selection): AppCommand {
   };
 }
 
+export function replaceInteractionState(interaction: InteractionState): AppCommand {
+  return {
+    type: 'session.replaceInteraction',
+    label: 'Update tool interaction',
+    history: 'skip',
+    persistence: 'skip',
+    reduce(state) {
+      if (state.session.interaction === interaction) return state;
+
+      return {
+        ...state,
+        session: {
+          ...state.session,
+          interaction,
+        },
+      };
+    },
+  };
+}
+
 export function setActiveLayout(layoutId: string): AppCommand {
   return {
     type: 'session.setActiveLayout',
@@ -48,7 +70,8 @@ export function setActiveLayout(layoutId: string): AppCommand {
       if (
         state.session.activeLayoutId === layoutId &&
         state.session.selection.kind === 'layout' &&
-        state.session.selection.id === layoutId
+        state.session.selection.id === layoutId &&
+        state.session.interaction.activeTool === null
       ) {
         return state;
       }
@@ -59,6 +82,7 @@ export function setActiveLayout(layoutId: string): AppCommand {
           ...state.session,
           activeLayoutId: layoutId,
           selection: { kind: 'layout', id: layoutId },
+          interaction: createDefaultInteractionState(),
           transient: {},
         },
       };
@@ -77,11 +101,18 @@ export function setWorkspace(workspace: 'design' | 'slab'): AppCommand {
         return state;
       }
 
+      const selection =
+        state.session.selection.kind === 'pieces'
+          ? state.session.selection
+          : { kind: 'none' as const };
+
       return {
         ...state,
         session: {
           ...state.session,
           workspace,
+          selection,
+          interaction: createDefaultInteractionState(),
           transient: {},
         },
       };
