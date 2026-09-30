@@ -43,9 +43,32 @@ Commands now own Group mutations:
 
 All three are history/autosave transactions. Group and ungroup are DESIGN-only, and ungroup explicitly rejects seam-linked fabrication Assemblies.
 
+## Browser projection
+
+The architecture harness now consumes the same Group projection in both Navigator and Inspector.
+
+Navigator behavior:
+- one Group/Assembly header per persisted Group
+- G# for ordinary Groups and A# for fabrication Assemblies
+- shared Group name and production-style Piece/seam meta
+- header click selects the exact Group and toggles member collapse
+- linked backsplash rows inherit their parent's Group collapse context
+- expanded member rows remain individually selectable
+
+Inspector behavior:
+- an exact DESIGN Group selection opens a first-class Group/Assembly summary
+- shared rename writes through one command to every member
+- ordinary Groups expose Ungroup
+- seam-linked fabrication Assemblies do not expose Ungroup
+- Group deletion uses the existing graph-aware Piece deletion transaction
+- unrelated multi-Piece DESIGN selections expose Group Selected Pieces
+- fabrication Assembly selection keeps the existing Fabrication Seams / Merge controls visible below the Assembly summary
+
+SLAB intentionally does not project a Group selection: physical fabrication Pieces remain independently placeable there.
+
 ## Deliberate boundary
 
-This first Batch 18 commit establishes the domain/command boundary and regression coverage. Browser Navigator/Inspector projection is layered on top of these services in the same batch rather than duplicating grouping logic in the DOM layer.
+Batch 18 does not create a separate persisted Group table, migrate sidebar drag-reordering of whole Groups, or add a dedicated canvas Group bounding box. Those are not required to establish Group/Assembly ownership and Inspector semantics and can be layered on the same projection later.
 
 ## Tests
 
@@ -62,3 +85,4 @@ Coverage includes:
 - ordinary ungroup
 - fabrication ungroup rejection
 - SLAB mutation guard
+- Navigator/Inspector consume the same derived Group/Assembly identity

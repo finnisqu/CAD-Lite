@@ -489,3 +489,95 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+
+
+/* Batch 18: Piece Group / fabrication Assembly projection. */
+.cad-lite-architecture-harness .lc-piece-group-header {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 8px;
+  border: 1px solid var(--border, #d1d5db);
+  border-radius: 6px;
+  background: var(--panel, #fff);
+  text-align: left;
+  cursor: pointer;
+}
+
+.cad-lite-architecture-harness .lc-piece-group-header.selected {
+  outline: 2px solid currentColor;
+  outline-offset: -2px;
+}
+
+.cad-lite-architecture-harness .lc-piece-group-header-badge,
+.cad-lite-architecture-harness .lc-piece-group-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 28px;
+  min-height: 22px;
+  padding: 0 5px;
+  border: 1px solid currentColor;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.cad-lite-architecture-harness .lc-piece-group-header-text {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.cad-lite-architecture-harness .lc-piece-group-header-meta {
+  font-size: 11px;
+  opacity: .72;
+}
+
+.cad-lite-architecture-harness .lc-piece-grouped {
+  padding-left: 18px;
+}
+
+.cad-lite-architecture-harness .lc-piece-group-badge {
+  margin-left: auto;
+}
+
+.cad-lite-architecture-harness .lc-piece-group-inspector {
+  display: grid;
+  gap: 8px;
+}
+
+.cad-lite-architecture-harness .lc-piece-group-name-field {
+  display: grid;
+  gap: 4px;
+}
+
+.cad-lite-architecture-harness .lc-piece-group-summary {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.cad-lite-architecture-harness .lc-piece-group-summary__item {
+  display: grid;
+  gap: 2px;
+  padding: 7px;
+  border: 1px solid var(--border, #d1d5db);
+  border-radius: 5px;
+}
+
+.cad-lite-architecture-harness .lc-piece-group-summary__item > span {
+  font-size: 11px;
+  opacity: .72;
+}
+
+.cad-lite-architecture-harness .lc-piece-group-actions {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.cad-lite-architecture-harness .lc-group-selected-action {
+  margin-bottom: 8px;
+}

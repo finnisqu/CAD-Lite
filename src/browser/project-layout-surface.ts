@@ -12,24 +12,31 @@ import {
   editPieceCutout,
   editPieceSeam,
   editPieceSink,
+  groupPieces,
   mirrorPieces,
   removePieceCutout,
   removePieceSeam,
   removePieceSink,
   renamePiece,
+  renamePieceGroup,
   resizePieceDimension,
   setSelection,
   transformPieces,
+  ungroupPieceGroups,
 } from '../app/commands';
 import {
   clampPiecePoseToWorkspace,
+  createPieceGroupProjection,
   cutoutEffectivePerimeterInches,
   cutoutPerimeterInches,
   getPieceDeletionPlan,
   isBacksplashPiece,
+  isFabricationAssemblyGroup,
   MAX_SINKS_PER_PIECE,
+  nextPieceGroupName,
   pieceGeometry,
   piecePose,
+  selectedPieceGroupId,
   pieceSeamLocalCoordinate,
   prepareFabricationMerge,
   prepareFabricationSplit,
@@ -113,6 +120,7 @@ export class ProjectLayoutSurface {
   private subscriptions: Array<() => void> = [];
   private editingLayoutId: string | null = null;
   private editingAreaId: string | null = null;
+  private readonly collapsedPieceGroups = new Set<string>();
 
   private projectInput: HTMLInputElement | null = null;
   private dateInput: HTMLInputElement | null = null;
@@ -1009,27 +1017,258 @@ export class ProjectLayoutSurface {
     const mount = this.root.querySelector<HTMLElement>('#lc-pieces');
     if (!mount) return;
     const state = this.store.getState();
-    const layout = state.project.layouts.find(item => item.id === state.session.activeLayoutId);
+    const layout = state.project.layouts.find(
+      item => item.id === state.session.activeLayoutId,
+    );
     mount.replaceChildren();
     if (!layout) return;
+
+    const document = mount.ownerDocument;
+    const groups = createPieceGroupProjection(layout.pieces);
+    const groupById = new Map(groups.map(group => [group.id, group]));
+    const renderedGroups = new Set<string>();
+    const selection = state.session.selection;
+    const selectedGroup =
+      selection.kind === 'pieces'
+        ? selectedPieceGroupId(
+            layout.pieces,
+            selection.ids,
+            state.session.workspace,
+          )
+        : null;
+
     layout.pieces.forEach(piece => {
-      const button = mount.ownerDocument.createElement('button');
+      const parentGroupId =
+        isBacksplashPiece(piece) && piece.attachment?.parentPieceId
+          ? layout.pieces.find(
+              parent => parent.id === piece.attachment?.parentPieceId,
+            )?.pieceGroupId ?? null
+          : null;
+      const groupId = isBacksplashPiece(piece)
+        ? parentGroupId
+        : piece.pieceGroupId;
+      const group = groupId ? groupById.get(groupId) : undefined;
+
+      if (group && !renderedGroups.has(group.id)) {
+        renderedGroups.add(group.id);
+        const header = document.createElement('button');
+        header.type = 'button';
+        header.className =
+          'lc-piece-group-header' +
+          (selectedGroup === group.id ? ' selected' : '') +
+          (this.collapsedPieceGroups.has(group.id)
+            ? ' is-collapsed'
+            : '');
+        header.dataset.pieceGroupHeader = group.id;
+        header.setAttribute(
+          'aria-expanded',
+          String(!this.collapsedPieceGroups.has(group.id)),
+        );
+
+        const badge = document.createElement('span');
+        badge.className = 'lc-piece-group-header-badge';
+        badge.textContent = group.badge;
+        badge.title =
+          group.kind === 'fabrication'
+            ? 'Fabrication Assembly'
+            : 'Countertop Group';
+
+        const text = document.createElement('span');
+        text.className = 'lc-piece-group-header-text';
+        const title = document.createElement('strong');
+        title.textContent = group.name;
+        const meta = document.createElement('span');
+        meta.className = 'lc-piece-group-header-meta';
+        meta.textContent =
+          group.kind === 'fabrication'
+            ? `${group.stats.pieceCount} pieces · ${group.stats.seamCount} fabrication seam${group.stats.seamCount === 1 ? '' : 's'}`
+            : `${group.stats.pieceCount} pieces`;
+        text.append(title, meta);
+        header.append(badge, text);
+        header.addEventListener('click', () => {
+          const collapsed = this.collapsedPieceGroups.has(group.id);
+          if (collapsed) this.collapsedPieceGroups.delete(group.id);
+          else this.collapsedPieceGroups.add(group.id);
+          this.commands.execute(
+            setSelection({
+              kind: 'pieces',
+              ids: [...group.memberIds],
+            }),
+          );
+          this.renderPieces();
+        });
+        mount.append(header);
+      }
+
+      if (group && this.collapsedPieceGroups.has(group.id)) return;
+
+      const button = document.createElement('button');
       button.type = 'button';
-      button.className = 'lc-item nav lc-nav-entity-row';
-      button.textContent = piece.name;
+      button.className =
+        'lc-item nav lc-nav-entity-row' +
+        (group ? ' lc-piece-grouped' : '') +
+        (isBacksplashPiece(piece)
+          ? ' lc-backsplash-nav-piece'
+          : '');
       button.dataset.pieceId = piece.id;
-      const selection = state.session.selection;
-      button.setAttribute('aria-pressed', String(selection.kind === 'pieces' && selection.ids.includes(piece.id)));
+      const title = document.createElement('span');
+      title.className = 'lc-nav-title';
+      title.textContent = piece.name;
+      button.append(title);
+      if (group && !isBacksplashPiece(piece)) {
+        const badge = document.createElement('span');
+        badge.className = 'lc-piece-group-badge';
+        badge.textContent = group.badge;
+        badge.title = group.name;
+        button.append(badge);
+      }
+      button.setAttribute(
+        'aria-pressed',
+        String(
+          selection.kind === 'pieces' &&
+            selection.ids.includes(piece.id),
+        ),
+      );
       button.addEventListener('click', event => {
         const current = this.store.getState().session.selection;
         let ids = [piece.id];
-        if ((event.ctrlKey || event.metaKey) && current.kind === 'pieces') {
-          ids = current.ids.includes(piece.id) ? current.ids.filter(id => id !== piece.id) : [...current.ids, piece.id];
+        if (
+          (event.ctrlKey || event.metaKey) &&
+          current.kind === 'pieces'
+        ) {
+          ids = current.ids.includes(piece.id)
+            ? current.ids.filter(id => id !== piece.id)
+            : [...current.ids, piece.id];
         }
-        this.commands.execute(setSelection(ids.length ? { kind: 'pieces', ids } : { kind: 'none' }));
+        this.commands.execute(
+          setSelection(
+            ids.length
+              ? { kind: 'pieces', ids }
+              : { kind: 'none' },
+          ),
+        );
       });
       mount.append(button);
     });
+  }
+
+  private renderSelectedPieceGroup(
+    layoutId: string,
+    groupId: string,
+  ): 'ordinary' | 'fabrication' | null {
+    const mount = this.inspectorElement;
+    if (!mount) return null;
+    const state = this.store.getState();
+    const layout = state.project.layouts.find(
+      item => item.id === layoutId,
+    );
+    if (!layout) return null;
+    const group = createPieceGroupProjection(layout.pieces).find(
+      item => item.id === groupId,
+    );
+    if (!group) return null;
+
+    const document = mount.ownerDocument;
+    const root = document.createElement('div');
+    root.className =
+      'lc-item selected lc-annotation-inspector lc-piece-group-inspector';
+
+    const heading = document.createElement('div');
+    heading.className = 'lc-inspector-context-title';
+    heading.textContent = group.name;
+
+    const body = document.createElement('div');
+    body.className = 'lc-subcard-body';
+
+    const nameLabel = document.createElement('label');
+    nameLabel.className = 'lc-piece-group-name-field';
+    const nameText = document.createElement('span');
+    nameText.textContent = 'Name';
+    const name = document.createElement('input');
+    name.className = 'lc-input';
+    name.type = 'text';
+    name.value = group.name;
+    name.addEventListener('change', () => {
+      this.commands.execute(
+        renamePieceGroup(layout.id, group.id, name.value),
+      );
+    });
+    nameLabel.append(nameText, name);
+    body.append(nameLabel);
+
+    const summary = document.createElement('div');
+    summary.className = 'lc-piece-group-summary';
+    [
+      ['Pieces', String(group.stats.pieceCount)],
+      ['Total SF', group.stats.totalSf.toFixed(2)],
+      [
+        'Overall',
+        `${group.stats.width.toFixed(3)} × ${group.stats.height.toFixed(3)}`,
+      ],
+      ['Sinks', String(group.stats.sinkCount)],
+      ['Seams', String(group.stats.seamCount)],
+      ['Splashes', String(group.stats.splashCount)],
+    ].forEach(([label, value]) => {
+      const item = document.createElement('div');
+      item.className = 'lc-piece-group-summary__item';
+      const key = document.createElement('span');
+      key.textContent = label;
+      const data = document.createElement('strong');
+      data.textContent = value;
+      item.append(key, data);
+      summary.append(item);
+    });
+    body.append(summary);
+
+    const hint = document.createElement('div');
+    hint.className = 'lc-small lc-piece-group-hierarchy-hint';
+    hint.textContent =
+      group.kind === 'fabrication'
+        ? 'Fabrication Assembly · physical seam links keep these Pieces together in DESIGN while SLAB placements stay independent.'
+        : 'Countertop Group · select the Group header to move the members together, or expand it to select an individual Piece.';
+    body.append(hint);
+
+    const actions = document.createElement('div');
+    actions.className = 'lc-piece-group-actions';
+    if (group.kind === 'group') {
+      const ungroup = document.createElement('button');
+      ungroup.type = 'button';
+      ungroup.className = 'lc-btn ghost sm';
+      ungroup.textContent = 'Ungroup';
+      ungroup.addEventListener('click', () => {
+        this.commands.execute(
+          ungroupPieceGroups(layout.id, [group.id]),
+        );
+      });
+      actions.append(ungroup);
+    }
+
+    const remove = document.createElement('button');
+    remove.type = 'button';
+    remove.className = 'lc-btn red sm';
+    remove.textContent =
+      group.kind === 'fabrication'
+        ? 'Delete Assembly'
+        : 'Delete Group';
+    remove.addEventListener('click', () => {
+      if (
+        this.confirm(
+          `Delete ${group.stats.pieceCount} piece${group.stats.pieceCount === 1 ? '' : 's'} in "${group.name}"?`,
+        )
+      ) {
+        this.commands.execute(
+          deletePieces(layout.id, group.memberIds),
+        );
+      }
+    });
+    actions.append(remove);
+    body.append(actions);
+
+    root.append(heading, body);
+    mount.append(root);
+    return group.kind === 'fabrication'
+      ? 'fabrication'
+      : 'ordinary';
   }
 
   private renderPieceInspector(): void {
@@ -1043,9 +1282,50 @@ export class ProjectLayoutSurface {
     const pieces = layout.pieces.filter(piece => selection.ids.includes(piece.id));
     if (!pieces.length) return;
     const document = mount.ownerDocument;
-    const heading = document.createElement('h3');
-    heading.textContent = pieces.length === 1 ? 'Piece' : pieces.length + ' Pieces';
-    mount.append(heading);
+    const groupId = selectedPieceGroupId(
+      layout.pieces,
+      selection.ids,
+      state.session.workspace,
+    );
+    const groupKind = groupId
+      ? this.renderSelectedPieceGroup(layout.id, groupId)
+      : null;
+
+    if (groupKind === 'ordinary') return;
+
+    if (
+      !groupId &&
+      state.session.workspace === 'design' &&
+      pieces.filter(piece => !isBacksplashPiece(piece)).length >= 2
+    ) {
+      const groupAction = document.createElement('button');
+      groupAction.type = 'button';
+      groupAction.className = 'lc-btn ghost sm lc-group-selected-action';
+      groupAction.textContent = 'Group Selected Pieces';
+      groupAction.addEventListener('click', () => {
+        const ids = pieces
+          .filter(piece => !isBacksplashPiece(piece))
+          .map(piece => piece.id);
+        this.commands.execute(
+          groupPieces(
+            layout.id,
+            ids,
+            this.createId('group'),
+            nextPieceGroupName(layout.pieces),
+          ),
+        );
+      });
+      mount.append(groupAction);
+    }
+
+    if (!groupId) {
+      const heading = document.createElement('h3');
+      heading.textContent =
+        pieces.length === 1
+          ? 'Piece'
+          : pieces.length + ' Pieces';
+      mount.append(heading);
+    }
     const first = pieces[0];
     if (first && pieces.length === 1) {
       const label = document.createElement('label');
