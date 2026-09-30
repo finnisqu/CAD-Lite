@@ -372,17 +372,20 @@ function mirrorPieceLocal(
 
   if (piece.attachment) {
     const sourceEdge = piece.attachment.sourceEdge;
-    piece.attachment = {
-      ...piece.attachment,
-      ...(sourceEdge === undefined
-        ? {}
-        : {
-            sourceEdge:
-              axis === 'h'
-                ? swapLeftRight(sourceEdge)
-                : swapTopBottom(sourceEdge),
-          }),
-    };
+    if (
+      sourceEdge === 'top' ||
+      sourceEdge === 'right' ||
+      sourceEdge === 'bottom' ||
+      sourceEdge === 'left'
+    ) {
+      piece.attachment = {
+        ...piece.attachment,
+        sourceEdge:
+          axis === 'h'
+            ? swapLeftRight(sourceEdge)
+            : swapTopBottom(sourceEdge),
+      };
+    }
   }
 
   // v1.5.99 does not alter cutout local coordinates or assembly-link sides here.

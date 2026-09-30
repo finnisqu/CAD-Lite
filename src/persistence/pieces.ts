@@ -333,11 +333,11 @@ export function normalizePieces(raw: unknown, areaIds: readonly string[], prefix
       pieceGroupName: text(source.pieceGroupName) || null,
       pieceType: text(source.pieceType, splash ? 'backsplash' : 'countertop'),
       tags,
-      attachment: attachment.kind === 'backsplash'
+      attachment: attachment.kind === 'backsplash' && text(attachment.parentPieceId)
         ? {
             ...cloneJson(attachment),
             kind: 'backsplash',
-            parentPieceId: text(attachment.parentPieceId) || null,
+            parentPieceId: text(attachment.parentPieceId),
             ...(['top','right','bottom','left'].includes(text(attachment.sourceEdge))
               ? { sourceEdge: text(attachment.sourceEdge) as PieceSide }
               : {}),

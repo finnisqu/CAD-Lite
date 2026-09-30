@@ -115,7 +115,7 @@ export type AssemblyLink = JsonObject & {
 };
 export type SplashAttachment = JsonObject & {
   kind: 'backsplash';
-  parentPieceId: string | null;
+  parentPieceId: string;
   sourceEdge?: PieceSide;
   linkedLength?: boolean;
   snapped?: boolean;

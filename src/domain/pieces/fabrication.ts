@@ -1158,11 +1158,7 @@ function mergeLinkedSplashes(
     if (!valid) {
       pieces[index] = {
         ...piece,
-        attachment: {
-          ...attachment,
-          parentPieceId: null,
-          linkedLength: false,
-        },
+        attachment: null,
       };
       return;
     }

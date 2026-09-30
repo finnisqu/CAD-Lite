@@ -10,6 +10,7 @@ import {
 import {
   prepareFabricationMerge,
   prepareFabricationSplit,
+  type Piece,
 } from '../src/domain/pieces';
 
 function idFactory(prefix = '') {
@@ -332,7 +333,7 @@ describe('fabrication split preparation', () => {
 
     const linked = layoutFrom();
     const source = linked.pieces.find((piece) => piece.id === 'p')!;
-    const mate = {
+    const mate: Piece = {
       ...structuredClone(source),
       id: 'mate',
       name: 'Mate',
@@ -384,7 +385,7 @@ describe('fabrication split preparation', () => {
     source.pieceGroupId = 'g';
     source.pieceGroupName = 'Countertop';
 
-    const left = {
+    const left: Piece = {
       ...structuredClone(source),
       id: 'left',
       name: 'Left',
@@ -542,7 +543,7 @@ describe('fabrication merge preparation', () => {
     source.slabPlacement.x = 40;
     source.pieceGroupId = 'g';
     source.pieceGroupName = 'Run';
-    const left = {
+    const left: Piece = {
       ...structuredClone(source),
       id: 'left',
       name: 'Left',
