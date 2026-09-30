@@ -1,4 +1,17 @@
-import { addPiece, deletePieces, duplicatePieces, mirrorPieces, renamePiece, resizePieceDimension, transformPieces, assignPiecesToArea, setSelection } from '../app/commands';
+import {
+  addPiece,
+  addPieceSeam,
+  assignPiecesToArea,
+  deletePieces,
+  duplicatePieces,
+  editPieceSeam,
+  mirrorPieces,
+  removePieceSeam,
+  renamePiece,
+  resizePieceDimension,
+  setSelection,
+  transformPieces,
+} from '../app/commands';
 import {
   clampPiecePoseToWorkspace,
   getPieceDeletionPlan,
@@ -18,6 +31,7 @@ import {
   setActiveLayout,
   setLayoutQuantity,
   setProjectMeta,
+  updatePreferences,
   type ApplicationEffects,
   type AppStore,
   type CommandDispatcher,
@@ -1097,6 +1111,164 @@ export class ProjectLayoutSurface {
         ),
       );
       mount.append(geometryFields);
+
+      const seamSection = document.createElement('div');
+      seamSection.className = 'lc-piece-seams-inspector';
+
+      const seamHeader = document.createElement('div');
+      seamHeader.className = 'lc-piece-seams-inspector__header';
+      const seamTitle = document.createElement('strong');
+      seamTitle.textContent = `Seams (${first.pieceSeams.length})`;
+      const seamVisibility = document.createElement('button');
+      seamVisibility.type = 'button';
+      seamVisibility.className = 'lc-btn ghost sm';
+      seamVisibility.textContent = state.preferences.showSeams
+        ? 'Hide Seams'
+        : 'Show Seams';
+      seamVisibility.setAttribute(
+        'aria-pressed',
+        String(state.preferences.showSeams),
+      );
+      seamVisibility.addEventListener('click', () => {
+        const current = this.store.getState().preferences.showSeams;
+        this.commands.execute(
+          updatePreferences({ showSeams: !current }),
+        );
+      });
+      seamHeader.append(seamTitle, seamVisibility);
+      seamSection.append(seamHeader);
+
+      const seamRows = document.createElement('div');
+      seamRows.className = 'lc-piece-seam-list';
+
+      first.pieceSeams.forEach((seam, index) => {
+        const row = document.createElement('div');
+        row.className = 'lc-piece-seam-row';
+
+        const rowHeader = document.createElement('div');
+        rowHeader.className = 'lc-piece-seam-row__header';
+        const rowTitle = document.createElement('span');
+        rowTitle.textContent = `Seam ${index + 1}`;
+        const remove = document.createElement('button');
+        remove.type = 'button';
+        remove.className = 'lc-btn red sm';
+        remove.textContent = 'Delete';
+        remove.addEventListener('click', () => {
+          this.commands.execute(
+            removePieceSeam(layout.id, first.id, seam.id),
+          );
+        });
+        rowHeader.append(rowTitle, remove);
+
+        const fields = document.createElement('div');
+        fields.className = 'lc-piece-seam-fields';
+
+        const orientationLabel = document.createElement('label');
+        orientationLabel.textContent = 'Direction';
+        const orientation = document.createElement('select');
+        [
+          ['vertical', 'Vertical'],
+          ['horizontal', 'Horizontal'],
+        ].forEach(([value, labelText]) => {
+          const option = document.createElement('option');
+          option.value = value ?? '';
+          option.textContent = labelText ?? '';
+          orientation.append(option);
+        });
+        orientation.value = seam.orientation;
+        orientation.addEventListener('change', () => {
+          this.commands.execute(
+            editPieceSeam(layout.id, first.id, seam.id, {
+              orientation:
+                orientation.value === 'horizontal'
+                  ? 'horizontal'
+                  : 'vertical',
+            }),
+          );
+        });
+        orientationLabel.append(orientation);
+
+        const referenceLabel = document.createElement('label');
+        referenceLabel.textContent = 'From';
+        const reference = document.createElement('select');
+        const references =
+          seam.orientation === 'horizontal'
+            ? [['top', 'Top'], ['bottom', 'Bottom']]
+            : [['left', 'Left'], ['right', 'Right']];
+        references.forEach(([value, labelText]) => {
+          const option = document.createElement('option');
+          option.value = value ?? '';
+          option.textContent = labelText ?? '';
+          reference.append(option);
+        });
+        reference.value = seam.reference;
+        reference.addEventListener('change', () => {
+          const value = reference.value;
+          if (
+            value !== 'top' &&
+            value !== 'right' &&
+            value !== 'bottom' &&
+            value !== 'left'
+          ) {
+            return;
+          }
+          this.commands.execute(
+            editPieceSeam(layout.id, first.id, seam.id, {
+              reference: value,
+            }),
+          );
+        });
+        referenceLabel.append(reference);
+
+        const offsetLabel = document.createElement('label');
+        offsetLabel.textContent = 'Offset (in)';
+        const offset = document.createElement('input');
+        offset.type = 'number';
+        offset.min = '0';
+        offset.step = '0.25';
+        offset.max = String(
+          seam.orientation === 'horizontal' ? first.h : first.w,
+        );
+        offset.value = String(seam.offset);
+        offset.addEventListener('change', () => {
+          const value = Number(offset.value);
+          if (!Number.isFinite(value)) return;
+          this.commands.execute(
+            editPieceSeam(layout.id, first.id, seam.id, {
+              offset: value,
+            }),
+          );
+        });
+        offsetLabel.append(offset);
+
+        fields.append(orientationLabel, referenceLabel, offsetLabel);
+        row.append(rowHeader, fields);
+        seamRows.append(row);
+      });
+
+      if (!first.pieceSeams.length) {
+        const empty = document.createElement('div');
+        empty.className = 'lc-small lc-inspector-empty';
+        empty.textContent = 'No seams on this piece.';
+        seamRows.append(empty);
+      }
+
+      const addSeam = document.createElement('button');
+      addSeam.type = 'button';
+      addSeam.className = 'lc-btn ghost sm lc-add-inspector-item';
+      addSeam.textContent = '+ Add Seam';
+      addSeam.addEventListener('click', () => {
+        this.commands.execute(
+          addPieceSeam(
+            layout.id,
+            first.id,
+            this.createId('seam'),
+          ),
+        );
+      });
+
+      seamSection.append(addSeam, seamRows);
+      mount.append(seamSection);
     }
 
     if (state.session.workspace === 'design') {

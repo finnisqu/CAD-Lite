@@ -41,5 +41,17 @@ export type {
 } from './types';
 export { summarizeCommand } from './types';
 
-export { addPiece, deletePieces, duplicatePieces, mirrorPieces, renamePiece, resizePieceDimension, transformPieces, updatePieceProperties } from './pieces';
+export {
+  addPiece,
+  addPieceSeam,
+  deletePieces,
+  duplicatePieces,
+  editPieceSeam,
+  mirrorPieces,
+  removePieceSeam,
+  renamePiece,
+  resizePieceDimension,
+  transformPieces,
+  updatePieceProperties,
+} from './pieces';
 export type { PieceTransformPatch, TransformPiecesOptions } from './pieces';

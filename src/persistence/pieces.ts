@@ -1,5 +1,11 @@
 import { cloneJson, isJsonObject, type JsonObject } from '../domain/types';
-import type { Piece, FabricationChild, AssemblyLink } from '../domain/pieces/types';
+import type {
+  Piece,
+  FabricationChild,
+  AssemblyLink,
+  PieceSeam,
+  PieceSeamOrientation,
+} from '../domain/pieces/types';
 import { validatePieceRelationships } from '../domain/pieces/relationships';
 
 const number = (value: unknown, fallback: number): number =>
@@ -18,6 +24,35 @@ function children(raw: unknown, prefix: string): FabricationChild[] {
     while (seen.has(id)) id += '-duplicate';
     seen.add(id);
     return { ...cloneJson(child), id };
+  });
+}
+
+function seams(
+  raw: unknown,
+  prefix: string,
+  width: number,
+  height: number,
+): PieceSeam[] {
+  return children(raw, prefix).map((source) => {
+    const orientation: PieceSeamOrientation =
+      source.orientation === 'horizontal' ? 'horizontal' : 'vertical';
+    const validReferences =
+      orientation === 'horizontal'
+        ? ['top', 'bottom']
+        : ['left', 'right'];
+    const reference = validReferences.includes(text(source.reference))
+      ? text(source.reference)
+      : validReferences[0] ?? 'left';
+    const maximum = orientation === 'horizontal' ? height : width;
+    return {
+      ...source,
+      orientation,
+      reference,
+      offset: Math.max(
+        0,
+        Math.min(maximum, number(source.offset, 0)),
+      ),
+    } as PieceSeam;
   });
 }
 
@@ -80,7 +115,7 @@ export function normalizePieces(raw: unknown, areaIds: readonly string[], prefix
         bottom: text(edges.bottom, 'none'), left: text(edges.left, 'none'),
       },
       sinks: children(source.sinks, id + '-sink'), cutouts: children(source.cutouts, id + '-cutout'),
-      pieceSeams: children(source.pieceSeams, id + '-seam'),
+      pieceSeams: seams(source.pieceSeams, id + '-seam', w, h),
       color: text(source.color, '#ffffff'), noFill: source.noFill === true,
       fillOpacity: typeof source.fillOpacity === 'number' ? Math.max(0, Math.min(1, number(source.fillOpacity, 1))) : null,
       splashKind: text(source.splashKind) || null,

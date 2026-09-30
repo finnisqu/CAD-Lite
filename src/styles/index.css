@@ -299,3 +299,44 @@
   gap: 8px;
   margin: 8px 0 10px;
 }
+
+
+/* Batch 14: typed Piece seam validation UI. */
+.cad-lite-architecture-harness .lc-piece-seams-inspector {
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border, #d1d5db);
+}
+
+.cad-lite-architecture-harness .lc-piece-seams-inspector__header,
+.cad-lite-architecture-harness .lc-piece-seam-row__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.cad-lite-architecture-harness .lc-piece-seam-list {
+  display: grid;
+  gap: 6px;
+  margin-top: 6px;
+}
+
+.cad-lite-architecture-harness .lc-piece-seam-row {
+  border: 1px solid var(--border, #d1d5db);
+  border-radius: 4px;
+  padding: 6px;
+}
+
+.cad-lite-architecture-harness .lc-piece-seam-fields {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+  margin-top: 6px;
+}
+
+.cad-lite-architecture-harness .lc-piece-seam-fields label {
+  display: grid;
+  gap: 3px;
+  font-size: 12px;
+}

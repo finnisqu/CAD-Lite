@@ -10,3 +10,5 @@ export * from './lifecycle';
 export * from './geometry';
 
 export * from './transforms';
+
+export * from './seams';

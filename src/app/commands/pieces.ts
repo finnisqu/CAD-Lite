@@ -1,9 +1,11 @@
 import type { Layout } from '../../domain/project';
 import {
-  createPiece, deletePieceFamily, getPieceDeletionPlan,
-  mirrorPiecesInLayout, resizePieceDimensionInLayout,
+  createPiece, createPieceSeam, deletePieceFamily, deletePieceSeam,
+  getPieceDeletionPlan, mirrorPiecesInLayout, resizePieceDimensionInLayout,
+  updatePieceSeam,
   type Piece, type PieceDimension, type PieceDuplicationPlan,
   type PieceGeometry, type PieceMirrorAxis, type PiecePose,
+  type PieceSeamPatch,
 } from '../../domain/pieces';
 import { cloneJson } from '../../domain/types';
 import { normalizeSelection } from '../selection';
@@ -262,4 +264,54 @@ export function mirrorPieces(
       return replace(state, { ...layout, pieces });
     },
   };
+}
+
+
+export function addPieceSeam(
+  layoutId: string,
+  pieceId: string,
+  seamId: string,
+): AppCommand {
+  return editPiece(
+    layoutId,
+    pieceId,
+    'piece.seam.add',
+    'Add seam',
+    (piece) => {
+      const seam = createPieceSeam(piece, seamId);
+      return seam
+        ? { ...piece, pieceSeams: [...piece.pieceSeams, seam] }
+        : piece;
+    },
+  );
+}
+
+export function editPieceSeam(
+  layoutId: string,
+  pieceId: string,
+  seamId: string,
+  patch: PieceSeamPatch,
+): AppCommand {
+  const input = { ...patch };
+  return editPiece(
+    layoutId,
+    pieceId,
+    'piece.seam.update',
+    'Update seam',
+    (piece) => updatePieceSeam(piece, seamId, input) ?? piece,
+  );
+}
+
+export function removePieceSeam(
+  layoutId: string,
+  pieceId: string,
+  seamId: string,
+): AppCommand {
+  return editPiece(
+    layoutId,
+    pieceId,
+    'piece.seam.delete',
+    'Delete seam',
+    (piece) => deletePieceSeam(piece, seamId) ?? piece,
+  );
 }

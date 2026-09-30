@@ -2,6 +2,14 @@ import type { JsonObject } from '../types';
 
 export type PiecePose = { x: number; y: number; rotation: number };
 export type PieceSide = 'top' | 'right' | 'bottom' | 'left';
+export type PieceSeamOrientation = 'vertical' | 'horizontal';
+export type PieceSeamReference = PieceSide;
+export type PieceSeam = JsonObject & {
+  id: string;
+  orientation: PieceSeamOrientation;
+  reference: PieceSeamReference;
+  offset: number;
+};
 export type CornerRadii = { tl: number; tr: number; br: number; bl: number };
 export type PieceGeometry = {
   kind: 'rectangle';
@@ -48,7 +56,7 @@ export type Piece = {
   edgeProfiles: Record<PieceSide, string>;
   sinks: FabricationChild[];
   cutouts: FabricationChild[];
-  pieceSeams: FabricationChild[];
+  pieceSeams: PieceSeam[];
   color: string;
   noFill: boolean;
   fillOpacity: number | null;

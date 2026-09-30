@@ -7,6 +7,7 @@ import {
   pieceCenterFromGeometryPose,
   pieceGeometry,
   piecePose,
+  pieceSeamLocalCoordinate,
   type Piece,
   type PieceGeometry,
   type PiecePose,
@@ -39,6 +40,15 @@ export interface PieceCanvasOverride {
   geometry?: PieceGeometry;
 }
 
+export interface PieceCanvasSeam {
+  id: string;
+  kind: 'planning' | 'fabrication';
+  x1: number;
+  y1: number;
+  x2: number;
+  y2: number;
+}
+
 export interface PieceCanvasItem {
   id: string;
   name: string;
@@ -53,6 +63,7 @@ export interface PieceCanvasItem {
   renderRotation: number;
   path: string;
   appearance: PieceCanvasAppearance;
+  seams: PieceCanvasSeam[];
 }
 
 export interface PieceCanvasProjection {
@@ -69,6 +80,7 @@ export interface PieceCanvasProjection {
 export interface PieceCanvasRenderOptions {
   showPieceFills: boolean;
   pieceFillOpacity: number;
+  showSeams: boolean;
 }
 
 function clamp01(value: number): number {
@@ -82,6 +94,106 @@ function normalizedRotation(rotation: number): number {
 
 function finiteNumber(value: unknown): number | null {
   return typeof value === 'number' && Number.isFinite(value) ? value : null;
+}
+
+function projectPlanningSeams(
+  piece: Piece,
+  geometry: PieceGeometry,
+  localRect: XYWHRect,
+): PieceCanvasSeam[] {
+  return piece.pieceSeams.map((seam) => {
+    const coordinate = pieceSeamLocalCoordinate(
+      { w: geometry.width, h: geometry.height },
+      seam,
+    );
+
+    if (seam.orientation === 'horizontal') {
+      const y = localRect.y + coordinate;
+      return {
+        id: seam.id,
+        kind: 'planning' as const,
+        x1: localRect.x,
+        y1: y,
+        x2: localRect.x + localRect.w,
+        y2: y,
+      };
+    }
+
+    const x = localRect.x + coordinate;
+    return {
+      id: seam.id,
+      kind: 'planning' as const,
+      x1: x,
+      y1: localRect.y,
+      x2: x,
+      y2: localRect.y + localRect.h,
+    };
+  });
+}
+
+function projectFabricationJoints(
+  piece: Piece,
+  workspace: Workspace,
+  localRect: XYWHRect,
+): PieceCanvasSeam[] {
+  if (workspace !== 'design') return [];
+
+  return piece.assemblyLinks
+    .filter((link) =>
+      link.kind === 'seam' &&
+      Boolean(link.id) &&
+      Boolean(link.matePieceId) &&
+      piece.id < link.matePieceId)
+    .flatMap((link) => {
+      const side = link.side;
+      if (
+        side !== 'top' &&
+        side !== 'right' &&
+        side !== 'bottom' &&
+        side !== 'left'
+      ) {
+        return [];
+      }
+
+      if (side === 'top') {
+        return [{
+          id: link.id,
+          kind: 'fabrication' as const,
+          x1: localRect.x,
+          y1: localRect.y,
+          x2: localRect.x + localRect.w,
+          y2: localRect.y,
+        }];
+      }
+      if (side === 'right') {
+        return [{
+          id: link.id,
+          kind: 'fabrication' as const,
+          x1: localRect.x + localRect.w,
+          y1: localRect.y,
+          x2: localRect.x + localRect.w,
+          y2: localRect.y + localRect.h,
+        }];
+      }
+      if (side === 'bottom') {
+        return [{
+          id: link.id,
+          kind: 'fabrication' as const,
+          x1: localRect.x,
+          y1: localRect.y + localRect.h,
+          x2: localRect.x + localRect.w,
+          y2: localRect.y + localRect.h,
+        }];
+      }
+      return [{
+        id: link.id,
+        kind: 'fabrication' as const,
+        x1: localRect.x,
+        y1: localRect.y,
+        x2: localRect.x,
+        y2: localRect.y + localRect.h,
+      }];
+    });
 }
 
 function pieceAppearance(
@@ -131,6 +243,12 @@ export function projectPieceForCanvas(
     renderRotation: normalizedRotation(pose.rotation),
     path: roundedRectPathCorners(localRect, geometry.cornerRadii),
     appearance: pieceAppearance(piece, options),
+    seams: options.showSeams
+      ? [
+          ...projectPlanningSeams(piece, geometry, localRect),
+          ...projectFabricationJoints(piece, workspace, localRect),
+        ]
+      : [],
   };
 }
 
@@ -179,6 +297,7 @@ export function createPieceCanvasProjection(
   const options: PieceCanvasRenderOptions = {
     showPieceFills: state.preferences.showPieceFills,
     pieceFillOpacity: layout.pieceFillOpacity,
+    showSeams: state.preferences.showSeams,
   };
   const overrideById = new Map(overrides.map((override) => [override.id, override]));
   const selectedIds = new Set(

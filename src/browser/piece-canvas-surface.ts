@@ -45,6 +45,7 @@ export class PieceCanvasSurface {
   private slabButton: HTMLButtonElement | null = null;
   private pieceSnapButton: HTMLButtonElement | null = null;
   private gridSnapButton: HTMLButtonElement | null = null;
+  private showSeamsButton: HTMLButtonElement | null = null;
 
   constructor(options: PieceCanvasSurfaceOptions) {
     this.root = options.root;
@@ -69,6 +70,8 @@ export class PieceCanvasSurface {
       this.root.querySelector<HTMLButtonElement>('#lc-piece-snap');
     this.gridSnapButton =
       this.root.querySelector<HTMLButtonElement>('#lc-grid-snap');
+    this.showSeamsButton =
+      this.root.querySelector<HTMLButtonElement>('#lc-show-seams');
 
     this.designButton?.addEventListener(
       'click',
@@ -93,6 +96,14 @@ export class PieceCanvasSurface {
       () => {
         const current = this.store.getState().preferences.gridSnap;
         this.commands.execute(updatePreferences({ gridSnap: !current }));
+      },
+      { signal },
+    );
+    this.showSeamsButton?.addEventListener(
+      'click',
+      () => {
+        const current = this.store.getState().preferences.showSeams;
+        this.commands.execute(updatePreferences({ showSeams: !current }));
       },
       { signal },
     );
@@ -367,6 +378,14 @@ export class PieceCanvasSurface {
       'aria-pressed',
       String(state.preferences.gridSnap),
     );
+    this.showSeamsButton?.classList.toggle(
+      'is-active',
+      state.preferences.showSeams,
+    );
+    this.showSeamsButton?.setAttribute(
+      'aria-pressed',
+      String(state.preferences.showSeams),
+    );
 
     if (!this.meta) return;
     if (!projection.layoutId) {
@@ -466,6 +485,38 @@ export class PieceCanvasSurface {
         outline.setAttribute('vector-effect', 'non-scaling-stroke');
         group.appendChild(outline);
       }
+
+      piece.seams.forEach((seam) => {
+        const line = document.createElementNS(SVG_NS, 'line');
+        line.setAttribute(
+          'class',
+          seam.kind === 'fabrication'
+            ? 'lc-fabrication-seam'
+            : 'lc-piece-seam',
+        );
+        line.setAttribute('data-seam-id', seam.id);
+        line.setAttribute('x1', String(seam.x1));
+        line.setAttribute('y1', String(seam.y1));
+        line.setAttribute('x2', String(seam.x2));
+        line.setAttribute('y2', String(seam.y2));
+        line.setAttribute('fill', 'none');
+        line.setAttribute('stroke', '#111111');
+        line.setAttribute(
+          'stroke-width',
+          seam.kind === 'fabrication'
+            ? '2.5'
+            : projection.workspace === 'slab'
+              ? '1.5'
+              : '2',
+        );
+        line.setAttribute(
+          'stroke-dasharray',
+          projection.workspace === 'slab' ? '6 4' : '8 4',
+        );
+        line.setAttribute('vector-effect', 'non-scaling-stroke');
+        line.setAttribute('pointer-events', 'none');
+        group.appendChild(line);
+      });
 
       const title = document.createElementNS(SVG_NS, 'title');
       title.textContent = piece.name;
