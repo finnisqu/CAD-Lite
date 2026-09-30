@@ -57,3 +57,6 @@ export type {
 
 export { registerAnnotationToolHandlers } from './annotations';
 export type { AnnotationIdFactory, AnnotationSegmentPreview } from './annotations';
+
+export { AnnotationInteractionController } from './annotation-editing';
+export type { AnnotationEditPreview, AnnotationEndpoint } from './annotation-editing';
