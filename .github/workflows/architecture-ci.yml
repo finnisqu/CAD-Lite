@@ -9,7 +9,7 @@ on:
       - main
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   quality:
@@ -26,21 +26,8 @@ jobs:
       - name: Pin npm
         run: npm install --global npm@11.20.0
 
-      - name: Install dependencies
-        run: npm install
-
-      - name: Commit generated lockfile once
-        if: github.event_name == 'push' && github.ref_name == 'architecture/v1.6-foundation'
-        run: |
-          if git ls-files --error-unmatch package-lock.json >/dev/null 2>&1; then
-            echo "package-lock.json is already tracked."
-            exit 0
-          fi
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add package-lock.json
-          git commit -m "build: lock architecture dependencies"
-          git push
+      - name: Install locked dependencies
+        run: npm ci
 
       - name: Typecheck, lint, test, and build
         run: npm run check

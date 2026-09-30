@@ -26,10 +26,21 @@ Upgrade them together once that compatibility window advances.
 npm 11.20.0 is pinned explicitly in CI so the build does not depend on whichever
 npm patch happens to be bundled with a GitHub-hosted Node runner.
 
+`package-lock.json` is committed. CI uses `npm ci` so clean builds install the
+exact dependency graph that was tested rather than re-resolving packages.
+
 ## Commands
 
+For a clean checkout:
+
 ```bash
-npm install
+npm ci
+npm run check
+```
+
+For day-to-day development:
+
+```bash
 npm run dev
 npm run typecheck
 npm run lint
@@ -37,6 +48,9 @@ npm run test
 npm run build
 npm run check
 ```
+
+Use `npm install` only when intentionally adding, removing, or updating
+dependencies so that `package.json` and `package-lock.json` change together.
 
 `npm run check` is the local pre-merge quality gate.
 
