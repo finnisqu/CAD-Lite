@@ -19,8 +19,8 @@ export function setSelection(selection: Selection): AppCommand {
     history: 'skip',
     persistence: 'skip',
     reduce(state) {
-      if (sameSelection(state.session.selection as Selection, selection)) {
-        return state as ReturnType<AppCommand['reduce']>;
+      if (sameSelection(state.session.selection, selection)) {
+        return state;
       }
 
       return {
@@ -42,7 +42,7 @@ export function setActiveLayout(layoutId: string): AppCommand {
     persistence: 'save',
     reduce(state) {
       if (!state.project.layouts.some((layout) => layout.id === layoutId)) {
-        return state as ReturnType<AppCommand['reduce']>;
+        return state;
       }
 
       if (
@@ -50,7 +50,7 @@ export function setActiveLayout(layoutId: string): AppCommand {
         state.session.selection.kind === 'layout' &&
         state.session.selection.id === layoutId
       ) {
-        return state as ReturnType<AppCommand['reduce']>;
+        return state;
       }
 
       return {
@@ -74,7 +74,7 @@ export function setWorkspace(workspace: 'design' | 'slab'): AppCommand {
     persistence: 'save',
     reduce(state) {
       if (state.session.workspace === workspace) {
-        return state as ReturnType<AppCommand['reduce']>;
+        return state;
       }
 
       return {

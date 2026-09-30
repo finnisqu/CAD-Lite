@@ -8,6 +8,7 @@ import {
 import {
   emptySelection,
   type ApplicationState,
+  type ReadonlyApplicationState,
 } from './state';
 
 export function applicationStateFromCadLiteFile(file: CadLiteFile): ApplicationState {
@@ -30,7 +31,7 @@ export function applicationStateFromLegacyPayload(payload: unknown): Application
 }
 
 export function cadLiteFileFromApplicationState(
-  state: ApplicationState,
+  state: ReadonlyApplicationState,
   appVersion = '1.6.0-dev.0',
 ): CadLiteFile {
   return normalizeCanonicalFile({

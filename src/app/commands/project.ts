@@ -2,10 +2,6 @@ import { clamp } from '../../core/numeric';
 import type { ProjectMeta } from '../../domain/project';
 import type { AppCommand } from './types';
 
-function updateProject(command: AppCommand['reduce'], state: Parameters<AppCommand['reduce']>[0]) {
-  return command(state);
-}
-
 export function setProjectMeta(
   patch: Partial<Pick<ProjectMeta, 'name' | 'date' | 'notes' | 'scratchpad'>>,
 ): AppCommand {
@@ -29,7 +25,7 @@ export function setProjectMeta(
         next.notes === current.notes &&
         next.scratchpad === current.scratchpad
       ) {
-        return state as ReturnType<typeof updateProject>;
+        return state;
       }
 
       return {
@@ -55,7 +51,7 @@ export function renameLayout(layoutId: string, name: string): AppCommand {
       const index = state.project.layouts.findIndex((layout) => layout.id === layoutId);
       const layout = state.project.layouts[index];
       if (index < 0 || !layout || layout.name === nextName) {
-        return state as ReturnType<typeof updateProject>;
+        return state;
       }
 
       const layouts = [...state.project.layouts];
@@ -84,7 +80,7 @@ export function setLayoutQuantity(layoutId: string, quantity: number): AppComman
       const index = state.project.layouts.findIndex((layout) => layout.id === layoutId);
       const layout = state.project.layouts[index];
       if (index < 0 || !layout || layout.quantity === nextQuantity) {
-        return state as ReturnType<typeof updateProject>;
+        return state;
       }
 
       const layouts = [...state.project.layouts];
@@ -112,12 +108,12 @@ export function renameArea(layoutId: string, areaId: string, name: string): AppC
     reduce(state) {
       const layoutIndex = state.project.layouts.findIndex((layout) => layout.id === layoutId);
       const layout = state.project.layouts[layoutIndex];
-      if (layoutIndex < 0 || !layout) return state as ReturnType<typeof updateProject>;
+      if (layoutIndex < 0 || !layout) return state;
 
       const areaIndex = layout.areas.findIndex((area) => area.id === areaId);
       const area = layout.areas[areaIndex];
       if (areaIndex < 0 || !area || area.name === nextName) {
-        return state as ReturnType<typeof updateProject>;
+        return state;
       }
 
       const areas = [...layout.areas];
@@ -149,7 +145,7 @@ export function renameMaterial(materialId: string, name: string): AppCommand {
       const index = state.project.materials.findIndex((material) => material.id === materialId);
       const material = state.project.materials[index];
       if (index < 0 || !material || material.name === nextName) {
-        return state as ReturnType<typeof updateProject>;
+        return state;
       }
 
       const materials = [...state.project.materials];

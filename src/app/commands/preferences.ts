@@ -18,8 +18,8 @@ export function updatePreferences(patch: Partial<EditorPreferences>): AppCommand
         ...patch,
       });
 
-      if (preferencesEqual(state.preferences as EditorPreferences, next)) {
-        return state as ReturnType<AppCommand['reduce']>;
+      if (preferencesEqual(state.preferences, next)) {
+        return state;
       }
 
       return {

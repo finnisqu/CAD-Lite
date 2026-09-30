@@ -1,9 +1,9 @@
-import type { ApplicationState, ReadonlyApplicationState } from '../state';
-import {
-  AppStore,
-  type HistoryPolicy,
-  type PersistencePolicy,
-  type StoreChangeEvent,
+import type { ReadonlyApplicationState } from '../state';
+import { AppStore } from '../store';
+import type {
+  HistoryPolicy,
+  PersistencePolicy,
+  StoreChangeEvent,
 } from '../store';
 import type { AppCommand } from './types';
 
@@ -67,7 +67,7 @@ export class CommandDispatcher {
 
     if (applied.length === 0) return null;
 
-    return this.store.commit(working as ApplicationState, {
+    return this.store.commit(working, {
       kind: 'transaction',
       label,
       commandTypes: applied.map((command) => command.type),

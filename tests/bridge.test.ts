@@ -31,9 +31,7 @@ describe('application/persistence bridge', () => {
     commands.execute(setSelection({ kind: 'pieces', ids: ['piece-1'] }));
     commands.execute(setWorkspace('design'));
 
-    const file = cadLiteFileFromApplicationState(
-      store.getState() as Parameters<typeof cadLiteFileFromApplicationState>[0],
-    );
+    const file = cadLiteFileFromApplicationState(store.getState());
     const json = serializeCadLiteFile(file);
     const parsed = JSON.parse(json) as Record<string, unknown>;
 
