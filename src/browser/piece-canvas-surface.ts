@@ -454,6 +454,9 @@ export class PieceCanvasSurface {
   ): void {
     const state = this.store.getState();
     const design = projection.workspace === 'design';
+    const addSlabButton =
+      this.root.querySelector<HTMLButtonElement>('#lc-add-slab');
+    if (addSlabButton) addSlabButton.hidden = design;
     this.designButton?.classList.toggle('is-active', design);
     this.slabButton?.classList.toggle('is-active', !design);
     this.designButton?.setAttribute('aria-pressed', String(design));
