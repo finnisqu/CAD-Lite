@@ -31,6 +31,19 @@ export {
 
 export { updatePreferences } from './preferences';
 export {
+  addCanvasNote,
+  addDimension,
+  addDrawingLine,
+  addNoteLeader,
+  deleteCanvasNote,
+  deleteDimension,
+  deleteDrawingLine,
+  removeNoteLeaders,
+  updateCanvasNote,
+  updateDimension,
+  updateDrawingLine,
+} from './annotations';
+export {
   addSlabSurface,
   deleteSlabSurface,
   updateSlabSurface,
