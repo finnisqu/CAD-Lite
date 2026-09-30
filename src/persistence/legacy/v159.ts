@@ -33,6 +33,22 @@ function legacyProjectState(source: JsonObject): ProjectState {
   };
 }
 
+function migrateLegacySinkSideConvention(
+  project: ProjectState,
+  sourceConvention: unknown,
+): void {
+  if (sourceConvention === V159_SINK_SIDE_CONVENTION) return;
+
+  project.layouts.forEach((layout) => {
+    layout.pieces.forEach((piece) => {
+      piece.sinks.forEach((sink) => {
+        if (sink.side === 'front') sink.side = 'back';
+        else if (sink.side === 'back') sink.side = 'front';
+      });
+    });
+  });
+}
+
 function activeLayoutId(source: JsonObject, project: ProjectState): string | null {
   const active = Number(source.active);
   const index = Number.isInteger(active) ? active : 0;
@@ -127,6 +143,7 @@ export function importV159(
   }
 
   const project = legacyProjectState(value);
+  migrateLegacySinkSideConvention(project, value.sinkSideConvention);
   const editor = looksLikeV159ExportApp(value)
     ? editorFromExportApp(value, project)
     : editorFromSnapshot(value, project);

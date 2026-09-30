@@ -5,7 +5,17 @@ import type {
   AssemblyLink,
   PieceSeam,
   PieceSeamOrientation,
+  PieceSink,
+  PieceSinkSide,
+  PieceSinkType,
 } from '../domain/pieces/types';
+import {
+  DEFAULT_FAUCET_HOLE_DIAMETER,
+  DEFAULT_FAUCET_SETBACK,
+  DEFAULT_FAUCET_SPACING,
+  SINK_STANDARD_SETBACK,
+} from '../domain/pieces/sinks';
+import { clamp, round3 } from '../core/numeric';
 import { validatePieceRelationships } from '../domain/pieces/relationships';
 
 const number = (value: unknown, fallback: number): number =>
@@ -53,6 +63,96 @@ function seams(
         Math.min(maximum, number(source.offset, 0)),
       ),
     } as PieceSeam;
+  });
+}
+
+function sinkSide(value: unknown): PieceSinkSide {
+  return value === 'back' ||
+    value === 'left' ||
+    value === 'right'
+    ? value
+    : 'front';
+}
+
+function sinkType(
+  value: unknown,
+  modelId: string | null,
+): PieceSinkType {
+  if (value === 'model' || value === 'custom') return value;
+  return modelId ? 'model' : 'custom';
+}
+
+function sinks(raw: unknown, prefix: string): PieceSink[] {
+  return children(raw, prefix).map((source) => {
+    const modelId = text(source.modelId).trim() || null;
+    const rawFaucets = Array.isArray(source.faucets)
+      ? source.faucets
+      : [];
+    const faucets = [...new Set(
+      rawFaucets
+        .map((value) => Number(value))
+        .filter((value) => Number.isFinite(value))
+        .map((value) => Math.round(value))
+        .filter((value) => value >= 0 && value <= 8),
+    )].sort((a, b) => a - b);
+
+    const fabricationPose = isJsonObject(source.fabricationPose) &&
+      Number.isFinite(Number(source.fabricationPose.cx)) &&
+      Number.isFinite(Number(source.fabricationPose.cy))
+      ? {
+          cx: Number(source.fabricationPose.cx),
+          cy: Number(source.fabricationPose.cy),
+        }
+      : null;
+
+    const sink: PieceSink = {
+      ...source,
+      id: text(source.id),
+      name: text(source.name),
+      type: sinkType(source.type, modelId),
+      modelId,
+      shape: source.shape === 'oval' ? 'oval' : 'rect',
+      w: clamp(number(source.w, 16), 0, 999),
+      h: clamp(number(source.h, 16), 0, 999),
+      cornerR: clamp(number(source.cornerR, 0), 0, 4),
+      side: sinkSide(source.side),
+      centerline: number(source.centerline, 20),
+      setback: Math.max(
+        0,
+        number(source.setback, SINK_STANDARD_SETBACK),
+      ),
+      rotation: clamp(number(source.rotation, 0), 0, 360),
+      faucets,
+      faucetSetback: round3(
+        Math.max(
+          0,
+          number(source.faucetSetback, DEFAULT_FAUCET_SETBACK),
+        ),
+      ),
+      faucetHoleDiameter: round3(
+        Math.max(
+          0.001,
+          number(
+            source.faucetHoleDiameter,
+            DEFAULT_FAUCET_HOLE_DIAMETER,
+          ),
+        ),
+      ),
+      faucetHoleSpacing: round3(
+        Math.max(
+          0.001,
+          number(source.faucetHoleSpacing, DEFAULT_FAUCET_SPACING),
+        ),
+      ),
+      insideFinish:
+        source.insideFinish === 'unpolished'
+          ? 'unpolished'
+          : 'polished',
+      fabricationSplitSinkId:
+        text(source.fabricationSplitSinkId).trim() || null,
+      fabricationPose,
+    };
+    return sink;
   });
 }
 
@@ -114,7 +214,8 @@ export function normalizePieces(raw: unknown, areaIds: readonly string[], prefix
         top: text(edges.top, 'none'), right: text(edges.right, 'none'),
         bottom: text(edges.bottom, 'none'), left: text(edges.left, 'none'),
       },
-      sinks: children(source.sinks, id + '-sink'), cutouts: children(source.cutouts, id + '-cutout'),
+      sinks: sinks(source.sinks, id + '-sink'),
+      cutouts: children(source.cutouts, id + '-cutout'),
       pieceSeams: seams(source.pieceSeams, id + '-seam', w, h),
       color: text(source.color, '#ffffff'), noFill: source.noFill === true,
       fillOpacity: typeof source.fillOpacity === 'number' ? Math.max(0, Math.min(1, number(source.fillOpacity, 1))) : null,

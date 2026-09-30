@@ -12,3 +12,5 @@ export * from './geometry';
 export * from './transforms';
 
 export * from './seams';
+
+export * from './sinks';

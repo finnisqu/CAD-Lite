@@ -340,3 +340,67 @@
   gap: 3px;
   font-size: 12px;
 }
+
+
+/* Batch 15: typed Sink validation UI. */
+.cad-lite-architecture-harness .lc-piece-sinks-inspector {
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border, #d1d5db);
+}
+
+.cad-lite-architecture-harness .lc-piece-sinks-inspector__header,
+.cad-lite-architecture-harness .lc-piece-sink-row__header,
+.cad-lite-architecture-harness .lc-piece-sink-row__actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.cad-lite-architecture-harness .lc-piece-sink-list {
+  display: grid;
+  gap: 8px;
+  margin-top: 6px;
+}
+
+.cad-lite-architecture-harness .lc-piece-sink-row {
+  border: 1px solid var(--border, #d1d5db);
+  border-radius: 4px;
+  padding: 7px;
+}
+
+.cad-lite-architecture-harness .lc-piece-sink-fields,
+.cad-lite-architecture-harness .lc-piece-sink-faucet-settings {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+  margin-top: 7px;
+}
+
+.cad-lite-architecture-harness .lc-piece-sink-fields label,
+.cad-lite-architecture-harness .lc-piece-sink-faucet-settings label {
+  display: grid;
+  gap: 3px;
+  font-size: 12px;
+}
+
+.cad-lite-architecture-harness .lc-piece-sink-faucets {
+  margin-top: 8px;
+  border: 1px solid var(--border, #d1d5db);
+  border-radius: 4px;
+  padding: 6px;
+}
+
+.cad-lite-architecture-harness .lc-piece-sink-faucet-pattern {
+  display: grid;
+  grid-template-columns: repeat(9, minmax(0, 1fr));
+  gap: 3px;
+}
+
+.cad-lite-architecture-harness .lc-piece-sink-faucet-pattern label {
+  display: grid;
+  justify-items: center;
+  gap: 2px;
+  font-size: 10px;
+}

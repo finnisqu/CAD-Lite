@@ -1,12 +1,16 @@
 import {
   addPiece,
   addPieceSeam,
+  addPieceSink,
   assignPiecesToArea,
+  copyPieceSink,
   deletePieces,
   duplicatePieces,
   editPieceSeam,
+  editPieceSink,
   mirrorPieces,
   removePieceSeam,
+  removePieceSink,
   renamePiece,
   resizePieceDimension,
   setSelection,
@@ -15,9 +19,11 @@ import {
 import {
   clampPiecePoseToWorkspace,
   getPieceDeletionPlan,
+  MAX_SINKS_PER_PIECE,
   pieceGeometry,
   piecePose,
   preparePieceDuplication,
+  SINK_MODELS,
 } from '../domain/pieces';
 import {
   addArea,
@@ -1111,6 +1117,418 @@ export class ProjectLayoutSurface {
         ),
       );
       mount.append(geometryFields);
+
+      const sinkSection = document.createElement('div');
+      sinkSection.className = 'lc-piece-sinks-inspector';
+
+      const sinkHeader = document.createElement('div');
+      sinkHeader.className = 'lc-piece-sinks-inspector__header';
+      const sinkTitle = document.createElement('strong');
+      sinkTitle.textContent = `Sinks (${first.sinks.length})`;
+
+      const centerlineVisibility = document.createElement('button');
+      centerlineVisibility.type = 'button';
+      centerlineVisibility.className = 'lc-btn ghost sm';
+      centerlineVisibility.textContent =
+        state.preferences.showSinkCenterlines
+          ? 'Hide CL'
+          : 'Show CL';
+      centerlineVisibility.setAttribute(
+        'aria-pressed',
+        String(state.preferences.showSinkCenterlines),
+      );
+      centerlineVisibility.addEventListener('click', () => {
+        const current =
+          this.store.getState().preferences.showSinkCenterlines;
+        this.commands.execute(
+          updatePreferences({ showSinkCenterlines: !current }),
+        );
+      });
+
+      sinkHeader.append(sinkTitle, centerlineVisibility);
+      sinkSection.append(sinkHeader);
+
+      const addSink = document.createElement('button');
+      addSink.type = 'button';
+      addSink.className = 'lc-btn ghost sm lc-add-inspector-item';
+      addSink.textContent = '+ Add Sink';
+      addSink.disabled = first.sinks.length >= MAX_SINKS_PER_PIECE;
+      addSink.addEventListener('click', () => {
+        this.commands.execute(
+          addPieceSink(
+            layout.id,
+            first.id,
+            this.createId('sink'),
+          ),
+        );
+      });
+      sinkSection.append(addSink);
+
+      const sinkRows = document.createElement('div');
+      sinkRows.className = 'lc-piece-sink-list';
+
+      first.sinks.forEach((sink, sinkIndex) => {
+        const row = document.createElement('div');
+        row.className = 'lc-piece-sink-row';
+
+        const rowHeader = document.createElement('div');
+        rowHeader.className = 'lc-piece-sink-row__header';
+
+        const rowTitle = document.createElement('span');
+        const sinkName = sink.name.trim();
+        rowTitle.textContent =
+          `Sink ${sinkIndex + 1}` +
+          (sinkName ? ' — ' + sinkName : '');
+
+        const rowActions = document.createElement('div');
+        rowActions.className = 'lc-piece-sink-row__actions';
+
+        const copy = document.createElement('button');
+        copy.type = 'button';
+        copy.className = 'lc-btn ghost sm';
+        copy.textContent = 'Duplicate';
+        copy.disabled = first.sinks.length >= MAX_SINKS_PER_PIECE;
+        copy.addEventListener('click', () => {
+          this.commands.execute(
+            copyPieceSink(
+              layout.id,
+              first.id,
+              sink.id,
+              this.createId('sink'),
+            ),
+          );
+        });
+
+        const remove = document.createElement('button');
+        remove.type = 'button';
+        remove.className = 'lc-btn red sm';
+        remove.textContent = 'Delete';
+        remove.addEventListener('click', () => {
+          this.commands.execute(
+            removePieceSink(layout.id, first.id, sink.id),
+          );
+        });
+
+        rowActions.append(copy, remove);
+        rowHeader.append(rowTitle, rowActions);
+        row.append(rowHeader);
+
+        const fields = document.createElement('div');
+        fields.className = 'lc-piece-sink-fields';
+
+        const makeText = (
+          labelText: string,
+          value: string,
+          onChange: (value: string) => void,
+        ): HTMLLabelElement => {
+          const field = document.createElement('label');
+          field.textContent = labelText;
+          const control = document.createElement('input');
+          control.type = 'text';
+          control.value = value;
+          control.addEventListener('change', () => onChange(control.value));
+          field.append(control);
+          return field;
+        };
+
+        const makeNumber = (
+          labelText: string,
+          value: number,
+          step: number,
+          min: number,
+          onChange: (value: number) => void,
+          disabled = false,
+        ): HTMLLabelElement => {
+          const field = document.createElement('label');
+          field.textContent = labelText;
+          const control = document.createElement('input');
+          control.type = 'number';
+          control.value = String(value);
+          control.step = String(step);
+          control.min = String(min);
+          control.disabled = disabled;
+          control.addEventListener('change', () => {
+            const value = Number(control.value);
+            if (Number.isFinite(value)) onChange(value);
+          });
+          field.append(control);
+          return field;
+        };
+
+        fields.append(
+          makeText('Name', sink.name, (value) => {
+            this.commands.execute(
+              editPieceSink(layout.id, first.id, sink.id, {
+                name: value,
+              }),
+            );
+          }),
+        );
+
+        const typeLabel = document.createElement('label');
+        typeLabel.textContent = 'Type';
+        const type = document.createElement('select');
+        [
+          ['model', 'Model'],
+          ['custom', 'Custom'],
+        ].forEach(([value, labelText]) => {
+          const option = document.createElement('option');
+          option.value = value ?? '';
+          option.textContent = labelText ?? '';
+          type.append(option);
+        });
+        type.value = sink.type;
+        type.addEventListener('change', () => {
+          this.commands.execute(
+            editPieceSink(layout.id, first.id, sink.id, {
+              type: type.value === 'custom' ? 'custom' : 'model',
+            }),
+          );
+        });
+        typeLabel.append(type);
+        fields.append(typeLabel);
+
+        const modelLabel = document.createElement('label');
+        modelLabel.textContent = 'Model';
+        const model = document.createElement('select');
+        SINK_MODELS.forEach((item) => {
+          const option = document.createElement('option');
+          option.value = item.id;
+          option.textContent = item.label;
+          model.append(option);
+        });
+        model.value = sink.modelId ?? SINK_MODELS[0]?.id ?? '';
+        model.disabled = sink.type !== 'model';
+        model.addEventListener('change', () => {
+          this.commands.execute(
+            editPieceSink(layout.id, first.id, sink.id, {
+              modelId: model.value,
+            }),
+          );
+        });
+        modelLabel.append(model);
+        fields.append(modelLabel);
+
+        fields.append(
+          makeNumber(
+            'Length (in)',
+            sink.w,
+            0.125,
+            0,
+            (value) => {
+              this.commands.execute(
+                editPieceSink(layout.id, first.id, sink.id, { w: value }),
+              );
+            },
+            sink.type !== 'custom',
+          ),
+          makeNumber(
+            'Width (in)',
+            sink.h,
+            0.125,
+            0,
+            (value) => {
+              this.commands.execute(
+                editPieceSink(layout.id, first.id, sink.id, { h: value }),
+              );
+            },
+            sink.type !== 'custom',
+          ),
+          makeNumber('Rotation (°)', sink.rotation, 1, 0, (value) => {
+            this.commands.execute(
+              editPieceSink(layout.id, first.id, sink.id, {
+                rotation: value,
+              }),
+            );
+          }),
+          makeNumber('Corner R (in)', sink.cornerR, 0.125, 0, (value) => {
+            this.commands.execute(
+              editPieceSink(layout.id, first.id, sink.id, {
+                cornerR: value,
+              }),
+            );
+          }),
+        );
+
+        const finishLabel = document.createElement('label');
+        finishLabel.textContent = 'Inside Edge';
+        const finish = document.createElement('select');
+        [
+          ['polished', 'Polished'],
+          ['unpolished', 'Unpolished'],
+        ].forEach(([value, labelText]) => {
+          const option = document.createElement('option');
+          option.value = value ?? '';
+          option.textContent = labelText ?? '';
+          finish.append(option);
+        });
+        finish.value = sink.insideFinish;
+        finish.addEventListener('change', () => {
+          this.commands.execute(
+            editPieceSink(layout.id, first.id, sink.id, {
+              insideFinish:
+                finish.value === 'unpolished'
+                  ? 'unpolished'
+                  : 'polished',
+            }),
+          );
+        });
+        finishLabel.append(finish);
+        fields.append(finishLabel);
+
+        const sideLabel = document.createElement('label');
+        sideLabel.textContent = 'Reference Side';
+        const side = document.createElement('select');
+        [
+          ['front', 'Front'],
+          ['back', 'Back'],
+          ['left', 'Left'],
+          ['right', 'Right'],
+        ].forEach(([value, labelText]) => {
+          const option = document.createElement('option');
+          option.value = value ?? '';
+          option.textContent = labelText ?? '';
+          side.append(option);
+        });
+        side.value = sink.side;
+        side.addEventListener('change', () => {
+          const value = side.value;
+          if (
+            value !== 'front' &&
+            value !== 'back' &&
+            value !== 'left' &&
+            value !== 'right'
+          ) {
+            return;
+          }
+          this.commands.execute(
+            editPieceSink(layout.id, first.id, sink.id, { side: value }),
+          );
+        });
+        sideLabel.append(side);
+        fields.append(sideLabel);
+
+        fields.append(
+          makeNumber(
+            'Centerline (in)',
+            sink.centerline,
+            0.25,
+            0,
+            (value) => {
+              this.commands.execute(
+                editPieceSink(layout.id, first.id, sink.id, {
+                  centerline: value,
+                }),
+              );
+            },
+          ),
+          makeNumber(
+            'Sink Setback (in)',
+            sink.setback,
+            0.25,
+            0,
+            (value) => {
+              this.commands.execute(
+                editPieceSink(layout.id, first.id, sink.id, {
+                  setback: value,
+                }),
+              );
+            },
+          ),
+        );
+
+        const faucetGroup = document.createElement('fieldset');
+        faucetGroup.className = 'lc-piece-sink-faucets';
+        const faucetLegend = document.createElement('legend');
+        faucetLegend.textContent = 'Faucet Holes';
+        faucetGroup.append(faucetLegend);
+
+        const faucetPattern = document.createElement('div');
+        faucetPattern.className = 'lc-piece-sink-faucet-pattern';
+        for (let index = 0; index < 9; index += 1) {
+          const faucetLabel = document.createElement('label');
+          const checkbox = document.createElement('input');
+          checkbox.type = 'checkbox';
+          checkbox.checked = sink.faucets.includes(index);
+          checkbox.setAttribute(
+            'aria-label',
+            'Faucet hole ' + String(index + 1),
+          );
+          checkbox.addEventListener('change', () => {
+            const selected = new Set(sink.faucets);
+            if (checkbox.checked) selected.add(index);
+            else selected.delete(index);
+            this.commands.execute(
+              editPieceSink(layout.id, first.id, sink.id, {
+                faucets: [...selected].sort((a, b) => a - b),
+              }),
+            );
+          });
+          const marker = document.createElement('span');
+          marker.textContent = index === 4 ? 'CL' : String(index + 1);
+          faucetLabel.append(checkbox, marker);
+          faucetPattern.append(faucetLabel);
+        }
+        faucetGroup.append(faucetPattern);
+
+        const faucetSettings = document.createElement('div');
+        faucetSettings.className = 'lc-piece-sink-faucet-settings';
+        faucetSettings.append(
+          makeNumber(
+            'Setback (in)',
+            sink.faucetSetback,
+            0.25,
+            0,
+            (value) => {
+              this.commands.execute(
+                editPieceSink(layout.id, first.id, sink.id, {
+                  faucetSetback: value,
+                }),
+              );
+            },
+          ),
+          makeNumber(
+            'Diameter (in)',
+            sink.faucetHoleDiameter,
+            0.125,
+            0.001,
+            (value) => {
+              this.commands.execute(
+                editPieceSink(layout.id, first.id, sink.id, {
+                  faucetHoleDiameter: value,
+                }),
+              );
+            },
+          ),
+          makeNumber(
+            'Spacing (in)',
+            sink.faucetHoleSpacing,
+            0.25,
+            0.001,
+            (value) => {
+              this.commands.execute(
+                editPieceSink(layout.id, first.id, sink.id, {
+                  faucetHoleSpacing: value,
+                }),
+              );
+            },
+          ),
+        );
+        faucetGroup.append(faucetSettings);
+
+        row.append(fields, faucetGroup);
+        sinkRows.append(row);
+      });
+
+      if (!first.sinks.length) {
+        const empty = document.createElement('div');
+        empty.className = 'lc-small lc-inspector-empty';
+        empty.textContent = 'This piece has no sinks.';
+        sinkRows.append(empty);
+      }
+
+      sinkSection.append(sinkRows);
+      mount.append(sinkSection);
 
       const seamSection = document.createElement('div');
       seamSection.className = 'lc-piece-seams-inspector';

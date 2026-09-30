@@ -1,11 +1,13 @@
 import type { Layout } from '../../domain/project';
 import {
-  createPiece, createPieceSeam, deletePieceFamily, deletePieceSeam,
-  getPieceDeletionPlan, mirrorPiecesInLayout, resizePieceDimensionInLayout,
-  updatePieceSeam,
+  createDefaultSink, createPiece, createPieceSeam, deletePieceFamily,
+  deletePieceSeam, deletePieceSink, duplicatePieceSink, getPieceDeletionPlan,
+  MAX_SINKS_PER_PIECE,
+  mirrorPiecesInLayout, resizePieceDimensionInLayout, updatePieceSeam,
+  updatePieceSink,
   type Piece, type PieceDimension, type PieceDuplicationPlan,
   type PieceGeometry, type PieceMirrorAxis, type PiecePose,
-  type PieceSeamPatch,
+  type PieceSeamPatch, type PieceSinkPatch,
 } from '../../domain/pieces';
 import { cloneJson } from '../../domain/types';
 import { normalizeSelection } from '../selection';
@@ -313,5 +315,75 @@ export function removePieceSeam(
     'piece.seam.delete',
     'Delete seam',
     (piece) => deletePieceSeam(piece, seamId) ?? piece,
+  );
+}
+
+
+export function addPieceSink(
+  layoutId: string,
+  pieceId: string,
+  sinkId: string,
+): AppCommand {
+  return editPiece(
+    layoutId,
+    pieceId,
+    'piece.sink.add',
+    'Add sink',
+    (piece) => {
+      if (piece.sinks.length >= MAX_SINKS_PER_PIECE) return piece;
+      const sink = createDefaultSink(sinkId);
+      if (!sink || piece.sinks.some((item) => item.id === sink.id)) {
+        return piece;
+      }
+      return { ...piece, sinks: [...piece.sinks, sink] };
+    },
+  );
+}
+
+export function editPieceSink(
+  layoutId: string,
+  pieceId: string,
+  sinkId: string,
+  patch: PieceSinkPatch,
+): AppCommand {
+  const input: PieceSinkPatch = {
+    ...patch,
+    ...(patch.faucets ? { faucets: [...patch.faucets] } : {}),
+  };
+  return editPiece(
+    layoutId,
+    pieceId,
+    'piece.sink.update',
+    'Update sink',
+    (piece) => updatePieceSink(piece, sinkId, input) ?? piece,
+  );
+}
+
+export function removePieceSink(
+  layoutId: string,
+  pieceId: string,
+  sinkId: string,
+): AppCommand {
+  return editPiece(
+    layoutId,
+    pieceId,
+    'piece.sink.delete',
+    'Delete sink',
+    (piece) => deletePieceSink(piece, sinkId) ?? piece,
+  );
+}
+
+export function copyPieceSink(
+  layoutId: string,
+  pieceId: string,
+  sinkId: string,
+  copyId: string,
+): AppCommand {
+  return editPiece(
+    layoutId,
+    pieceId,
+    'piece.sink.duplicate',
+    'Duplicate sink',
+    (piece) => duplicatePieceSink(piece, sinkId, copyId) ?? piece,
   );
 }

@@ -134,6 +134,7 @@ describe('Piece canvas projection', () => {
       showPieceFills: true,
       pieceFillOpacity: 0.55,
       showSeams: true,
+      showSinkCenterlines: true,
     });
 
     expect(projected.geometry).toEqual({
@@ -164,6 +165,7 @@ describe('Piece canvas projection', () => {
       showPieceFills: true,
       pieceFillOpacity: 1,
       showSeams: true,
+      showSinkCenterlines: true,
     });
     const size = rotatedRectBoundingSize({
       w: 81.997123,

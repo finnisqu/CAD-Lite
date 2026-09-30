@@ -30,6 +30,42 @@ export interface PieceCanvasSurfaceOptions {
   interaction: PieceInteractionController;
 }
 
+function formatCanvasInches(
+  value: number,
+  format: 'fraction' | 'decimal',
+  precision: 1 | 2 | 4 | 8 | 16,
+): string {
+  const absolute = Math.abs(Number(value) || 0);
+  const round3 = Math.round(absolute * 1000) / 1000;
+
+  if (format === 'decimal') {
+    const text =
+      Math.abs(round3 % 1) < 1e-9
+        ? String(Math.round(round3))
+        : round3.toFixed(3).replace(/\.?0+$/, '');
+    return text + '"';
+  }
+
+  let whole = Math.floor(absolute);
+  let numerator = Math.round((absolute - whole) * precision);
+  if (numerator === precision) {
+    whole += 1;
+    numerator = 0;
+  }
+  if (numerator === 0) return String(whole) + '"';
+
+  const gcd = (a: number, b: number): number =>
+    b ? gcd(b, a % b) : a;
+  const factor = gcd(numerator, precision);
+  return (
+    (whole ? String(whole) + ' ' : '') +
+    String(numerator / factor) +
+    '/' +
+    String(precision / factor) +
+    '"'
+  );
+}
+
 export class PieceCanvasSurface {
   private readonly root: ParentNode;
   private readonly store: AppStore;
@@ -46,6 +82,7 @@ export class PieceCanvasSurface {
   private pieceSnapButton: HTMLButtonElement | null = null;
   private gridSnapButton: HTMLButtonElement | null = null;
   private showSeamsButton: HTMLButtonElement | null = null;
+  private sinkCenterlineButton: HTMLButtonElement | null = null;
 
   constructor(options: PieceCanvasSurfaceOptions) {
     this.root = options.root;
@@ -72,6 +109,10 @@ export class PieceCanvasSurface {
       this.root.querySelector<HTMLButtonElement>('#lc-grid-snap');
     this.showSeamsButton =
       this.root.querySelector<HTMLButtonElement>('#lc-show-seams');
+    this.sinkCenterlineButton =
+      this.root.querySelector<HTMLButtonElement>(
+        '#lc-show-sink-centerlines',
+      );
 
     this.designButton?.addEventListener(
       'click',
@@ -104,6 +145,17 @@ export class PieceCanvasSurface {
       () => {
         const current = this.store.getState().preferences.showSeams;
         this.commands.execute(updatePreferences({ showSeams: !current }));
+      },
+      { signal },
+    );
+    this.sinkCenterlineButton?.addEventListener(
+      'click',
+      () => {
+        const current =
+          this.store.getState().preferences.showSinkCenterlines;
+        this.commands.execute(
+          updatePreferences({ showSinkCenterlines: !current }),
+        );
       },
       { signal },
     );
@@ -386,6 +438,14 @@ export class PieceCanvasSurface {
       'aria-pressed',
       String(state.preferences.showSeams),
     );
+    this.sinkCenterlineButton?.classList.toggle(
+      'is-active',
+      state.preferences.showSinkCenterlines,
+    );
+    this.sinkCenterlineButton?.setAttribute(
+      'aria-pressed',
+      String(state.preferences.showSinkCenterlines),
+    );
 
     if (!this.meta) return;
     if (!projection.layoutId) {
@@ -475,6 +535,8 @@ export class PieceCanvasSurface {
       }
       group.appendChild(path);
 
+      this.renderPieceSinks(document, group, piece, projection);
+
       if (piece.selected) {
         const outline = document.createElementNS(SVG_NS, 'path');
         outline.setAttribute('class', 'lc-selection-outline');
@@ -527,6 +589,226 @@ export class PieceCanvasSurface {
     this.renderSnapGuides(document, svg, projection);
     this.renderResizeHandles(document, svg, projection);
     this.renderRotateHandle(document, svg, projection);
+  }
+
+  private renderPieceSinks(
+    document: Document,
+    group: SVGGElement,
+    piece: PieceCanvasProjection['pieces'][number],
+    projection: PieceCanvasProjection,
+  ): void {
+    if (!piece.sinks.length) return;
+
+    const scale = Math.max(0.001, projection.scale);
+    const unit = 1 / scale;
+    const sinkLayer = document.createElementNS(SVG_NS, 'g');
+    sinkLayer.setAttribute('class', 'lc-piece-sinks');
+    sinkLayer.setAttribute('pointer-events', 'none');
+
+    let clipId: string | null = null;
+    if (piece.sinks.some((sink) => sink.split)) {
+      const safePieceId = piece.id.replace(/[^a-z0-9_-]/gi, '_');
+      clipId = 'lc-sink-clip-' + safePieceId;
+      const defs = document.createElementNS(SVG_NS, 'defs');
+      const clip = document.createElementNS(SVG_NS, 'clipPath');
+      clip.setAttribute('id', clipId);
+      clip.setAttribute('clipPathUnits', 'userSpaceOnUse');
+      const clipPath = document.createElementNS(SVG_NS, 'path');
+      clipPath.setAttribute('d', piece.path);
+      clip.appendChild(clipPath);
+      defs.appendChild(clip);
+      group.appendChild(defs);
+    }
+
+    const shapes = document.createElementNS(SVG_NS, 'g');
+    shapes.setAttribute('class', 'lc-piece-sink-shapes');
+    if (clipId) {
+      shapes.setAttribute('clip-path', 'url(#' + clipId + ')');
+    }
+    sinkLayer.appendChild(shapes);
+
+    const preferences = this.store.getState().preferences;
+    const sides = piece.sinks.map((sink) => sink.side);
+
+    piece.sinks.forEach((sink, sinkIndex) => {
+      const sinkGroup = document.createElementNS(SVG_NS, 'g');
+      sinkGroup.setAttribute('class', 'lc-piece-sink');
+      sinkGroup.setAttribute('data-sink-id', sink.id);
+      sinkGroup.setAttribute(
+        'transform',
+        'translate(' +
+          String(sink.center.x) +
+          ' ' +
+          String(sink.center.y) +
+          ') rotate(' +
+          String(sink.localRotation) +
+          ')',
+      );
+
+      if (sink.shape === 'oval') {
+        const ellipse = document.createElementNS(SVG_NS, 'ellipse');
+        ellipse.setAttribute('cx', '0');
+        ellipse.setAttribute('cy', '0');
+        ellipse.setAttribute('rx', String(sink.width / 2));
+        ellipse.setAttribute('ry', String(sink.height / 2));
+        ellipse.setAttribute('fill', 'none');
+        ellipse.setAttribute('stroke', '#333333');
+        ellipse.setAttribute('stroke-width', '1');
+        ellipse.setAttribute('vector-effect', 'non-scaling-stroke');
+        sinkGroup.appendChild(ellipse);
+      } else if (sink.path) {
+        const sinkPath = document.createElementNS(SVG_NS, 'path');
+        sinkPath.setAttribute('d', sink.path);
+        sinkPath.setAttribute('fill', 'none');
+        sinkPath.setAttribute('stroke', '#333333');
+        sinkPath.setAttribute('stroke-width', '1');
+        sinkPath.setAttribute('vector-effect', 'non-scaling-stroke');
+        sinkGroup.appendChild(sinkPath);
+      }
+
+      sink.faucets.forEach((hole) => {
+        const circle = document.createElementNS(SVG_NS, 'circle');
+        circle.setAttribute('cx', String(hole.x));
+        circle.setAttribute('cy', String(hole.y));
+        circle.setAttribute('r', String(hole.radius));
+        circle.setAttribute('fill', 'none');
+        circle.setAttribute('stroke', '#333333');
+        circle.setAttribute('stroke-width', '1');
+        circle.setAttribute('vector-effect', 'non-scaling-stroke');
+        sinkGroup.appendChild(circle);
+      });
+
+      shapes.appendChild(sinkGroup);
+
+      if (!sink.showCenterline) return;
+
+      const sameSideBefore = sides
+        .slice(0, sinkIndex)
+        .filter((side) => side === sink.side).length;
+      const design = projection.workspace === 'design';
+      const pieceDimOffset = (design ? 12 : 10) * unit;
+      const laneGap = (design ? 18 : 16) * unit;
+      const tick = (design ? 6 : 5) * unit;
+
+      const xL = piece.localRect.x;
+      const xR = piece.localRect.x + piece.localRect.w;
+      const yT = piece.localRect.y;
+      const yB = piece.localRect.y + piece.localRect.h;
+
+      if (sink.side === 'front' || sink.side === 'back') {
+        const xCL = sink.center.x;
+        const yDim =
+          sink.side === 'back'
+            ? yT - pieceDimOffset - laneGap * (sameSideBefore + 1)
+            : yB + pieceDimOffset + laneGap * sameSideBefore;
+
+        const line = document.createElementNS(SVG_NS, 'line');
+        line.setAttribute('x1', String(xL));
+        line.setAttribute('y1', String(yDim));
+        line.setAttribute('x2', String(xCL));
+        line.setAttribute('y2', String(yDim));
+        line.setAttribute('stroke', '#000000');
+        line.setAttribute('vector-effect', 'non-scaling-stroke');
+
+        const t1 = document.createElementNS(SVG_NS, 'line');
+        t1.setAttribute('x1', String(xL));
+        t1.setAttribute('y1', String(yDim - tick));
+        t1.setAttribute('x2', String(xL));
+        t1.setAttribute('y2', String(yDim + tick));
+        t1.setAttribute('stroke', '#000000');
+        t1.setAttribute('vector-effect', 'non-scaling-stroke');
+
+        const t2 = document.createElementNS(SVG_NS, 'line');
+        t2.setAttribute('x1', String(xCL));
+        t2.setAttribute('y1', String(yDim - tick));
+        t2.setAttribute('x2', String(xCL));
+        t2.setAttribute('y2', String(yDim + tick));
+        t2.setAttribute('stroke', '#000000');
+        t2.setAttribute('vector-effect', 'non-scaling-stroke');
+
+        const label = document.createElementNS(SVG_NS, 'text');
+        label.setAttribute('x', String((xL + xCL) / 2));
+        label.setAttribute(
+          'y',
+          String(
+            sink.side === 'back'
+              ? yDim - 4 * unit
+              : yDim + (design ? 14 : 13) * unit,
+          ),
+        );
+        label.setAttribute('text-anchor', 'middle');
+        label.setAttribute(
+          'font-size',
+          String((design ? 12 : 11) * unit),
+        );
+        label.setAttribute('fill', '#111111');
+        label.textContent =
+          formatCanvasInches(
+            sink.center.x - xL,
+            preferences.dimFormat,
+            preferences.dimPrecision,
+          ) + ' CL';
+
+        sinkLayer.append(line, t1, t2, label);
+      } else {
+        const yCL = sink.center.y;
+        const xDim =
+          sink.side === 'left'
+            ? xL - pieceDimOffset - laneGap * (sameSideBefore + 1)
+            : xR + pieceDimOffset + laneGap * sameSideBefore;
+
+        const line = document.createElementNS(SVG_NS, 'line');
+        line.setAttribute('x1', String(xDim));
+        line.setAttribute('y1', String(yT));
+        line.setAttribute('x2', String(xDim));
+        line.setAttribute('y2', String(yCL));
+        line.setAttribute('stroke', '#000000');
+        line.setAttribute('vector-effect', 'non-scaling-stroke');
+
+        const t1 = document.createElementNS(SVG_NS, 'line');
+        t1.setAttribute('x1', String(xDim - tick));
+        t1.setAttribute('y1', String(yT));
+        t1.setAttribute('x2', String(xDim + tick));
+        t1.setAttribute('y2', String(yT));
+        t1.setAttribute('stroke', '#000000');
+        t1.setAttribute('vector-effect', 'non-scaling-stroke');
+
+        const t2 = document.createElementNS(SVG_NS, 'line');
+        t2.setAttribute('x1', String(xDim - tick));
+        t2.setAttribute('y1', String(yCL));
+        t2.setAttribute('x2', String(xDim + tick));
+        t2.setAttribute('y2', String(yCL));
+        t2.setAttribute('stroke', '#000000');
+        t2.setAttribute('vector-effect', 'non-scaling-stroke');
+
+        const label = document.createElementNS(SVG_NS, 'text');
+        label.setAttribute(
+          'x',
+          String(xDim + (sink.side === 'left' ? -4 : 4) * unit),
+        );
+        label.setAttribute('y', String((yT + yCL) / 2));
+        label.setAttribute(
+          'text-anchor',
+          sink.side === 'left' ? 'end' : 'start',
+        );
+        label.setAttribute('dominant-baseline', 'middle');
+        label.setAttribute(
+          'font-size',
+          String((design ? 12 : 11) * unit),
+        );
+        label.setAttribute('fill', '#111111');
+        label.textContent =
+          formatCanvasInches(
+            sink.center.y - yT,
+            preferences.dimFormat,
+            preferences.dimPrecision,
+          ) + ' CL';
+
+        sinkLayer.append(line, t1, t2, label);
+      }
+    });
+
+    group.appendChild(sinkLayer);
   }
 
   private renderSnapGuides(

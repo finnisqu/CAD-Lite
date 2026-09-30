@@ -2,8 +2,9 @@ import { clamp, normalizeDegrees, round3 } from '../../core/numeric';
 import { rotateVector, rotatedRectBoundingSize } from '../../geometry';
 import type { Workspace } from '../../persistence';
 import type { Layout } from '../project/types';
-import { cloneJson, isJsonObject, type JsonValue } from '../types';
+import { cloneJson, type JsonValue } from '../types';
 import { pieceGeometry, piecePose } from './factory';
+import { mirrorPieceSink } from './sinks';
 import {
   clampPiecePoseToWorkspace,
   pieceCenterFromGeometryPose,
@@ -286,22 +287,6 @@ function swapLeftRight(value: JsonValue | undefined): JsonValue {
   return value ?? null;
 }
 
-function swapFrontBack(value: JsonValue | undefined): JsonValue {
-  if (value === 'front') return 'back';
-  if (value === 'back') return 'front';
-  return value ?? null;
-}
-
-function mirrorFaucets(value: JsonValue | undefined): JsonValue {
-  if (!Array.isArray(value)) return value ?? null;
-  return value
-    .map((item) => {
-      const index = Math.max(0, Math.min(8, Math.round(Number(item) || 0)));
-      return 8 - index;
-    })
-    .sort((a, b) => a - b);
-}
-
 function childNumber(
   child: FabricationChild,
   key: string,
@@ -309,39 +294,6 @@ function childNumber(
 ): number {
   const value = Number(child[key]);
   return Number.isFinite(value) ? value : fallback;
-}
-
-function mirrorSink(
-  sink: FabricationChild,
-  axis: PieceMirrorAxis,
-  piece: Piece,
-): FabricationChild {
-  const next = cloneJson(sink);
-  const side =
-    typeof next.side === 'string' &&
-    ['front', 'back', 'left', 'right'].includes(next.side)
-      ? next.side
-      : 'front';
-
-  if (axis === 'h') {
-    if (side === 'front' || side === 'back') {
-      next.centerline = round3(
-        Math.max(0, piece.w - childNumber(next, 'centerline')),
-      );
-    } else {
-      next.side = swapLeftRight(side);
-    }
-  } else if (side === 'left' || side === 'right') {
-    next.centerline = round3(
-      Math.max(0, piece.h - childNumber(next, 'centerline')),
-    );
-  } else {
-    next.side = swapFrontBack(side);
-  }
-
-  next.rotation = normalizeDegrees(-childNumber(next, 'rotation'));
-  next.faucets = mirrorFaucets(next.faucets);
-  return next;
 }
 
 function mirrorSeamReferenceH(
@@ -424,7 +376,8 @@ function mirrorPieceLocal(
     }));
   }
 
-  piece.sinks = piece.sinks.map((sink) => mirrorSink(sink, axis, piece));
+  piece.sinks = piece.sinks.map((sink) =>
+    mirrorPieceSink(piece, sink, axis));
 
   if (piece.attachment) {
     const sourceEdge = piece.attachment.sourceEdge;
@@ -593,21 +546,16 @@ function shiftedFabricationChildren(
   y: number,
 ): Pick<Piece, 'sinks' | 'cutouts'> {
   const sinks = piece.sinks.map((source) => {
-    if (
-      typeof source.fabricationSplitSinkId !== 'string' ||
-      !isJsonObject(source.fabricationPose)
-    ) {
+    if (!source.fabricationSplitSinkId || !source.fabricationPose) {
       return source;
     }
-    const sink = cloneJson(source);
-    const pose = sink.fabricationPose;
-    if (!isJsonObject(pose)) return sink;
-    sink.fabricationPose = {
-      ...pose,
-      cx: round3((Number(pose.cx) || 0) + x),
-      cy: round3((Number(pose.cy) || 0) + y),
+    return {
+      ...source,
+      fabricationPose: {
+        cx: round3(source.fabricationPose.cx + x),
+        cy: round3(source.fabricationPose.cy + y),
+      },
     };
-    return sink;
   });
 
   const cutouts = piece.cutouts.map((source) => {

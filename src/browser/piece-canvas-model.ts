@@ -8,6 +8,8 @@ import {
   pieceGeometry,
   piecePose,
   pieceSeamLocalCoordinate,
+  pieceSinkLocalPose,
+  sinkFaucetHoles,
   type Piece,
   type PieceGeometry,
   type PiecePose,
@@ -40,6 +42,30 @@ export interface PieceCanvasOverride {
   geometry?: PieceGeometry;
 }
 
+export interface PieceCanvasFaucetHole {
+  index: number;
+  x: number;
+  y: number;
+  radius: number;
+}
+
+export interface PieceCanvasSink {
+  id: string;
+  name: string;
+  shape: 'rect' | 'oval';
+  center: Point;
+  localRotation: number;
+  width: number;
+  height: number;
+  cornerRadius: number;
+  path: string | null;
+  faucets: PieceCanvasFaucetHole[];
+  side: 'front' | 'back' | 'left' | 'right';
+  centerline: number;
+  split: boolean;
+  showCenterline: boolean;
+}
+
 export interface PieceCanvasSeam {
   id: string;
   kind: 'planning' | 'fabrication';
@@ -63,6 +89,7 @@ export interface PieceCanvasItem {
   renderRotation: number;
   path: string;
   appearance: PieceCanvasAppearance;
+  sinks: PieceCanvasSink[];
   seams: PieceCanvasSeam[];
 }
 
@@ -81,6 +108,7 @@ export interface PieceCanvasRenderOptions {
   showPieceFills: boolean;
   pieceFillOpacity: number;
   showSeams: boolean;
+  showSinkCenterlines: boolean;
 }
 
 function clamp01(value: number): number {
@@ -94,6 +122,62 @@ function normalizedRotation(rotation: number): number {
 
 function finiteNumber(value: unknown): number | null {
   return typeof value === 'number' && Number.isFinite(value) ? value : null;
+}
+
+function projectSinks(
+  piece: Piece,
+  geometry: PieceGeometry,
+  localRect: XYWHRect,
+  showCenterlines: boolean,
+): PieceCanvasSink[] {
+  return piece.sinks.map((sink) => {
+    const pose = pieceSinkLocalPose(
+      { w: geometry.width, h: geometry.height },
+      sink,
+    );
+    const width = Math.max(0, sink.w);
+    const height = Math.max(0, sink.h);
+    const cornerRadius = Math.min(
+      Math.max(0, sink.cornerR),
+      4,
+      width / 2,
+      height / 2,
+    );
+    const rect = {
+      x: -width / 2,
+      y: -height / 2,
+      w: width,
+      h: height,
+    };
+    return {
+      id: sink.id,
+      name: sink.name,
+      shape: sink.shape,
+      center: {
+        x: localRect.x + pose.cx,
+        y: localRect.y + pose.cy,
+      },
+      localRotation: pose.angle,
+      width,
+      height,
+      cornerRadius,
+      path:
+        sink.shape === 'oval'
+          ? null
+          : roundedRectPathCorners(rect, {
+              tl: cornerRadius,
+              tr: cornerRadius,
+              br: cornerRadius,
+              bl: cornerRadius,
+            }),
+      faucets: sinkFaucetHoles(sink),
+      side: sink.side,
+      centerline: sink.centerline,
+      split: Boolean(sink.fabricationSplitSinkId),
+      showCenterline:
+        showCenterlines && !sink.fabricationSplitSinkId,
+    };
+  });
 }
 
 function projectPlanningSeams(
@@ -243,6 +327,12 @@ export function projectPieceForCanvas(
     renderRotation: normalizedRotation(pose.rotation),
     path: roundedRectPathCorners(localRect, geometry.cornerRadii),
     appearance: pieceAppearance(piece, options),
+    sinks: projectSinks(
+      piece,
+      geometry,
+      localRect,
+      options.showSinkCenterlines,
+    ),
     seams: options.showSeams
       ? [
           ...projectPlanningSeams(piece, geometry, localRect),
@@ -298,6 +388,7 @@ export function createPieceCanvasProjection(
     showPieceFills: state.preferences.showPieceFills,
     pieceFillOpacity: layout.pieceFillOpacity,
     showSeams: state.preferences.showSeams,
+    showSinkCenterlines: state.preferences.showSinkCenterlines,
   };
   const overrideById = new Map(overrides.map((override) => [override.id, override]));
   const selectedIds = new Set(

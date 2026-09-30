@@ -10,6 +10,57 @@ export type PieceSeam = JsonObject & {
   reference: PieceSeamReference;
   offset: number;
 };
+
+export type PieceSinkType = 'model' | 'custom';
+export type PieceSinkShape = 'rect' | 'oval';
+export type PieceSinkSide = 'front' | 'back' | 'left' | 'right';
+export type PieceSinkInsideFinish = 'polished' | 'unpolished';
+export type PieceSinkFabricationPose = {
+  cx: number;
+  cy: number;
+};
+export type PieceSink = JsonObject & {
+  id: string;
+  name: string;
+  type: PieceSinkType;
+  modelId: string | null;
+  shape: PieceSinkShape;
+  w: number;
+  h: number;
+  cornerR: number;
+  side: PieceSinkSide;
+  centerline: number;
+  setback: number;
+  rotation: number;
+  faucets: number[];
+  faucetSetback: number;
+  faucetHoleDiameter: number;
+  faucetHoleSpacing: number;
+  insideFinish: PieceSinkInsideFinish;
+  fabricationSplitSinkId: string | null;
+  fabricationPose: PieceSinkFabricationPose | null;
+};
+export type PieceSinkPatch = Partial<
+  Pick<
+    PieceSink,
+    | 'name'
+    | 'type'
+    | 'modelId'
+    | 'shape'
+    | 'w'
+    | 'h'
+    | 'cornerR'
+    | 'side'
+    | 'centerline'
+    | 'setback'
+    | 'rotation'
+    | 'faucets'
+    | 'faucetSetback'
+    | 'faucetHoleDiameter'
+    | 'faucetHoleSpacing'
+    | 'insideFinish'
+  >
+>;
 export type CornerRadii = { tl: number; tr: number; br: number; bl: number };
 export type PieceGeometry = {
   kind: 'rectangle';
@@ -54,7 +105,7 @@ export type Piece = {
   cornerRadii: CornerRadii;
   overhangs: { front: number; back: number; left: number; right: number };
   edgeProfiles: Record<PieceSide, string>;
-  sinks: FabricationChild[];
+  sinks: PieceSink[];
   cutouts: FabricationChild[];
   pieceSeams: PieceSeam[];
   color: string;
