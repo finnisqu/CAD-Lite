@@ -382,8 +382,8 @@ function mirrorPieceLocal(
         ...piece.attachment,
         sourceEdge:
           axis === 'h'
-            ? swapLeftRight(sourceEdge)
-            : swapTopBottom(sourceEdge),
+            ? mirrorSeamReferenceH(sourceEdge)
+            : mirrorSeamReferenceV(sourceEdge),
       };
     }
   }
