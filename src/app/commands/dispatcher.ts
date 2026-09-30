@@ -1,6 +1,6 @@
 import type { ReadonlyApplicationState } from '../state';
-import { AppStore } from '../store';
 import type {
+  AppStore,
   HistoryPolicy,
   PersistencePolicy,
   StoreChangeEvent,
