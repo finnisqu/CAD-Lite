@@ -753,3 +753,97 @@
   min-width: 30px;
   padding: 5px;
 }
+
+
+/* Batch 23: typed Room Features / Walls foundation. */
+.cad-lite-architecture-harness #lc-svg .lc-room-features-layer {
+  shape-rendering: geometricPrecision;
+}
+
+.cad-lite-architecture-harness #lc-svg .lc-room-feature.selected path {
+  stroke-width: 2;
+}
+
+.cad-lite-architecture-harness .lc-room-feature-nav-section {
+  display: grid;
+  gap: 6px;
+  margin-top: 10px;
+  padding-top: 8px;
+  border-top: 1px solid var(--border, #d1d5db);
+}
+
+.cad-lite-architecture-harness .lc-room-feature-nav-header,
+.cad-lite-architecture-harness .lc-room-feature-add-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.cad-lite-architecture-harness .lc-room-feature-nav-header {
+  justify-content: space-between;
+}
+
+.cad-lite-architecture-harness .lc-room-feature-nav-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 5px;
+  padding: 6px;
+}
+
+.cad-lite-architecture-harness .lc-room-feature-nav-row.selected {
+  outline: 2px solid #93c5fd;
+  outline-offset: -2px;
+}
+
+.cad-lite-architecture-harness .lc-room-feature-nav-text {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.cad-lite-architecture-harness .lc-room-feature-nav-text strong,
+.cad-lite-architecture-harness .lc-room-feature-nav-text span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cad-lite-architecture-harness .lc-room-feature-inspector {
+  display: grid;
+  gap: 8px;
+}
+
+.cad-lite-architecture-harness .lc-room-feature-inspector-fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.cad-lite-architecture-harness .lc-room-feature-inspector-fields label {
+  display: grid;
+  gap: 3px;
+  margin: 0;
+  font-size: 12px;
+}
+
+.cad-lite-architecture-harness .lc-room-feature-check {
+  display: flex !important;
+  align-items: center;
+  gap: 5px !important;
+}
+
+.cad-lite-architecture-harness .lc-room-feature-check input {
+  width: auto;
+}
+
+.cad-lite-architecture-harness .lc-room-feature-category {
+  grid-column: 1 / -1;
+}
+
+@media (max-width: 1100px) {
+  .cad-lite-architecture-harness .lc-room-feature-inspector-fields {
+    grid-template-columns: 1fr;
+  }
+}
