@@ -58,6 +58,7 @@ describe('selection controller', () => {
   it('sanitizes stale entity IDs', () => {
     const { selection } = setup();
 
+    selection.select({ kind: 'note', id: 'note-1' });
     expect(selection.select({ kind: 'dimension', id: 'missing' })).toBe(true);
     expect(selection.getSelection()).toEqual({ kind: 'none' });
   });
