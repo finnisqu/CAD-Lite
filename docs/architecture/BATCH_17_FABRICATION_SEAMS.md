@@ -203,7 +203,7 @@ Batch 17 also promotes known fabrication relationship metadata in `AssemblyLink`
 - sourceName
 - cutCoordinate
 
-`SplashAttachment` now types source edge, linked-length, snap state, offset, and nullable detached parent identity. Persistence preserves detached backsplash attachment metadata instead of discarding it.
+`SplashAttachment` now types source edge, linked-length, snap state, and offset while keeping linked parent IDs non-null. In v1.6, a detached backsplash relationship is represented by `attachment: null`; this keeps parent lookups strict while preserving the same detached behavior.
 
 ## Browser harness
 
