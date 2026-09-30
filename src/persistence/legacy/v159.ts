@@ -51,6 +51,7 @@ function editorFromExportApp(source: JsonObject, project: ProjectState): Persist
 
 const SNAPSHOT_PREFERENCE_KEYS = [
   'gridSnap',
+  'pieceSnap',
   'slabCutClearance',
   'slabEdgeAllowance',
   'defaultSlabW',

@@ -79,3 +79,47 @@ export function roundedRectPathCorners(
     'Z',
   ].join(' ');
 }
+
+
+export function roundedRectContainsPoint(
+  rect: XYWHRect,
+  radii: RoundedRectCornerRadii,
+  point: Point,
+  epsilon = 0.000001,
+): boolean {
+  const left = rect.x;
+  const top = rect.y;
+  const right = rect.x + rect.w;
+  const bottom = rect.y + rect.h;
+
+  if (
+    point.x < left - epsilon ||
+    point.x > right + epsilon ||
+    point.y < top - epsilon ||
+    point.y > bottom + epsilon
+  ) {
+    return false;
+  }
+
+  const insideCorner = (
+    radius: number,
+    centerX: number,
+    centerY: number,
+    applies: boolean,
+  ): boolean => {
+    if (!applies || radius <= epsilon) return true;
+    return Math.hypot(point.x - centerX, point.y - centerY) <= radius + epsilon;
+  };
+
+  const tl = Math.max(0, radii.tl || 0);
+  const tr = Math.max(0, radii.tr || 0);
+  const br = Math.max(0, radii.br || 0);
+  const bl = Math.max(0, radii.bl || 0);
+
+  return (
+    insideCorner(tl, left + tl, top + tl, point.x < left + tl && point.y < top + tl) &&
+    insideCorner(tr, right - tr, top + tr, point.x > right - tr && point.y < top + tr) &&
+    insideCorner(br, right - br, bottom - br, point.x > right - br && point.y > bottom - br) &&
+    insideCorner(bl, left + bl, bottom - bl, point.x < left + bl && point.y > bottom - bl)
+  );
+}

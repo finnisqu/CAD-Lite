@@ -125,6 +125,7 @@ export const v159ProjectFixture: JsonObject = {
   ],
   ui: {
     gridSnap: true,
+    pieceSnap: true,
     slabCutClearance: 0.25,
     slabEdgeAllowance: 1.5,
     defaultSlabW: 126,

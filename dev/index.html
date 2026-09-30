@@ -60,6 +60,8 @@
           <div class="cad-lite-architecture-harness__workspace-bar">
             <button id="lc-workspace-design" type="button">DESIGN</button>
             <button id="lc-workspace-slab" type="button">SLAB</button>
+            <button id="lc-piece-snap" type="button">Object Snap</button>
+            <button id="lc-grid-snap" type="button">Grid Snap</button>
             <span id="lc-canvas-meta" aria-live="polite"></span>
           </div>
           <div class="cad-lite-architecture-harness__canvas-wrap">
@@ -70,8 +72,9 @@
             ></svg>
           </div>
           <p class="lc-small">
-            Read-only Batch 11 projection. Piece pointer interactions intentionally
-            remain deferred.
+            Batch 12 interaction harness: click to select, drag Pieces in either
+            workspace, drag DESIGN resize handles, hold Alt to bypass snapping,
+            and hold Shift while resizing for unquantized sizing.
           </p>
           <pre id="build-info"></pre>
         </section>
@@ -194,6 +197,7 @@
         ui: {
           workspace: 'layout',
           gridSnap: true,
+          pieceSnap: true,
           showGrid: true,
           showDims: true,
           dimPrecision: 16,

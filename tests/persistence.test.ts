@@ -30,6 +30,7 @@ describe('canonical CAD Lite persistence', () => {
     expect(migrated.editor.workspace).toBe('slab');
     expect(migrated.editor.preferences.edgeLabelMode).toBe('symbol');
     expect(migrated.editor.preferences.slabCutClearance).toBe(0.25);
+    expect(migrated.editor.preferences.pieceSnap).toBe(true);
   });
 
   it('migrates the v1.5.99 history/share snapshot shape separately from selection', () => {

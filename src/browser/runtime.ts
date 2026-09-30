@@ -2,6 +2,7 @@ import {
   AppStore,
   ApplicationEffects,
   CommandDispatcher,
+  PieceInteractionController,
   SelectionController,
   ToolController,
   applicationStateFromLegacyPayload,
@@ -33,6 +34,7 @@ export interface CadLiteBrowserRuntime {
   effects: ApplicationEffects;
   surface: ProjectLayoutSurface;
   pieceCanvas: PieceCanvasSurface;
+  pieceInteractions: PieceInteractionController;
   destroy(): void;
 }
 
@@ -62,6 +64,7 @@ export function mountCadLiteBrowserRuntime(
   const commands = new CommandDispatcher(store);
   const selection = new SelectionController(store, commands);
   const tools = new ToolController(store, commands);
+  const pieceInteractions = new PieceInteractionController(store, commands);
   const effects = new ApplicationEffects(store, {
     autosaveStorage: options.storage ?? browserStorage(),
     autosave: options.autosave ?? {},
@@ -81,6 +84,7 @@ export function mountCadLiteBrowserRuntime(
     store,
     commands,
     effects,
+    interaction: pieceInteractions,
   });
 
   surface.mount();
@@ -103,10 +107,12 @@ export function mountCadLiteBrowserRuntime(
     effects,
     surface,
     pieceCanvas,
+    pieceInteractions,
     destroy() {
       if (typeof window !== 'undefined') {
         window.removeEventListener('beforeunload', beforeUnload);
       }
+      pieceInteractions.cancel();
       pieceCanvas.unmount();
       surface.unmount();
       effects.stop(false);

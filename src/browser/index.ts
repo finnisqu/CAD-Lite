@@ -28,6 +28,7 @@ export type {
 
 export {
   createPieceCanvasProjection,
+  hitTestPieceCanvas,
   projectPieceForCanvas,
   DEFAULT_SLAB_CANVAS_HEIGHT,
   DEFAULT_SLAB_CANVAS_WIDTH,
@@ -36,6 +37,7 @@ export {
 export type {
   PieceCanvasAppearance,
   PieceCanvasItem,
+  PieceCanvasOverride,
   PieceCanvasProjection,
   PieceCanvasRenderOptions,
 } from './piece-canvas-model';

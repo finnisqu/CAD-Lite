@@ -2,6 +2,7 @@ import type { EditorPreferences } from './schema';
 
 export const DEFAULT_EDITOR_PREFERENCES: EditorPreferences = {
   gridSnap: true,
+  pieceSnap: true,
   slabCutClearance: 0,
   slabEdgeAllowance: 0,
   defaultSlabW: 126,

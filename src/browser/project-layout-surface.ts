@@ -1,5 +1,12 @@
-import { addPiece, deletePieces, duplicatePieces, renamePiece, assignPiecesToArea, setSelection } from '../app/commands';
-import { preparePieceDuplication, getPieceDeletionPlan } from '../domain/pieces';
+import { addPiece, deletePieces, duplicatePieces, renamePiece, transformPieces, assignPiecesToArea, setSelection } from '../app/commands';
+import {
+  clampPiecePoseToWorkspace,
+  getPieceDeletionPlan,
+  pieceGeometry,
+  piecePose,
+  preparePieceDuplication,
+  resizePieceGeometry,
+} from '../domain/pieces';
 import {
   addArea,
   addLayout,
@@ -21,6 +28,7 @@ import {
   createEmptyLayout,
   getAreaDeletionPlan,
 } from '../domain/project';
+import { normalizeDegrees } from '../core/numeric';
 import { createProjectLayoutViewModel } from './project-layout-model';
 
 export type BrowserEntityIdFactory = (prefix: string) => string;
@@ -1016,6 +1024,106 @@ export class ProjectLayoutSurface {
       input.value = first.name;
       input.addEventListener('change', () => this.commands.execute(renamePiece(layout.id, first.id, input.value)));
       label.append(input); mount.append(label);
+
+      const numberField = (
+        labelText: string,
+        value: number,
+        step: string,
+        onChange: (value: number) => void,
+      ): HTMLLabelElement => {
+        const field = document.createElement('label');
+        field.className = 'lc-piece-geometry-field';
+        const text = document.createElement('span');
+        text.textContent = labelText;
+        const control = document.createElement('input');
+        control.type = 'number';
+        control.step = step;
+        control.value = String(value);
+        control.addEventListener('change', () => {
+          const next = Number(control.value);
+          if (Number.isFinite(next)) onChange(next);
+        });
+        field.append(text, control);
+        return field;
+      };
+
+      const editSize = (dimension: 'width' | 'height', value: number): void => {
+        const latest = this.store.getState();
+        const latestLayout = latest.project.layouts.find(item => item.id === layout.id);
+        const latestPiece = latestLayout?.pieces.find(item => item.id === first.id);
+        if (!latestLayout || !latestPiece) return;
+        const current = pieceGeometry(latestPiece);
+        const geometry = resizePieceGeometry(
+          latestPiece,
+          dimension === 'width' ? value : current.width,
+          dimension === 'height' ? value : current.height,
+        );
+        const designPose = clampPiecePoseToWorkspace(
+          latestLayout,
+          'design',
+          geometry,
+          piecePose(latestPiece, 'design'),
+        );
+        const slabPose = clampPiecePoseToWorkspace(
+          latestLayout,
+          'slab',
+          geometry,
+          piecePose(latestPiece, 'slab'),
+        );
+        this.commands.execute(
+          transformPieces(
+            latestLayout.id,
+            [{ id: latestPiece.id, geometry, designPose, slabPose }],
+            { label: 'Resize piece' },
+          ),
+        );
+      };
+
+      const editRotation = (value: number): void => {
+        const latest = this.store.getState();
+        const latestLayout = latest.project.layouts.find(item => item.id === layout.id);
+        const latestPiece = latestLayout?.pieces.find(item => item.id === first.id);
+        if (!latestLayout || !latestPiece) return;
+        const workspace = latest.session.workspace;
+        const geometry = pieceGeometry(latestPiece);
+        const current = piecePose(latestPiece, workspace);
+        const rotation =
+          value >= 0 && value < 360 ? value : normalizeDegrees(value);
+        const pose = clampPiecePoseToWorkspace(
+          latestLayout,
+          workspace,
+          geometry,
+          { ...current, rotation },
+        );
+        this.commands.execute(
+          transformPieces(
+            latestLayout.id,
+            [
+              {
+                id: latestPiece.id,
+                ...(workspace === 'slab'
+                  ? { slabPose: pose }
+                  : { designPose: pose }),
+              },
+            ],
+            { label: 'Rotate piece' },
+          ),
+        );
+      };
+
+      const geometryFields = document.createElement('div');
+      geometryFields.className = 'lc-piece-geometry-fields';
+      geometryFields.append(
+        numberField('Width', first.w, '0.25', value => editSize('width', value)),
+        numberField('Height', first.h, '0.25', value => editSize('height', value)),
+        numberField(
+          state.session.workspace === 'slab' ? 'SLAB Rotation' : 'DESIGN Rotation',
+          piecePose(first, state.session.workspace).rotation,
+          '1',
+          editRotation,
+        ),
+      );
+      mount.append(geometryFields);
     }
     const areaLabel = document.createElement('label');
     areaLabel.textContent = 'Area';

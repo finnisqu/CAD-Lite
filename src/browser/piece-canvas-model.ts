@@ -1,5 +1,10 @@
 import type { ReadonlyApplicationState } from '../app/state';
 import {
+  DEFAULT_SLAB_CANVAS_HEIGHT,
+  DEFAULT_SLAB_CANVAS_WIDTH,
+  SLAB_CONTENT_GUTTER,
+  pieceBoundsFromGeometryPose,
+  pieceCenterFromGeometryPose,
   pieceGeometry,
   piecePose,
   type Piece,
@@ -8,16 +13,19 @@ import {
 } from '../domain/pieces';
 import type { Layout } from '../domain/project';
 import {
-  rotatedRectBoundingSize,
+  rotateVector,
+  roundedRectContainsPoint,
   roundedRectPathCorners,
   type Point,
   type XYWHRect,
 } from '../geometry';
 import type { Workspace } from '../persistence/schema';
 
-export const DEFAULT_SLAB_CANVAS_WIDTH = 150;
-export const DEFAULT_SLAB_CANVAS_HEIGHT = 90;
-export const SLAB_CONTENT_GUTTER = 2;
+export {
+  DEFAULT_SLAB_CANVAS_HEIGHT,
+  DEFAULT_SLAB_CANVAS_WIDTH,
+  SLAB_CONTENT_GUTTER,
+} from '../domain/pieces';
 
 export interface PieceCanvasAppearance {
   fill: string;
@@ -25,11 +33,18 @@ export interface PieceCanvasAppearance {
   stroke: string;
 }
 
+export interface PieceCanvasOverride {
+  id: string;
+  pose?: PiecePose;
+  geometry?: PieceGeometry;
+}
+
 export interface PieceCanvasItem {
   id: string;
   name: string;
   layer: number;
   sourceIndex: number;
+  selected: boolean;
   geometry: PieceGeometry;
   pose: PiecePose;
   bounds: XYWHRect;
@@ -74,7 +89,6 @@ function pieceAppearance(
   options: PieceCanvasRenderOptions,
 ): PieceCanvasAppearance {
   const noFill = piece.noFill || !options.showPieceFills;
-
   return {
     fill: noFill ? 'none' : piece.color || '#999',
     fillOpacity: noFill
@@ -84,36 +98,18 @@ function pieceAppearance(
   };
 }
 
-/**
- * Read-only geometry-to-render projection for one Piece.
- *
- * The Piece pose origin remains the top-left of its rotated bounding box,
- * matching v1.5.99. The unrotated rectangle is centered inside that box and
- * then rotated around the common center.
- */
 export function projectPieceForCanvas(
   piece: Piece,
   workspace: Workspace,
   options: PieceCanvasRenderOptions,
   sourceIndex = 0,
+  override: PieceCanvasOverride | null = null,
+  selected = false,
 ): PieceCanvasItem {
-  const geometry = pieceGeometry(piece);
-  const pose = piecePose(piece, workspace);
-  const size = rotatedRectBoundingSize({
-    w: geometry.width,
-    h: geometry.height,
-    rotation: pose.rotation,
-  });
-  const bounds = {
-    x: pose.x,
-    y: pose.y,
-    w: size.w,
-    h: size.h,
-  };
-  const center = {
-    x: bounds.x + bounds.w / 2,
-    y: bounds.y + bounds.h / 2,
-  };
+  const geometry = override?.geometry ?? pieceGeometry(piece);
+  const pose = override?.pose ?? piecePose(piece, workspace);
+  const bounds = pieceBoundsFromGeometryPose(geometry, pose);
+  const center = pieceCenterFromGeometryPose(geometry, pose);
   const localRect = {
     x: center.x - geometry.width / 2,
     y: center.y - geometry.height / 2,
@@ -126,6 +122,7 @@ export function projectPieceForCanvas(
     name: piece.name,
     layer: piece.layer,
     sourceIndex,
+    selected,
     geometry,
     pose,
     bounds,
@@ -153,7 +150,6 @@ function slabCanvasSize(
       Math.max(maximum, piece.bounds.y + piece.bounds.h + SLAB_CONTENT_GUTTER),
     0,
   );
-
   return {
     width: Math.max(DEFAULT_SLAB_CANVAS_WIDTH, storedWidth, contentWidth),
     height: Math.max(DEFAULT_SLAB_CANVAS_HEIGHT, storedHeight, contentHeight),
@@ -162,6 +158,7 @@ function slabCanvasSize(
 
 export function createPieceCanvasProjection(
   state: ReadonlyApplicationState,
+  overrides: readonly PieceCanvasOverride[] = [],
 ): PieceCanvasProjection {
   const layout =
     state.project.layouts.find(
@@ -183,14 +180,24 @@ export function createPieceCanvasProjection(
     showPieceFills: state.preferences.showPieceFills,
     pieceFillOpacity: layout.pieceFillOpacity,
   };
+  const overrideById = new Map(overrides.map((override) => [override.id, override]));
+  const selectedIds = new Set(
+    state.session.selection.kind === 'pieces'
+      ? state.session.selection.ids
+      : [],
+  );
   const pieces = layout.pieces
     .map((piece, sourceIndex) =>
-      projectPieceForCanvas(piece, workspace, options, sourceIndex),
+      projectPieceForCanvas(
+        piece,
+        workspace,
+        options,
+        sourceIndex,
+        overrideById.get(piece.id) ?? null,
+        selectedIds.has(piece.id),
+      ),
     )
-    .sort(
-      (a, b) =>
-        a.layer - b.layer || a.sourceIndex - b.sourceIndex,
-    );
+    .sort((a, b) => a.layer - b.layer || a.sourceIndex - b.sourceIndex);
 
   return {
     layoutId: layout.id,
@@ -202,4 +209,43 @@ export function createPieceCanvasProjection(
         : { width: layout.cw, height: layout.ch },
     pieces,
   };
+}
+
+export function hitTestPieceCanvas(
+  projection: PieceCanvasProjection,
+  point: Point,
+): PieceCanvasItem | null {
+  for (let index = projection.pieces.length - 1; index >= 0; index -= 1) {
+    const piece = projection.pieces[index];
+    if (!piece) continue;
+    if (
+      point.x < piece.bounds.x ||
+      point.x > piece.bounds.x + piece.bounds.w ||
+      point.y < piece.bounds.y ||
+      point.y > piece.bounds.y + piece.bounds.h
+    ) {
+      continue;
+    }
+
+    const offset = rotateVector(
+      point.x - piece.center.x,
+      point.y - piece.center.y,
+      -piece.renderRotation,
+    );
+    const localPoint = {
+      x: piece.center.x + offset.x,
+      y: piece.center.y + offset.y,
+    };
+
+    if (
+      roundedRectContainsPoint(
+        piece.localRect,
+        piece.geometry.cornerRadii,
+        localPoint,
+      )
+    ) {
+      return piece;
+    }
+  }
+  return null;
 }

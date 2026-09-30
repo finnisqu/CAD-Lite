@@ -35,3 +35,19 @@ export type {
   ToolPointerInput,
   ToolScope,
 } from './types';
+
+export {
+  PieceInteractionController,
+  createPieceMoveSession,
+  createPieceResizeSession,
+  pieceResizeLockedSides,
+  previewPieceMove,
+  previewPieceResize,
+  resolvePiecePointerSelection,
+} from './pieces';
+export type {
+  PieceInteractionPreview,
+  PieceInteractionPreviewItem,
+  PiecePointerSelectionPlan,
+  PieceResizeSide,
+} from './pieces';

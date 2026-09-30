@@ -219,3 +219,53 @@
 .cad-lite-architecture-harness #lc-svg .lc-piece-shape {
   shape-rendering: geometricPrecision;
 }
+
+
+/* Batch 12: Piece interaction validation. */
+.cad-lite-architecture-harness #lc-svg {
+  touch-action: none;
+  user-select: none;
+}
+
+.cad-lite-architecture-harness #lc-svg .lc-selection-outline {
+  pointer-events: none;
+}
+
+.cad-lite-architecture-harness #lc-svg .lc-smart-guide {
+  stroke: #2563eb;
+  stroke-width: 1;
+  stroke-dasharray: 5 4;
+  pointer-events: none;
+}
+
+.cad-lite-architecture-harness #lc-svg .lc-piece-resize-handle {
+  fill: #ffffff;
+  stroke: #2563eb;
+  stroke-width: 1.5;
+}
+
+.cad-lite-architecture-harness #lc-svg .lc-piece-resize-handle:hover {
+  fill: #dbeafe;
+}
+
+.cad-lite-architecture-harness .lc-piece-geometry-fields {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  margin: 10px 0;
+}
+
+.cad-lite-architecture-harness .lc-piece-geometry-field {
+  min-width: 0;
+}
+
+.cad-lite-architecture-harness .lc-piece-geometry-field > span {
+  font-size: 11px;
+  color: #666;
+}
+
+@media (max-width: 1100px) {
+  .cad-lite-architecture-harness .lc-piece-geometry-fields {
+    grid-template-columns: 1fr;
+  }
+}

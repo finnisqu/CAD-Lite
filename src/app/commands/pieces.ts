@@ -1,7 +1,7 @@
 import type { Layout } from '../../domain/project';
 import {
   createPiece, deletePieceFamily, getPieceDeletionPlan,
-  type Piece, type PieceDuplicationPlan,
+  type Piece, type PieceDuplicationPlan, type PieceGeometry, type PiecePose,
 } from '../../domain/pieces';
 import { cloneJson } from '../../domain/types';
 import { normalizeSelection } from '../selection';
@@ -100,6 +100,102 @@ export function duplicatePieces(layoutId: string, plan: PieceDuplicationPlan): A
       const ids = copies.map(piece => piece.id);
       if (new Set(ids).size !== ids.length || layout.pieces.some(piece => ids.includes(piece.id))) return state;
       return replace(state, { ...layout, pieces: [...layout.pieces, ...copies] }, { kind: 'pieces', ids });
+    },
+  };
+}
+
+
+export interface PieceTransformPatch {
+  id: string;
+  geometry?: PieceGeometry;
+  designPose?: PiecePose;
+  slabPose?: PiecePose;
+}
+
+export interface TransformPiecesOptions {
+  label?: string;
+}
+
+function finitePose(pose: PiecePose | undefined): PiecePose | null {
+  if (!pose || !Number.isFinite(pose.x) || !Number.isFinite(pose.y) || !Number.isFinite(pose.rotation)) return null;
+  return { x: pose.x, y: pose.y, rotation: pose.rotation };
+}
+
+function finiteGeometry(geometry: PieceGeometry | undefined): PieceGeometry | null {
+  if (!geometry || geometry.kind !== 'rectangle' || !Number.isFinite(geometry.width) ||
+      !Number.isFinite(geometry.height) || geometry.width < 0.25 || geometry.height < 0.25) return null;
+  const max = Math.min(geometry.width, geometry.height) / 2;
+  const radius = (value: number): number =>
+    Number.isFinite(value) ? Math.max(0, Math.min(max, value)) : 0;
+  return {
+    kind: 'rectangle', width: geometry.width, height: geometry.height,
+    cornerRadii: {
+      tl: radius(geometry.cornerRadii.tl), tr: radius(geometry.cornerRadii.tr),
+      br: radius(geometry.cornerRadii.br), bl: radius(geometry.cornerRadii.bl),
+    },
+  };
+}
+
+function samePose(a: PiecePose, b: PiecePose): boolean {
+  return a.x === b.x && a.y === b.y && a.rotation === b.rotation;
+}
+
+function sameGeometry(piece: Piece, geometry: PieceGeometry): boolean {
+  return piece.w === geometry.width && piece.h === geometry.height &&
+    piece.cornerRadii.tl === geometry.cornerRadii.tl &&
+    piece.cornerRadii.tr === geometry.cornerRadii.tr &&
+    piece.cornerRadii.br === geometry.cornerRadii.br &&
+    piece.cornerRadii.bl === geometry.cornerRadii.bl;
+}
+
+/** Apply resolved Piece geometry/pose changes without re-snapping or rounding them. */
+export function transformPieces(
+  layoutId: string,
+  patches: readonly PieceTransformPatch[],
+  options: TransformPiecesOptions = {},
+): AppCommand {
+  const prepared = patches.map((patch) => ({
+    id: patch.id,
+    geometry: finiteGeometry(patch.geometry),
+    designPose: finitePose(patch.designPose),
+    slabPose: finitePose(patch.slabPose),
+  }));
+  const label = options.label ?? 'Transform pieces';
+  return {
+    type: 'piece.transform', label, history: 'record', persistence: 'save',
+    reduce(state) {
+      const layout = state.project.layouts.find(item => item.id === layoutId);
+      if (!layout || !prepared.length) return state;
+      const byId = new Map(prepared.filter(patch => patch.id.trim()).map(patch => [patch.id, patch]));
+      const designMoving = new Set(prepared.filter(patch => patch.designPose).map(patch => patch.id));
+      let changed = false;
+      const nextPieces = layout.pieces.map(piece => {
+        const patch = byId.get(piece.id);
+        if (!patch) return piece;
+        let next = piece;
+        if (patch.geometry && !sameGeometry(next, patch.geometry)) {
+          next = { ...next, w: patch.geometry.width, h: patch.geometry.height,
+            cornerRadii: { ...patch.geometry.cornerRadii } };
+        }
+        if (patch.designPose) {
+          const current = { x: next.x, y: next.y, rotation: next.rotation };
+          if (!samePose(current, patch.designPose)) {
+            next = { ...next, x: patch.designPose.x, y: patch.designPose.y, rotation: patch.designPose.rotation };
+            if (next.attachment?.kind === 'backsplash' && next.attachment.snapped !== false &&
+                !designMoving.has(next.attachment.parentPieceId) &&
+                (current.x !== patch.designPose.x || current.y !== patch.designPose.y)) {
+              next = { ...next, attachment: { ...next.attachment, snapped: false } };
+            }
+          }
+        }
+        if (patch.slabPose && !samePose(next.slabPlacement, patch.slabPose)) {
+          next = { ...next, slabPlacement: { ...patch.slabPose } };
+        }
+        if (next !== piece) changed = true;
+        return next;
+      });
+      if (!changed) return state;
+      return replace(state, { ...layout, pieces: nextPieces });
     },
   };
 }

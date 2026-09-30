@@ -10,6 +10,7 @@ export type EdgeLabelMode = 'text' | 'symbol';
 
 export interface EditorPreferences {
   gridSnap: boolean;
+  pieceSnap: boolean;
   slabCutClearance: number;
   slabEdgeAllowance: number;
   defaultSlabW: number;

@@ -229,6 +229,7 @@ export function normalizeEditorPreferences(raw: unknown): EditorPreferences {
 
   return {
     gridSnap: booleanValue(source.gridSnap, defaults.gridSnap),
+    pieceSnap: booleanValue(source.pieceSnap, defaults.pieceSnap),
     slabCutClearance: clamp(finiteNumber(source.slabCutClearance, defaults.slabCutClearance), 0, 2),
     slabEdgeAllowance: clamp(finiteNumber(source.slabEdgeAllowance, defaults.slabEdgeAllowance), 0, 12),
     defaultSlabW: clamp(finiteNumber(source.defaultSlabW, defaults.defaultSlabW), 24, 240),
