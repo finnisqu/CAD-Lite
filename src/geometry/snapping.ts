@@ -255,15 +255,15 @@ export function smartSnapPoint(
 
   let best: SmartSnapPointHit | null = null;
 
-  candidates.forEach((candidate) => {
-    if (!candidate) return;
+  for (const candidate of candidates) {
+    if (!candidate) continue;
 
     const x = Number(candidate.x);
     const y = Number(candidate.y);
-    if (!Number.isFinite(x) || !Number.isFinite(y)) return;
+    if (!Number.isFinite(x) || !Number.isFinite(y)) continue;
 
     const distance = Math.hypot(x - point.x, y - point.y);
-    if (distance > tolerance) return;
+    if (distance > tolerance) continue;
 
     const next: SmartSnapPointHit = {
       ...candidate,
@@ -282,7 +282,7 @@ export function smartSnapPoint(
     ) {
       best = next;
     }
-  });
+  }
 
   if (best) return { point: best.point, hit: best };
 
