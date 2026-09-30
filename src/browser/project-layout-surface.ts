@@ -1526,7 +1526,7 @@ export class ProjectLayoutSurface {
       );
     });
 
-    mount.append(dims, lines, notes);
+    mount.append(notes, dims, lines);
   }
 
   private renderSelectedPieceGroup(
