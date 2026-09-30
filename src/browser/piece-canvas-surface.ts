@@ -803,20 +803,20 @@ export class PieceCanvasSurface {
       const witnessA = document.createElementNS(SVG_NS, 'line');
       witnessA.setAttribute('x1', String(dimension.x1));
       witnessA.setAttribute('y1', String(dimension.y1));
-      witnessA.setAttribute('x2', String(dimension.displayStart.x));
-      witnessA.setAttribute('y2', String(dimension.displayStart.y));
+      witnessA.setAttribute('x2', String(dimension.displayX1));
+      witnessA.setAttribute('y2', String(dimension.displayY1));
 
       const witnessB = document.createElementNS(SVG_NS, 'line');
       witnessB.setAttribute('x1', String(dimension.x2));
       witnessB.setAttribute('y1', String(dimension.y2));
-      witnessB.setAttribute('x2', String(dimension.displayEnd.x));
-      witnessB.setAttribute('y2', String(dimension.displayEnd.y));
+      witnessB.setAttribute('x2', String(dimension.displayX2));
+      witnessB.setAttribute('y2', String(dimension.displayY2));
 
       const line = document.createElementNS(SVG_NS, 'line');
-      line.setAttribute('x1', String(dimension.displayStart.x));
-      line.setAttribute('y1', String(dimension.displayStart.y));
-      line.setAttribute('x2', String(dimension.displayEnd.x));
-      line.setAttribute('y2', String(dimension.displayEnd.y));
+      line.setAttribute('x1', String(dimension.displayX1));
+      line.setAttribute('y1', String(dimension.displayY1));
+      line.setAttribute('x2', String(dimension.displayX2));
+      line.setAttribute('y2', String(dimension.displayY2));
 
       [witnessA, witnessB, line].forEach((item) => {
         item.setAttribute(
@@ -830,11 +830,11 @@ export class PieceCanvasSurface {
       const label = document.createElementNS(SVG_NS, 'text');
       label.setAttribute(
         'x',
-        String((dimension.displayStart.x + dimension.displayEnd.x) / 2),
+        String((dimension.displayX1 + dimension.displayX2) / 2),
       );
       label.setAttribute(
         'y',
-        String((dimension.displayStart.y + dimension.displayEnd.y) / 2 - 4 * unit),
+        String((dimension.displayY1 + dimension.displayY2) / 2 - 4 * unit),
       );
       label.setAttribute('text-anchor', 'middle');
       label.setAttribute('font-size', String(11 * unit));
