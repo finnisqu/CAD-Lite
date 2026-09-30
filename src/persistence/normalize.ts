@@ -137,10 +137,13 @@ const KNOWN_LAYOUT_KEYS = new Set([
   'roomFeatures',
   'plan',
   'overlays',
+  'extra',
 ]);
 
 function layoutExtra(source: JsonObject): JsonObject {
-  const extra: JsonObject = {};
+  const extra: JsonObject = isJsonObject(source.extra)
+    ? cloneJson(source.extra)
+    : {};
 
   Object.entries(source).forEach(([key, value]) => {
     if (!KNOWN_LAYOUT_KEYS.has(key)) extra[key] = cloneJson(value);
