@@ -2,7 +2,7 @@ import { clamp, normalizeDegrees, round3 } from '../../core/numeric';
 import { rotateVector, rotatedRectBoundingSize } from '../../geometry';
 import type { Workspace } from '../../persistence';
 import type { Layout } from '../project/types';
-import { cloneJson, isJsonObject } from '../types';
+import { cloneJson, isJsonObject, type JsonValue } from '../types';
 import { pieceGeometry, piecePose } from './factory';
 import {
   clampPiecePoseToWorkspace,
@@ -272,20 +272,26 @@ export function nudgePieceGroup(
     });
 }
 
-function swapTopBottom(value: unknown): unknown {
-  return value === 'top' ? 'bottom' : value === 'bottom' ? 'top' : value;
+function swapTopBottom(value: JsonValue | undefined): JsonValue {
+  if (value === 'top') return 'bottom';
+  if (value === 'bottom') return 'top';
+  return value ?? null;
 }
 
-function swapLeftRight(value: unknown): unknown {
-  return value === 'left' ? 'right' : value === 'right' ? 'left' : value;
+function swapLeftRight(value: JsonValue | undefined): JsonValue {
+  if (value === 'left') return 'right';
+  if (value === 'right') return 'left';
+  return value ?? null;
 }
 
-function swapFrontBack(value: unknown): unknown {
-  return value === 'front' ? 'back' : value === 'back' ? 'front' : value;
+function swapFrontBack(value: JsonValue | undefined): JsonValue {
+  if (value === 'front') return 'back';
+  if (value === 'back') return 'front';
+  return value ?? null;
 }
 
-function mirrorFaucets(value: unknown): number[] | unknown {
-  if (!Array.isArray(value)) return value;
+function mirrorFaucets(value: JsonValue | undefined): JsonValue {
+  if (!Array.isArray(value)) return value ?? null;
   return value
     .map((item) => {
       const index = Math.max(0, Math.min(8, Math.round(Number(item) || 0)));

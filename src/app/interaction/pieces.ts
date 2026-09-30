@@ -2,12 +2,16 @@ import { clamp, round3 } from '../../core/numeric';
 import {
   fabricationAssemblyIds,
   isBacksplashPiece,
+  nudgePieceGroup,
   pieceGeometry,
   pieceGroupMembers,
   piecePose,
   piecePoseBounds,
   pieceProjectedSpan,
+  pieceRotationFamilyIds,
+  pieceTransformGroupCenter,
   pieceWorkspaceCanvasSize,
+  rotatePieceGroup,
   resizePieceGeometry,
   type Piece,
   type PieceGeometry,
@@ -61,7 +65,7 @@ export interface PieceInteractionPreviewItem {
 }
 
 export interface PieceInteractionPreview {
-  kind: 'move' | 'resize';
+  kind: 'move' | 'resize' | 'rotate' | 'nudge';
   layoutId: string;
   workspace: Workspace;
   pieces: PieceInteractionPreviewItem[];
@@ -120,6 +124,21 @@ interface ResizeSession {
   preview: PieceInteractionPreview | null;
 }
 
+interface RotateSession {
+  kind: 'rotate';
+  layoutId: string;
+  workspace: Workspace;
+  pointerId: number;
+  start: { x: number; y: number };
+  scale: number;
+  moved: boolean;
+  ids: string[];
+  center: { x: number; y: number };
+  startPointer: number;
+  startPrimaryRotation: number;
+  preview: PieceInteractionPreview | null;
+}
+
 interface BlankSession {
   kind: 'blank';
   layoutId: string | null;
@@ -130,7 +149,21 @@ interface BlankSession {
   moved: boolean;
 }
 
-type PiecePointerSession = MoveSession | ResizeSession | BlankSession;
+interface NudgeSession {
+  layoutId: string;
+  workspace: Workspace;
+  key: string;
+  ids: string[];
+  dx: number;
+  dy: number;
+  preview: PieceInteractionPreview | null;
+}
+
+type PiecePointerSession =
+  | MoveSession
+  | ResizeSession
+  | RotateSession
+  | BlankSession;
 
 function activeLayout(
   state: ReadonlyApplicationState,
@@ -1004,6 +1037,136 @@ export function previewPieceResize(
   };
 }
 
+export function createPieceRotateSession(
+  state: ReadonlyApplicationState,
+  input: ToolPointerInput,
+): RotateSession | null {
+  const layout = activeLayout(state);
+  const selection = state.session.selection;
+  if (!layout || selection.kind !== 'pieces' || !selection.ids.length) {
+    return null;
+  }
+
+  const workspace = state.session.workspace;
+  const ids = pieceRotationFamilyIds(
+    layout,
+    selection.ids,
+    workspace,
+  );
+  const center = pieceTransformGroupCenter(layout, ids, workspace);
+  const primary = layout.pieces.find((piece) => piece.id === ids[0]);
+  if (!center || !primary) return null;
+
+  const primaryPose = piecePose(primary, workspace);
+  return {
+    kind: 'rotate',
+    layoutId: layout.id,
+    workspace,
+    pointerId: input.pointerId,
+    start: { x: input.x, y: input.y },
+    scale: Math.max(0.001, Math.abs(layout.scale || 1)),
+    moved: false,
+    ids,
+    center,
+    startPointer:
+      Math.atan2(input.y - center.y, input.x - center.x) *
+      180 / Math.PI,
+    startPrimaryRotation: primaryPose.rotation,
+    preview: null,
+  };
+}
+
+function signedAngleDelta(value: number): number {
+  return ((value + 540) % 360) - 180;
+}
+
+function resolvedRotationDelta(
+  session: RotateSession,
+  input: ToolPointerInput,
+): number {
+  const current =
+    Math.atan2(
+      input.y - session.center.y,
+      input.x - session.center.x,
+    ) * 180 / Math.PI;
+  let delta = signedAngleDelta(current - session.startPointer);
+  let angle = session.startPrimaryRotation + delta;
+
+  if (input.modifiers.shift) {
+    angle = Math.round(angle / 90) * 90;
+    delta = angle - session.startPrimaryRotation;
+  } else if (!input.modifiers.alt) {
+    const snapAngle = Math.round(angle / 90) * 90;
+    if (Math.abs(angle - snapAngle) <= 5) {
+      angle = snapAngle;
+      delta = angle - session.startPrimaryRotation;
+    }
+  }
+
+  return delta;
+}
+
+export function previewPieceRotation(
+  state: ReadonlyApplicationState,
+  session: RotateSession,
+  input: ToolPointerInput,
+): PieceInteractionPreview | null {
+  const layout = activeLayout(state);
+  if (
+    !layout ||
+    layout.id !== session.layoutId ||
+    state.session.workspace !== session.workspace
+  ) {
+    return null;
+  }
+
+  const delta = resolvedRotationDelta(session, input);
+  const updates = rotatePieceGroup(
+    layout,
+    session.ids,
+    session.workspace,
+    delta,
+  );
+  if (!updates.length) return null;
+
+  return {
+    kind: 'rotate',
+    layoutId: layout.id,
+    workspace: session.workspace,
+    pieces: updates.map((update) => ({
+      id: update.id,
+      pose: update.pose,
+    })),
+    guideX: null,
+    guideY: null,
+  };
+}
+
+export function previewPieceNudge(
+  state: ReadonlyApplicationState,
+  ids: readonly string[],
+  workspace: Workspace,
+  dx: number,
+  dy: number,
+): PieceInteractionPreview | null {
+  const layout = activeLayout(state);
+  if (!layout || state.session.workspace !== workspace) return null;
+  const updates = nudgePieceGroup(layout, ids, workspace, dx, dy);
+  if (!updates.length) return null;
+
+  return {
+    kind: 'nudge',
+    layoutId: layout.id,
+    workspace,
+    pieces: updates.map((update) => ({
+      id: update.id,
+      pose: update.pose,
+    })),
+    guideX: null,
+    guideY: null,
+  };
+}
+
 function previewJson(
   preview: PieceInteractionPreview | null,
 ): JsonValue {
@@ -1095,6 +1258,7 @@ function transformPatches(
 
 export class PieceInteractionController {
   private session: PiecePointerSession | null = null;
+  private nudge: NudgeSession | null = null;
 
   constructor(
     private readonly store: AppStore,
@@ -1106,17 +1270,31 @@ export class PieceInteractionController {
   }
 
   getPreview(): PieceInteractionPreview | null {
-    const session = this.session;
-    if (!session || session.kind === 'blank') return null;
     const state = this.store.getState();
-    if (
-      state.session.activeLayoutId !== session.layoutId ||
-      state.session.workspace !== session.workspace
-    ) {
-      this.session = null;
-      return null;
+    const session = this.session;
+    if (session && session.kind !== 'blank') {
+      if (
+        state.session.activeLayoutId !== session.layoutId ||
+        state.session.workspace !== session.workspace
+      ) {
+        this.session = null;
+        return null;
+      }
+      return session.preview;
     }
-    return session.preview;
+
+    if (this.nudge) {
+      if (
+        state.session.activeLayoutId !== this.nudge.layoutId ||
+        state.session.workspace !== this.nudge.workspace
+      ) {
+        this.nudge = null;
+        return null;
+      }
+      return this.nudge.preview;
+    }
+
+    return null;
   }
 
   beginPiece(
@@ -1200,6 +1378,66 @@ export class PieceInteractionController {
     return true;
   }
 
+  beginRotate(input: ToolPointerInput): boolean {
+    const state = this.store.getState();
+    if (
+      state.session.interaction.activeTool ||
+      input.button !== 0 ||
+      this.nudge
+    ) {
+      return false;
+    }
+
+    const session = createPieceRotateSession(state, input);
+    if (!session) return false;
+    this.session = session;
+    this.commands.execute(
+      replaceInteractionState(
+        pointerState(
+          state.session.interaction,
+          session,
+          input,
+          null,
+        ),
+      ),
+    );
+    return true;
+  }
+
+  rotateSelectionBy(deltaDegrees: number): boolean {
+    if (!Number.isFinite(deltaDegrees) || this.session || this.nudge) {
+      return false;
+    }
+    const state = this.store.getState();
+    if (state.session.interaction.activeTool) return false;
+    const layout = activeLayout(state);
+    const selection = state.session.selection;
+    if (!layout || selection.kind !== 'pieces') return false;
+
+    const updates = rotatePieceGroup(
+      layout,
+      selection.ids,
+      state.session.workspace,
+      deltaDegrees,
+    );
+    if (!updates.length) return false;
+
+    return (
+      this.commands.execute(
+        transformPieces(
+          layout.id,
+          updates.map((update) => ({
+            id: update.id,
+            ...(state.session.workspace === 'slab'
+              ? { slabPose: update.pose }
+              : { designPose: update.pose }),
+          })),
+          { label: 'Rotate pieces' },
+        ),
+      ) !== null
+    );
+  }
+
   beginBlank(input: ToolPointerInput): boolean {
     const state = this.store.getState();
     if (
@@ -1263,7 +1501,9 @@ export class PieceInteractionController {
     const preview =
       session.kind === 'move'
         ? previewPieceMove(state, session, input)
-        : previewPieceResize(state, session, input);
+        : session.kind === 'resize'
+          ? previewPieceResize(state, session, input)
+          : previewPieceRotation(state, session, input);
     if (!preview) {
       this.cancel();
       return false;
@@ -1272,7 +1512,7 @@ export class PieceInteractionController {
     session.preview = preview;
     if (session.kind === 'move') {
       session.moved = true;
-    } else {
+    } else if (session.kind === 'resize') {
       const item = preview.pieces[0];
       session.moved = Boolean(
         item?.geometry &&
@@ -1283,6 +1523,9 @@ export class PieceInteractionController {
               item.geometry.height - session.geometry.height,
             ) > 0.001),
       );
+    } else {
+      session.moved =
+        Math.abs(resolvedRotationDelta(session, input)) > 0.001;
     }
 
     const interaction = state.session.interaction;
@@ -1344,7 +1587,11 @@ export class PieceInteractionController {
     }
 
     const label =
-      session.kind === 'resize' ? 'Resize piece' : 'Move pieces';
+      session.kind === 'resize'
+        ? 'Resize piece'
+        : session.kind === 'rotate'
+          ? 'Rotate pieces'
+          : 'Move pieces';
     return (
       this.commands.executeTransaction(
         label,
@@ -1360,10 +1607,110 @@ export class PieceInteractionController {
     );
   }
 
-  cancel(): boolean {
-    const session = this.session;
+  nudgeKeyDown(key: string, shiftKey = false): boolean {
+    if (this.session) return false;
+    const state = this.store.getState();
+    if (state.session.interaction.activeTool) return false;
+    const selection = state.session.selection;
+    const layout = activeLayout(state);
+    if (!layout || selection.kind !== 'pieces' || !selection.ids.length) {
+      return false;
+    }
+
+    let direction = { x: 0, y: 0 };
+    if (key === 'ArrowLeft') direction = { x: -1, y: 0 };
+    else if (key === 'ArrowRight') direction = { x: 1, y: 0 };
+    else if (key === 'ArrowUp') direction = { x: 0, y: -1 };
+    else if (key === 'ArrowDown') direction = { x: 0, y: 1 };
+    else return false;
+
+    if (this.nudge && this.nudge.key !== key) {
+      this.commitNudge();
+    }
+
+    const current = this.store.getState();
+    const currentLayout = activeLayout(current);
+    const currentSelection = current.session.selection;
+    if (
+      !currentLayout ||
+      currentSelection.kind !== 'pieces' ||
+      !currentSelection.ids.length
+    ) {
+      return false;
+    }
+
+    if (!this.nudge) {
+      this.nudge = {
+        layoutId: currentLayout.id,
+        workspace: current.session.workspace,
+        key,
+        ids: [...currentSelection.ids],
+        dx: 0,
+        dy: 0,
+        preview: null,
+      };
+    }
+
+    const step = (shiftKey ? 4 : 1) * currentLayout.grid;
+    this.nudge.dx += direction.x * step;
+    this.nudge.dy += direction.y * step;
+    const preview = previewPieceNudge(
+      current,
+      this.nudge.ids,
+      this.nudge.workspace,
+      this.nudge.dx,
+      this.nudge.dy,
+    );
+    if (!preview) return false;
+    this.nudge.preview = preview;
+
+    this.commands.execute(
+      replaceInteractionState({
+        ...current.session.interaction,
+        pointer: null,
+        preview: previewJson(preview),
+      }),
+    );
+    return true;
+  }
+
+  nudgeKeyUp(key: string): boolean {
+    if (!this.nudge || this.nudge.key !== key) return false;
+    return this.commitNudge();
+  }
+
+  private commitNudge(): boolean {
+    const session = this.nudge;
     if (!session) return false;
+    this.nudge = null;
+
+    const state = this.store.getState();
+    const cleanup = replaceInteractionState(
+      clearPointerState(state.session.interaction),
+    );
+    if (!session.preview) {
+      return this.commands.execute(cleanup) !== null;
+    }
+
+    return (
+      this.commands.executeTransaction(
+        'Nudge pieces',
+        [
+          transformPieces(
+            session.layoutId,
+            transformPatches(session.preview),
+            { label: 'Nudge pieces' },
+          ),
+          cleanup,
+        ],
+      ) !== null
+    );
+  }
+
+  cancel(): boolean {
+    if (!this.session && !this.nudge) return false;
     this.session = null;
+    this.nudge = null;
     const interaction = this.store.getState().session.interaction;
     return (
       this.commands.execute(
