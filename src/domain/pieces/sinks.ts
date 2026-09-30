@@ -244,13 +244,13 @@ export function updatePieceSink(
 
   if (validShape(patch.shape)) next.shape = patch.shape;
   if (Number.isFinite(patch.w)) {
-    next.w = clamp(round3(patch.w as number), 0, 999);
+    next.w = clamp(round3(patch.w), 0, 999);
   }
   if (Number.isFinite(patch.h)) {
-    next.h = clamp(round3(patch.h as number), 0, 999);
+    next.h = clamp(round3(patch.h), 0, 999);
   }
   if (Number.isFinite(patch.cornerR)) {
-    next.cornerR = clamp(round3(patch.cornerR as number), 0, 4);
+    next.cornerR = clamp(round3(patch.cornerR), 0, 4);
   }
 
   if (validSide(patch.side)) {
@@ -266,14 +266,14 @@ export function updatePieceSink(
   }
 
   if (Number.isFinite(patch.centerline)) {
-    next.centerline = round3(patch.centerline as number);
+    next.centerline = round3(patch.centerline);
   }
   if (Number.isFinite(patch.setback)) {
-    next.setback = clamp(round3(patch.setback as number), 0, 999);
+    next.setback = clamp(round3(patch.setback), 0, 999);
   }
   if (Number.isFinite(patch.rotation)) {
     next.rotation = clamp(
-      Math.round(patch.rotation as number),
+      Math.round(patch.rotation),
       0,
       360,
     );
@@ -284,19 +284,19 @@ export function updatePieceSink(
   if (Number.isFinite(patch.faucetSetback)) {
     next.faucetSetback = Math.max(
       0,
-      round3(patch.faucetSetback as number),
+      round3(patch.faucetSetback),
     );
   }
   if (Number.isFinite(patch.faucetHoleDiameter)) {
     next.faucetHoleDiameter = Math.max(
       0.001,
-      round3(patch.faucetHoleDiameter as number),
+      round3(patch.faucetHoleDiameter),
     );
   }
   if (Number.isFinite(patch.faucetHoleSpacing)) {
     next.faucetHoleSpacing = Math.max(
       0.001,
-      round3(patch.faucetHoleSpacing as number),
+      round3(patch.faucetHoleSpacing),
     );
   }
   if (validFinish(patch.insideFinish)) {
