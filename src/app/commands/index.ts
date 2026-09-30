@@ -40,3 +40,5 @@ export type {
   CommandSummary,
 } from './types';
 export { summarizeCommand } from './types';
+
+export { addPiece, deletePieces, duplicatePieces, renamePiece, updatePieceProperties } from './pieces';

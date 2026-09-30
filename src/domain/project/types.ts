@@ -1,3 +1,4 @@
+import type { Piece } from '../pieces/types';
 import type { EntityId, JsonObject, JsonValue } from '../types';
 
 export interface ProjectMeta {
@@ -39,7 +40,7 @@ export interface Layout {
   pieceFillOpacity: number;
   areas: Area[];
   activeAreaId: EntityId;
-  pieces: PersistedEntity[];
+  pieces: Piece[];
   dims: PersistedEntity[];
   notes: PersistedEntity[];
   lines: PersistedEntity[];

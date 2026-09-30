@@ -20,3 +20,5 @@ export type {
 } from './domain/types';
 export * from './geometry';
 export * from './persistence';
+
+export * from './domain/pieces';

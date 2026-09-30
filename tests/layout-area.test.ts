@@ -1,3 +1,4 @@
+import { normalizePieces } from '../src/persistence/pieces';
 import { describe, expect, it } from 'vitest';
 
 import {
@@ -17,7 +18,7 @@ import {
   reorderLayouts,
   setActiveArea,
   setActiveLayout,
-  type PersistedEntity,
+  type Piece,
 } from '../src/main';
 import { v159ProjectFixture } from './fixtures/v159-project';
 
@@ -29,8 +30,8 @@ function setup() {
   return { store, commands };
 }
 
-function kitchenPieces(): PersistedEntity[] {
-  return [
+function kitchenPieces(): Piece[] {
+  return normalizePieces([
     {
       id: 'piece-a',
       name: 'A',
@@ -58,7 +59,7 @@ function kitchenPieces(): PersistedEntity[] {
       name: 'C',
       areaId: 'area-island',
     },
-  ];
+  ], ['area-kitchen', 'area-island'], 'test-piece');
 }
 
 describe('Layout commands', () => {

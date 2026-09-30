@@ -1,60 +1,22 @@
-import type { JsonObject, JsonValue } from '../types';
-import type { Layout, PersistedEntity } from './types';
+import type { Piece } from '../pieces/types';
+import { pieceId, pieceGroupId, isBacksplashPiece, backsplashParentId } from '../pieces/relationships';
+import type { Layout } from './types';
+export { pieceId, pieceGroupId, isBacksplashPiece, backsplashParentId } from '../pieces/relationships';
 
-function stringValue(value: JsonValue | undefined): string | null {
+function stringValue(value: unknown): string | null {
   return typeof value === 'string' && value.length > 0 ? value : null;
-}
-
-function nestedObject(
-  entity: PersistedEntity,
-  key: string,
-): JsonObject | null {
-  const value = entity[key];
-  return typeof value === 'object' && value !== null && !Array.isArray(value)
-    ? value
-    : null;
-}
-
-export function pieceId(piece: PersistedEntity): string | null {
-  return stringValue(piece.id);
-}
-
-export function pieceGroupId(piece: PersistedEntity): string | null {
-  return stringValue(piece.pieceGroupId);
-}
-
-export function isBacksplashPiece(piece: PersistedEntity): boolean {
-  if (piece.pieceType === 'backsplash') return true;
-
-  const tags = piece.tags;
-  if (
-    Array.isArray(tags) &&
-    tags.some((tag) => tag === 'backsplash')
-  ) {
-    return true;
-  }
-
-  return nestedObject(piece, 'attachment')?.kind === 'backsplash';
-}
-
-export function backsplashParentId(
-  piece: PersistedEntity,
-): string | null {
-  const attachment = nestedObject(piece, 'attachment');
-  if (attachment?.kind !== 'backsplash') return null;
-  return stringValue(attachment.parentPieceId);
 }
 
 export function resolvedPieceAreaId(
   layout: Layout,
-  piece: PersistedEntity,
+  piece: Piece,
 ): string | null {
   const validAreaIds = new Set(layout.areas.map((area) => area.id));
   const byId = new Map(
     layout.pieces
       .map((candidate) => [pieceId(candidate), candidate] as const)
       .filter(
-        (entry): entry is readonly [string, PersistedEntity] =>
+        (entry): entry is readonly [string, Piece] =>
           entry[0] !== null,
       ),
   );
@@ -96,7 +58,7 @@ export function resolvePieceAreaFamilyIds(
     layout.pieces
       .map((piece) => [pieceId(piece), piece] as const)
       .filter(
-        (entry): entry is readonly [string, PersistedEntity] =>
+        (entry): entry is readonly [string, Piece] =>
           entry[0] !== null,
       ),
   );

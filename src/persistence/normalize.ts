@@ -1,3 +1,4 @@
+import { normalizePieces } from './pieces';
 import { clamp } from '../core/numeric';
 import type { JsonObject, JsonValue } from '../domain/types';
 import { cloneJson, isJsonObject } from '../domain/types';
@@ -172,7 +173,7 @@ export function normalizeLayout(raw: unknown, index: number): Layout {
     pieceFillOpacity: clamp(finiteNumber(source.pieceFillOpacity, 1), 0, 1),
     areas: normalizedAreas.areas,
     activeAreaId,
-    pieces: normalizeEntityList(source.pieces, `layout-${index + 1}-piece`),
+    pieces: normalizePieces(source.pieces, normalizedAreas.areas.map(area => area.id), `migrated-layout-${index + 1}-piece`),
     dims: normalizeEntityList(source.dims, `layout-${index + 1}-dim`),
     notes: normalizeEntityList(source.notes, `layout-${index + 1}-note`),
     lines: normalizeEntityList(source.lines, `layout-${index + 1}-line`),

@@ -39,7 +39,11 @@ function projectFromSnapshot(
   return {
     ...current,
     materials: cloneValue(snapshot.materials),
-    layouts: cloneValue(snapshot.layouts),
+    layouts: cloneValue(snapshot.layouts).map(layout => {
+      const currentArea = current.layouts.find(item => item.id === layout.id)?.activeAreaId;
+      return currentArea && layout.areas.some(area => area.id === currentArea)
+        ? { ...layout, activeAreaId: currentArea } : layout;
+    }),
   };
 }
 
@@ -80,7 +84,7 @@ export function captureHistorySnapshot(
 export function historySnapshotSignature(snapshot: HistorySnapshot): string {
   return JSON.stringify({
     materials: snapshot.materials,
-    layouts: snapshot.layouts,
+    layouts: snapshot.layouts.map(layout => ({ ...layout, activeAreaId: null })),
     workspace: snapshot.workspace,
   });
 }

@@ -1,3 +1,4 @@
+import { createPiece } from '../src/domain/pieces';
 import { describe, expect, it } from 'vitest';
 
 import {
@@ -33,7 +34,7 @@ describe('selection controller', () => {
   it('toggles additive Piece selection without duplicates', () => {
     const { store, selection } = setup();
     const layout = store.getState().project.layouts[0];
-    layout?.pieces.push({ id: 'piece-2' });
+    if (layout) layout.pieces.push(createPiece(layout, 'piece-2'));
 
     selection.selectPiece('piece-1');
     selection.selectPiece('piece-2', true);
@@ -45,7 +46,7 @@ describe('selection controller', () => {
   it('supports deterministic Piece range selection in layout order', () => {
     const { store, selection } = setup();
     const layout = store.getState().project.layouts[0];
-    layout?.pieces.push({ id: 'piece-2' }, { id: 'piece-3' });
+    if (layout) layout.pieces.push(createPiece(layout, 'piece-2'), createPiece(layout, 'piece-3'));
 
     selection.selectPieceRange('piece-1', 'piece-3');
 

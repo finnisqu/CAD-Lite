@@ -1,3 +1,4 @@
+import { createPiece } from '../src/domain/pieces';
 import { describe, expect, it } from 'vitest';
 
 import {
@@ -44,7 +45,7 @@ function addPiece(id: string): AppCommand {
       const layouts = [...state.project.layouts];
       layouts[layoutIndex] = {
         ...layout,
-        pieces: [...layout.pieces, { id }],
+        pieces: [...layout.pieces, createPiece(layout, id)],
       };
 
       return {
