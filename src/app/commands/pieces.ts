@@ -5,6 +5,8 @@ import {
   deletePieceSeam, deletePieceSink, duplicatePieceCutout,
   duplicatePieceSink, getPieceDeletionPlan,
   MAX_SINKS_PER_PIECE,
+  isBacksplashPiece, isFabricationAssemblyGroup, nextPieceGroupName,
+  normalizePieceGroupMembership, pieceGroupMembersById,
   mirrorPiecesInLayout, resizePieceDimensionInLayout, updatePieceSeam,
   updatePieceCutout, updatePieceSink,
   type Piece, type PieceCutoutKind, type PieceCutoutPatch,
@@ -516,6 +518,120 @@ export function applyFabricationTransaction(
           ids: [...prepared.selectionIds],
         },
       );
+    },
+  };
+}
+
+
+export function groupPieces(
+  layoutId: string,
+  requestedIds: readonly string[],
+  groupId: string,
+  name?: string,
+): AppCommand {
+  const ids = [...new Set(requestedIds)];
+  const nextId = groupId.trim();
+  return {
+    type: 'piece.group',
+    label: 'Group pieces',
+    history: 'record',
+    persistence: 'save',
+    reduce(state) {
+      if (state.session.workspace === 'slab' || !nextId) return state;
+      const layout = state.project.layouts.find(item => item.id === layoutId);
+      if (!layout || layout.pieces.some(piece => piece.pieceGroupId === nextId)) {
+        return state;
+      }
+      const members = layout.pieces.filter(
+        piece => ids.includes(piece.id) && !isBacksplashPiece(piece),
+      );
+      if (members.length < 2) return state;
+      const memberIds = new Set(members.map(piece => piece.id));
+      const groupName = name?.trim() || nextPieceGroupName(layout.pieces);
+      const grouped = layout.pieces.map(piece =>
+        memberIds.has(piece.id)
+          ? {
+              ...piece,
+              pieceGroupId: nextId,
+              pieceGroupName: groupName,
+            }
+          : piece,
+      );
+      const pieces = normalizePieceGroupMembership(grouped);
+      return replace(
+        state,
+        { ...layout, pieces },
+        { kind: 'pieces', ids: pieces.filter(piece => piece.pieceGroupId === nextId).map(piece => piece.id) },
+      );
+    },
+  };
+}
+
+export function renamePieceGroup(
+  layoutId: string,
+  groupId: string,
+  name: string,
+): AppCommand {
+  const nextName = name.trim();
+  return {
+    type: 'piece.group.rename',
+    label: 'Rename piece group',
+    history: 'record',
+    persistence: 'save',
+    reduce(state) {
+      if (!nextName) return state;
+      const layout = state.project.layouts.find(item => item.id === layoutId);
+      if (!layout) return state;
+      const members = pieceGroupMembersById(layout.pieces, groupId);
+      if (members.length < 2) return state;
+      let changed = false;
+      const pieces = layout.pieces.map(piece => {
+        if (piece.pieceGroupId !== groupId || piece.pieceGroupName === nextName) {
+          return piece;
+        }
+        changed = true;
+        return { ...piece, pieceGroupName: nextName };
+      });
+      return changed ? replace(state, { ...layout, pieces }) : state;
+    },
+  };
+}
+
+export function ungroupPieceGroups(
+  layoutId: string,
+  groupIds: readonly string[],
+): AppCommand {
+  const ids = new Set(groupIds.filter(Boolean));
+  return {
+    type: 'piece.group.ungroup',
+    label: 'Ungroup pieces',
+    history: 'record',
+    persistence: 'save',
+    reduce(state) {
+      if (state.session.workspace === 'slab' || !ids.size) return state;
+      const layout = state.project.layouts.find(item => item.id === layoutId);
+      if (!layout) return state;
+      const allowed = new Set(
+        [...ids].filter(
+          id => !isFabricationAssemblyGroup(layout.pieces, id),
+        ),
+      );
+      if (!allowed.size) return state;
+      let changed = false;
+      const pieces = layout.pieces.map(piece => {
+        if (!piece.pieceGroupId || !allowed.has(piece.pieceGroupId)) {
+          return piece;
+        }
+        changed = true;
+        return {
+          ...piece,
+          pieceGroupId: null,
+          pieceGroupName: null,
+        };
+      });
+      return changed
+        ? replace(state, { ...layout, pieces: normalizePieceGroupMembership(pieces) })
+        : state;
     },
   };
 }

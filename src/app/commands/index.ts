@@ -54,13 +54,16 @@ export {
   editPieceCutout,
   editPieceSeam,
   editPieceSink,
+  groupPieces,
   mirrorPieces,
   removePieceCutout,
   removePieceSeam,
   removePieceSink,
   renamePiece,
+  renamePieceGroup,
   resizePieceDimension,
   transformPieces,
+  ungroupPieceGroups,
   updatePieceProperties,
 } from './pieces';
 export type { PieceTransformPatch, TransformPiecesOptions } from './pieces';
