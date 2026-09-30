@@ -7,6 +7,7 @@ import {
   assignPiecesToArea, createEmptyLayout, createPiece, pieceGeometry,
   pieceLifecycleFamilyIds, getPieceDeletionPlan, preparePieceDuplication,
   validatePieceRelationships, deserializeCadLiteFile, serializeCadLiteFile,
+  normalizeCanvasNotes, normalizeDimensions, normalizeDrawingLines,
 } from '../src/main';
 import { normalizePieces } from '../src/persistence/pieces';
 import { v159ProjectFixture } from './fixtures/v159-project';
@@ -32,12 +33,17 @@ function graph() {
     },
     { id: 'other', name: 'Other', areaId: 'b' },
   ], ['a','b'], 'fixture');
-  layout.notes = [
+  layout.notes = normalizeCanvasNotes([
     { id: 'radius', annotationType: 'radius', radiusRef: { pieceId: 'p', kind: 'sink', sinkId: 'sink' } },
     { id: 'independent', text: 'Keep' },
-  ];
-  layout.lines = [{ id: 'leader', attachedNoteId: 'radius' }, { id: 'line', x1: 0 }];
-  layout.dims = [{ id: 'dim', x1: 0, x2: 81.997 }];
+  ]);
+  layout.lines = normalizeDrawingLines([
+    { id: 'leader', attachedNoteId: 'radius' },
+    { id: 'line', x1: 0 },
+  ]);
+  layout.dims = normalizeDimensions([
+    { id: 'dim', x1: 0, x2: 81.997 },
+  ]);
   return layout;
 }
 function setup(workspace: 'design' | 'slab' = 'design') {
