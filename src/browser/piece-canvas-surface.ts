@@ -21,6 +21,11 @@ import {
   hitTestSlabCanvas,
   type PieceCanvasProjection,
 } from './piece-canvas-model';
+import {
+  createAnnotationCanvasProjection,
+  hitTestAnnotations,
+  type AnnotationCanvasProjection,
+} from './annotation-canvas-model';
 
 const SVG_NS = 'http://www.w3.org/2000/svg';
 
@@ -251,12 +256,14 @@ export class PieceCanvasSurface {
 
   render(): void {
     const preview = this.interaction.getPreview();
+    const state = this.store.getState();
     const projection = createPieceCanvasProjection(
-      this.store.getState(),
+      state,
       preview?.pieces ?? [],
     );
+    const annotations = createAnnotationCanvasProjection(state);
     this.renderWorkspaceControls(projection);
-    this.renderSvg(projection);
+    this.renderSvg(projection, annotations);
   }
 
   private renderInvalidation(batch: ViewInvalidationBatch): void {
@@ -342,6 +349,19 @@ export class PieceCanvasSurface {
 
     if (!handled && !rotate) {
       const point = { x: input.x, y: input.y };
+      if (projection.workspace === 'design') {
+        const annotation = hitTestAnnotations(
+          createAnnotationCanvasProjection(this.store.getState()),
+          point,
+          projection.scale,
+        );
+        if (annotation) {
+          this.commands.execute(setSelection(annotation));
+          event.preventDefault();
+          this.render();
+          return;
+        }
+      }
       const hit = hitTestPieceCanvas(projection, point);
       if (hit) {
         handled = this.interaction.beginPiece(hit.id, input);
@@ -542,7 +562,10 @@ export class PieceCanvasSurface {
       ' px/in';
   }
 
-  private renderSvg(projection: PieceCanvasProjection): void {
+  private renderSvg(
+    projection: PieceCanvasProjection,
+    annotations: AnnotationCanvasProjection,
+  ): void {
     const svg = this.svg;
     if (!svg) return;
 
@@ -750,9 +773,156 @@ export class PieceCanvasSurface {
       svg.appendChild(group);
     });
 
+    this.renderAnnotations(document, svg, projection, annotations);
     this.renderSnapGuides(document, svg, projection);
     this.renderResizeHandles(document, svg, projection);
     this.renderRotateHandle(document, svg, projection);
+  }
+
+  private renderAnnotations(
+    document: Document,
+    svg: SVGSVGElement,
+    projection: PieceCanvasProjection,
+    annotations: AnnotationCanvasProjection,
+  ): void {
+    if (projection.workspace !== 'design') return;
+
+    const unit = 1 / Math.max(0.001, projection.scale);
+    const layer = document.createElementNS(SVG_NS, 'g');
+    layer.setAttribute('class', 'lc-annotations-layer');
+    layer.setAttribute('pointer-events', 'none');
+
+    annotations.dimensions.forEach((dimension) => {
+      const group = document.createElementNS(SVG_NS, 'g');
+      group.setAttribute(
+        'class',
+        'lc-manual-dimension' + (dimension.selected ? ' selected' : ''),
+      );
+      group.setAttribute('data-dimension-id', dimension.id);
+
+      const witnessA = document.createElementNS(SVG_NS, 'line');
+      witnessA.setAttribute('x1', String(dimension.x1));
+      witnessA.setAttribute('y1', String(dimension.y1));
+      witnessA.setAttribute('x2', String(dimension.displayStart.x));
+      witnessA.setAttribute('y2', String(dimension.displayStart.y));
+
+      const witnessB = document.createElementNS(SVG_NS, 'line');
+      witnessB.setAttribute('x1', String(dimension.x2));
+      witnessB.setAttribute('y1', String(dimension.y2));
+      witnessB.setAttribute('x2', String(dimension.displayEnd.x));
+      witnessB.setAttribute('y2', String(dimension.displayEnd.y));
+
+      const line = document.createElementNS(SVG_NS, 'line');
+      line.setAttribute('x1', String(dimension.displayStart.x));
+      line.setAttribute('y1', String(dimension.displayStart.y));
+      line.setAttribute('x2', String(dimension.displayEnd.x));
+      line.setAttribute('y2', String(dimension.displayEnd.y));
+
+      [witnessA, witnessB, line].forEach((item) => {
+        item.setAttribute(
+          'stroke',
+          dimension.selected ? '#0ea5e9' : '#111111',
+        );
+        item.setAttribute('stroke-width', dimension.selected ? '2' : '1');
+        item.setAttribute('vector-effect', 'non-scaling-stroke');
+      });
+
+      const label = document.createElementNS(SVG_NS, 'text');
+      label.setAttribute(
+        'x',
+        String((dimension.displayStart.x + dimension.displayEnd.x) / 2),
+      );
+      label.setAttribute(
+        'y',
+        String((dimension.displayStart.y + dimension.displayEnd.y) / 2 - 4 * unit),
+      );
+      label.setAttribute('text-anchor', 'middle');
+      label.setAttribute('font-size', String(11 * unit));
+      label.setAttribute('font-weight', dimension.selected ? '700' : '500');
+      label.setAttribute('fill', dimension.selected ? '#0ea5e9' : '#111111');
+      label.textContent = formatCanvasInches(
+        dimension.length,
+        this.store.getState().preferences.dimFormat,
+        this.store.getState().preferences.dimPrecision,
+      );
+
+      group.append(witnessA, witnessB, line, label);
+      layer.appendChild(group);
+    });
+
+    annotations.lines.forEach((source) => {
+      const line = document.createElementNS(SVG_NS, 'line');
+      line.setAttribute(
+        'class',
+        'lc-drawing-line' + (source.selected ? ' selected' : ''),
+      );
+      line.setAttribute('data-line-id', source.id);
+      line.setAttribute('x1', String(source.x1));
+      line.setAttribute('y1', String(source.y1));
+      line.setAttribute('x2', String(source.x2));
+      line.setAttribute('y2', String(source.y2));
+      line.setAttribute('stroke', source.selected ? '#0ea5e9' : source.color);
+      line.setAttribute(
+        'stroke-width',
+        String(source.selected ? Math.max(source.thickness, 2) : source.thickness),
+      );
+      line.setAttribute('vector-effect', 'non-scaling-stroke');
+      if (source.style === 'dashed') line.setAttribute('stroke-dasharray', '7 5');
+      layer.appendChild(line);
+
+      const capRadius = Math.max(2.5, source.thickness + 1) * unit;
+      if (source.startCap === 'dot') {
+        const dot = document.createElementNS(SVG_NS, 'circle');
+        dot.setAttribute('cx', String(source.x1));
+        dot.setAttribute('cy', String(source.y1));
+        dot.setAttribute('r', String(capRadius));
+        dot.setAttribute('fill', source.selected ? '#0ea5e9' : source.color);
+        layer.appendChild(dot);
+      }
+      if (source.endCap === 'dot') {
+        const dot = document.createElementNS(SVG_NS, 'circle');
+        dot.setAttribute('cx', String(source.x2));
+        dot.setAttribute('cy', String(source.y2));
+        dot.setAttribute('r', String(capRadius));
+        dot.setAttribute('fill', source.selected ? '#0ea5e9' : source.color);
+        layer.appendChild(dot);
+      }
+    });
+
+    annotations.notes.forEach((note) => {
+      const text = document.createElementNS(SVG_NS, 'text');
+      text.setAttribute(
+        'class',
+        'lc-canvas-note' + (note.selected ? ' selected' : ''),
+      );
+      text.setAttribute('data-note-id', note.id);
+      text.setAttribute('x', String(note.x));
+      text.setAttribute('y', String(note.y));
+      text.setAttribute('font-size', String(note.fontSize * unit));
+      text.setAttribute('font-weight', note.bold ? '700' : '400');
+      text.setAttribute('font-style', note.italic ? 'italic' : 'normal');
+      text.setAttribute(
+        'text-anchor',
+        note.align === 'center' ? 'middle' : note.align === 'right' ? 'end' : 'start',
+      );
+      text.setAttribute('fill', note.selected ? '#0ea5e9' : note.color);
+      if (note.rotation) {
+        text.setAttribute(
+          'transform',
+          'rotate(' + String(note.rotation) + ' ' + String(note.x) + ' ' + String(note.y) + ')',
+        );
+      }
+      if (note.halo) {
+        text.setAttribute('paint-order', 'stroke fill');
+        text.setAttribute('stroke', '#ffffff');
+        text.setAttribute('stroke-width', String(3 * unit));
+        text.setAttribute('stroke-linejoin', 'round');
+      }
+      text.textContent = note.text;
+      layer.appendChild(text);
+    });
+
+    svg.appendChild(layer);
   }
 
   private renderPieceCutouts(
