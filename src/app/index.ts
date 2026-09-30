@@ -13,7 +13,6 @@ export {
 } from './state';
 export type {
   ApplicationState,
-  DeepReadonly,
   ReadonlyApplicationState,
   Selection,
   SessionState,
