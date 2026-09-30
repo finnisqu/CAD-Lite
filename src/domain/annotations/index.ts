@@ -19,10 +19,11 @@ export type DimensionAnnotation = JsonObject & {
   x2: number;
   y2: number;
   offsetPx: number;
+  visible: boolean;
 };
 
 export type DimensionPatch = Partial<
-  Pick<DimensionAnnotation, 'name' | 'x1' | 'y1' | 'x2' | 'y2' | 'offsetPx'>
+  Pick<DimensionAnnotation, 'name' | 'x1' | 'y1' | 'x2' | 'y2' | 'offsetPx' | 'visible'>
 >;
 
 export type DrawingLine = JsonObject & {
@@ -39,6 +40,7 @@ export type DrawingLine = JsonObject & {
   endCap: LineCap;
   attachedNoteId: string | null;
   attachedEnd: AttachedLineEnd | null;
+  visible: boolean;
 };
 
 export type DrawingLinePatch = Partial<
@@ -56,6 +58,7 @@ export type DrawingLinePatch = Partial<
     | 'endCap'
     | 'attachedNoteId'
     | 'attachedEnd'
+    | 'visible'
   >
 >;
 
@@ -71,6 +74,7 @@ export type CanvasNote = JsonObject & {
   color: string;
   halo: boolean;
   rotation: number;
+  visible: boolean;
 };
 
 export type CanvasNotePatch = Partial<
@@ -86,6 +90,7 @@ export type CanvasNotePatch = Partial<
     | 'color'
     | 'halo'
     | 'rotation'
+    | 'visible'
   >
 >;
 
@@ -145,6 +150,7 @@ export function normalizeDimensionAnnotation(
     x2: round3(finiteNumber(source.x2, 0)),
     y2: round3(finiteNumber(source.y2, 0)),
     offsetPx: finiteNumber(source.offsetPx, 0),
+    visible: booleanValue(source.visible, true),
   };
 }
 
@@ -172,6 +178,7 @@ export function createDimensionAnnotation(
     x2: end.x,
     y2: end.y,
     offsetPx: 0,
+    visible: true,
   });
 }
 
@@ -197,6 +204,7 @@ export function normalizeDrawingLine(
     endCap: lineCap(source.endCap),
     attachedNoteId: noteId || null,
     attachedEnd: noteId ? attachedEnd(source.attachedEnd) ?? 'start' : null,
+    visible: booleanValue(source.visible, true),
   };
 }
 
@@ -228,6 +236,7 @@ export function createDrawingLine(
     thickness: 2,
     startCap: 'none',
     endCap: 'none',
+    visible: true,
   });
 }
 
@@ -250,6 +259,7 @@ export function normalizeCanvasNote(
     color: hexColor(source.color),
     halo: booleanValue(source.halo, false),
     rotation: round3(normalizeDegrees(source.rotation)),
+    visible: booleanValue(source.visible, true),
   };
 }
 
@@ -280,6 +290,7 @@ export function createCanvasNote(
     color: '#111111',
     halo: false,
     rotation: 0,
+    visible: true,
   });
 }
 
