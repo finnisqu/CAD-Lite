@@ -434,7 +434,9 @@ export class PieceCanvasSurface {
       }
       try {
         this.svg?.releasePointerCapture?.(event.pointerId);
-      } catch {}
+      } catch {
+        // Pointer capture may already have been released by the browser.
+      }
       this.render();
       return;
     }
@@ -456,7 +458,9 @@ export class PieceCanvasSurface {
       this.tools.cancel();
       try {
         this.svg?.releasePointerCapture?.(event.pointerId);
-      } catch {}
+      } catch {
+        // Pointer capture may already have been released by the browser.
+      }
       this.render();
       return;
     }
