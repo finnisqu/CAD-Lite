@@ -31,8 +31,8 @@ describe('Batch 20 annotation canvas projection', () => {
     expect(projected.dimensions).toHaveLength(1);
     expect(projected.notes).toHaveLength(1);
     expect(projected.dimensions[0]?.length).toBe(96);
-    expect(projected.dimensions[0]?.displayStart.y).toBe(32);
-    expect(projected.dimensions[0]?.displayEnd.y).toBe(32);
+    expect(projected.dimensions[0]?.displayY1).toBe(32);
+    expect(projected.dimensions[0]?.displayY2).toBe(32);
 
     const slab = {
       ...design,
