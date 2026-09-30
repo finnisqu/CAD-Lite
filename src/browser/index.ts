@@ -50,3 +50,14 @@ export {
 export type {
   PieceCanvasSurfaceOptions,
 } from './piece-canvas-surface';
+
+export {
+  createAnnotationCanvasProjection,
+  hitTestAnnotations,
+} from './annotation-canvas-model';
+export type {
+  AnnotationCanvasProjection,
+  CanvasDimensionProjection,
+  CanvasLineProjection,
+  CanvasNoteProjection,
+} from './annotation-canvas-model';
