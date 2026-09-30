@@ -1,4 +1,9 @@
 import { normalizePieces } from './pieces';
+import {
+  normalizeCanvasNotes,
+  normalizeDimensions,
+  normalizeDrawingLines,
+} from '../domain/annotations';
 import { normalizeSlabSurfaces } from '../domain/slabs';
 import { clamp } from '../core/numeric';
 import type { JsonObject, JsonValue } from '../domain/types';
@@ -175,9 +180,9 @@ export function normalizeLayout(raw: unknown, index: number): Layout {
     areas: normalizedAreas.areas,
     activeAreaId,
     pieces: normalizePieces(source.pieces, normalizedAreas.areas.map(area => area.id), `migrated-layout-${index + 1}-piece`),
-    dims: normalizeEntityList(source.dims, `layout-${index + 1}-dim`),
-    notes: normalizeEntityList(source.notes, `layout-${index + 1}-note`),
-    lines: normalizeEntityList(source.lines, `layout-${index + 1}-line`),
+    dims: normalizeDimensions(source.dims, `layout-${index + 1}-dimension`),
+    notes: normalizeCanvasNotes(source.notes, `layout-${index + 1}-note`),
+    lines: normalizeDrawingLines(source.lines, `layout-${index + 1}-line`),
     roomFeatures: normalizeEntityList(
       source.roomFeatures,
       `layout-${index + 1}-room-feature`,
