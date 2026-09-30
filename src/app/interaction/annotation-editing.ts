@@ -425,18 +425,18 @@ export class AnnotationInteractionController {
         ? updateDimension(
             session.layoutId,
             session.preview.id,
-            session.preview.patch as DimensionPatch,
+            session.preview.patch,
           )
         : session.preview.entityKind === 'line'
           ? updateDrawingLine(
               session.layoutId,
               session.preview.id,
-              session.preview.patch as DrawingLinePatch,
+              session.preview.patch,
             )
           : updateCanvasNote(
               session.layoutId,
               session.preview.id,
-              session.preview.patch as CanvasNotePatch,
+              session.preview.patch,
             );
 
     const label =
