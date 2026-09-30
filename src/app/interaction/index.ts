@@ -40,9 +40,12 @@ export {
   PieceInteractionController,
   createPieceMoveSession,
   createPieceResizeSession,
+  createPieceRotateSession,
   pieceResizeLockedSides,
   previewPieceMove,
+  previewPieceNudge,
   previewPieceResize,
+  previewPieceRotation,
   resolvePiecePointerSelection,
 } from './pieces';
 export type {

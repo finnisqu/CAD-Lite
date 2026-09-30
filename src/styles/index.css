@@ -269,3 +269,33 @@
     grid-template-columns: 1fr;
   }
 }
+
+
+/* Batch 13: Piece rotate / mirror interaction validation. */
+.cad-lite-architecture-harness #lc-svg .lc-piece-rotate-stem {
+  stroke: #2563eb;
+  stroke-width: 1.5;
+}
+
+.cad-lite-architecture-harness #lc-svg .lc-piece-rotate-handle {
+  fill: #ffffff;
+  stroke: #2563eb;
+  stroke-width: 1.5;
+}
+
+.cad-lite-architecture-harness #lc-svg .lc-piece-rotate-handle:hover {
+  fill: #dbeafe;
+}
+
+.cad-lite-architecture-harness #lc-svg .lc-piece-rotate-glyph,
+.cad-lite-architecture-harness #lc-svg .lc-piece-rotate-angle {
+  fill: #2563eb;
+  font-weight: 700;
+  user-select: none;
+}
+
+.cad-lite-architecture-harness .lc-piece-mirror-actions {
+  display: flex;
+  gap: 8px;
+  margin: 8px 0 10px;
+}

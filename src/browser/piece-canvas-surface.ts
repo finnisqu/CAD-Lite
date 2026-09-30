@@ -9,7 +9,11 @@ import {
   type ToolPointerInput,
   type ViewInvalidationBatch,
 } from '../app';
-import { isBacksplashPiece } from '../domain/pieces';
+import {
+  isBacksplashPiece,
+  pieceRotationFamilyIds,
+} from '../domain/pieces';
+import { rotateVector } from '../geometry';
 import {
   createPieceCanvasProjection,
   hitTestPieceCanvas,
@@ -113,6 +117,23 @@ export class PieceCanvasSurface {
       (event) => this.onPointerCancel(event),
       { signal },
     );
+    this.svg?.addEventListener(
+      'dblclick',
+      (event) => this.onDoubleClick(event),
+      { signal },
+    );
+
+    const view = this.svg?.ownerDocument.defaultView;
+    view?.addEventListener(
+      'keydown',
+      (event) => this.onKeyDown(event),
+      { signal },
+    );
+    view?.addEventListener(
+      'keyup',
+      (event) => this.onKeyUp(event),
+      { signal },
+    );
 
     this.subscriptions.push(
       this.effects.invalidation.subscribe((batch) =>
@@ -193,6 +214,9 @@ export class PieceCanvasSurface {
 
     const target =
       event.target instanceof Element ? event.target : null;
+    const rotate = target?.closest<SVGElement>(
+      '[data-piece-rotate-handle]',
+    );
     const resize = target?.closest<SVGElement>(
       '[data-piece-resize-side][data-piece-id]',
     );
@@ -200,7 +224,12 @@ export class PieceCanvasSurface {
     const resizePieceId = resize?.dataset.pieceId;
     let handled = false;
 
+    if (rotate && event.detail <= 1) {
+      handled = this.interaction.beginRotate(input);
+    }
+
     if (
+      !handled &&
       resizePieceId &&
       (resizeSide === 'top' ||
         resizeSide === 'right' ||
@@ -214,7 +243,7 @@ export class PieceCanvasSurface {
       );
     }
 
-    if (!handled) {
+    if (!handled && !rotate) {
       const hit = hitTestPieceCanvas(projection, {
         x: input.x,
         y: input.y,
@@ -268,6 +297,48 @@ export class PieceCanvasSurface {
       // Pointer capture may already have been released by the browser.
     }
     this.render();
+  }
+
+  private onDoubleClick(event: MouseEvent): void {
+    const target =
+      event.target instanceof Element ? event.target : null;
+    if (!target?.closest('[data-piece-rotate-handle]')) return;
+
+    event.preventDefault();
+    event.stopPropagation();
+    if (this.interaction.hasActivePointer()) {
+      this.interaction.cancel();
+    }
+    this.interaction.rotateSelectionBy(90);
+    this.render();
+  }
+
+  private editableTarget(target: EventTarget | null): boolean {
+    if (!(target instanceof Element)) return false;
+    return Boolean(
+      target.closest('input,textarea,select,[contenteditable="true"]'),
+    );
+  }
+
+  private onKeyDown(event: KeyboardEvent): void {
+    if (this.editableTarget(event.target)) return;
+    if (
+      this.interaction.nudgeKeyDown(
+        event.key,
+        event.shiftKey,
+      )
+    ) {
+      event.preventDefault();
+      this.render();
+    }
+  }
+
+  private onKeyUp(event: KeyboardEvent): void {
+    if (this.editableTarget(event.target)) return;
+    if (this.interaction.nudgeKeyUp(event.key)) {
+      event.preventDefault();
+      this.render();
+    }
   }
 
   private renderWorkspaceControls(
@@ -404,6 +475,7 @@ export class PieceCanvasSurface {
 
     this.renderSnapGuides(document, svg, projection);
     this.renderResizeHandles(document, svg, projection);
+    this.renderRotateHandle(document, svg, projection);
   }
 
   private renderSnapGuides(
@@ -435,6 +507,123 @@ export class PieceCanvasSurface {
       guide.setAttribute('vector-effect', 'non-scaling-stroke');
       svg.appendChild(guide);
     }
+  }
+
+  private renderRotateHandle(
+    document: Document,
+    svg: SVGSVGElement,
+    projection: PieceCanvasProjection,
+  ): void {
+    const state = this.store.getState();
+    const selection = state.session.selection;
+    if (
+      state.session.interaction.activeTool ||
+      selection.kind !== 'pieces' ||
+      !selection.ids.length
+    ) {
+      return;
+    }
+
+    const layout = state.project.layouts.find(
+      (item) => item.id === state.session.activeLayoutId,
+    );
+    if (!layout) return;
+
+    const ids = pieceRotationFamilyIds(
+      layout,
+      selection.ids,
+      projection.workspace,
+    );
+    const primaryId = ids[0];
+    if (!primaryId) return;
+
+    const piece = projection.pieces.find(
+      (item) => item.id === primaryId,
+    );
+    if (!piece) return;
+
+    const u = rotateVector(1, 0, piece.pose.rotation);
+    const v = rotateVector(0, 1, piece.pose.rotation);
+    const anchor = {
+      x:
+        piece.center.x +
+        u.x * (piece.geometry.width / 2) -
+        v.x * (piece.geometry.height / 2),
+      y:
+        piece.center.y +
+        u.y * (piece.geometry.width / 2) -
+        v.y * (piece.geometry.height / 2),
+    };
+    const diagonal = {
+      x: u.x - v.x,
+      y: u.y - v.y,
+    };
+    const diagonalLength =
+      Math.hypot(diagonal.x, diagonal.y) || 1;
+    const unit = 1 / Math.max(0.001, projection.scale);
+    const extension = 18 * unit;
+    const handle = {
+      x:
+        anchor.x +
+        diagonal.x / diagonalLength * extension,
+      y:
+        anchor.y +
+        diagonal.y / diagonalLength * extension,
+    };
+
+    const layer = document.createElementNS(SVG_NS, 'g');
+    layer.setAttribute('class', 'lc-piece-rotate-layer');
+
+    const stem = document.createElementNS(SVG_NS, 'line');
+    stem.setAttribute('class', 'lc-piece-rotate-stem');
+    stem.setAttribute('x1', String(anchor.x));
+    stem.setAttribute('y1', String(anchor.y));
+    stem.setAttribute('x2', String(handle.x));
+    stem.setAttribute('y2', String(handle.y));
+    stem.setAttribute('vector-effect', 'non-scaling-stroke');
+    stem.setAttribute('pointer-events', 'none');
+
+    const circle = document.createElementNS(SVG_NS, 'circle');
+    circle.setAttribute('class', 'lc-piece-rotate-handle');
+    circle.setAttribute('data-piece-rotate-handle', '1');
+    circle.setAttribute('cx', String(handle.x));
+    circle.setAttribute('cy', String(handle.y));
+    circle.setAttribute('r', String(7 * unit));
+    circle.setAttribute('vector-effect', 'non-scaling-stroke');
+    circle.setAttribute('pointer-events', 'all');
+    circle.style.cursor = 'grab';
+
+    const glyph = document.createElementNS(SVG_NS, 'text');
+    glyph.setAttribute('class', 'lc-piece-rotate-glyph');
+    glyph.setAttribute('x', String(handle.x));
+    glyph.setAttribute('y', String(handle.y));
+    glyph.setAttribute('text-anchor', 'middle');
+    glyph.setAttribute('dominant-baseline', 'middle');
+    glyph.setAttribute('pointer-events', 'none');
+    glyph.setAttribute('font-size', String(10 * unit));
+    glyph.textContent = '↻';
+
+    layer.append(stem, circle, glyph);
+
+    const preview = this.interaction.getPreview();
+    if (preview?.kind === 'rotate') {
+      const rotated = preview.pieces.find(
+        (item) => item.id === primaryId,
+      );
+      if (rotated) {
+        const label = document.createElementNS(SVG_NS, 'text');
+        label.setAttribute('class', 'lc-piece-rotate-angle');
+        label.setAttribute('x', String(handle.x + 11 * unit));
+        label.setAttribute('y', String(handle.y - 9 * unit));
+        label.setAttribute('pointer-events', 'none');
+        label.setAttribute('font-size', String(10 * unit));
+        label.textContent =
+          String(Math.round(rotated.pose.rotation * 10) / 10) + '°';
+        layer.appendChild(label);
+      }
+    }
+
+    svg.appendChild(layer);
   }
 
   private renderResizeHandles(

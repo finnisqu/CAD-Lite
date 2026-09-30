@@ -8,3 +8,5 @@ export type { PieceRelationshipIssue } from './relationships';
 export * from './lifecycle';
 
 export * from './geometry';
+
+export * from './transforms';

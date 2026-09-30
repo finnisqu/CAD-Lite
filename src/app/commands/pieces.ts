@@ -1,7 +1,9 @@
 import type { Layout } from '../../domain/project';
 import {
   createPiece, deletePieceFamily, getPieceDeletionPlan,
-  type Piece, type PieceDuplicationPlan, type PieceGeometry, type PiecePose,
+  mirrorPiecesInLayout, resizePieceDimensionInLayout,
+  type Piece, type PieceDimension, type PieceDuplicationPlan,
+  type PieceGeometry, type PieceMirrorAxis, type PiecePose,
 } from '../../domain/pieces';
 import { cloneJson } from '../../domain/types';
 import { normalizeSelection } from '../selection';
@@ -196,6 +198,68 @@ export function transformPieces(
       });
       if (!changed) return state;
       return replace(state, { ...layout, pieces: nextPieces });
+    },
+  };
+}
+
+
+export function resizePieceDimension(
+  layoutId: string,
+  pieceId: string,
+  dimension: PieceDimension,
+  value: number,
+): AppCommand {
+  return {
+    type: 'piece.resize-dimension',
+    label: 'Resize piece',
+    history: 'record',
+    persistence: 'save',
+    reduce(state) {
+      const layout = state.project.layouts.find(item => item.id === layoutId);
+      if (!layout) return state;
+      const current = layout.pieces.find(piece => piece.id === pieceId);
+      if (!current) return state;
+      const next = resizePieceDimensionInLayout(
+        layout,
+        pieceId,
+        dimension,
+        value,
+      );
+      if (!next || next === current) return state;
+      return replace(state, {
+        ...layout,
+        pieces: layout.pieces.map(piece =>
+          piece.id === pieceId ? next : piece),
+      });
+    },
+  };
+}
+
+export function mirrorPieces(
+  layoutId: string,
+  requested: readonly string[],
+  axis: PieceMirrorAxis,
+): AppCommand {
+  const ids = [...requested];
+  return {
+    type: 'piece.mirror',
+    label: axis === 'h'
+      ? 'Mirror pieces horizontally'
+      : 'Mirror pieces vertically',
+    history: 'record',
+    persistence: 'save',
+    reduce(state) {
+      if (
+        state.session.workspace !== 'design' ||
+        state.session.activeLayoutId !== layoutId
+      ) {
+        return state;
+      }
+      const layout = state.project.layouts.find(item => item.id === layoutId);
+      if (!layout) return state;
+      const pieces = mirrorPiecesInLayout(layout, ids, axis);
+      if (pieces === layout.pieces) return state;
+      return replace(state, { ...layout, pieces });
     },
   };
 }

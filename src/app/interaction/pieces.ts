@@ -1124,7 +1124,11 @@ export class PieceInteractionController {
     input: ToolPointerInput,
   ): boolean {
     const state = this.store.getState();
-    if (state.session.interaction.activeTool || input.button !== 0) {
+    if (
+      state.session.interaction.activeTool ||
+      input.button !== 0 ||
+      this.nudge
+    ) {
       return false;
     }
     const layout = activeLayout(state);
@@ -1170,7 +1174,11 @@ export class PieceInteractionController {
     input: ToolPointerInput,
   ): boolean {
     const state = this.store.getState();
-    if (state.session.interaction.activeTool || input.button !== 0) {
+    if (
+      state.session.interaction.activeTool ||
+      input.button !== 0 ||
+      this.nudge
+    ) {
       return false;
     }
 
@@ -1194,7 +1202,11 @@ export class PieceInteractionController {
 
   beginBlank(input: ToolPointerInput): boolean {
     const state = this.store.getState();
-    if (state.session.interaction.activeTool || input.button !== 0) {
+    if (
+      state.session.interaction.activeTool ||
+      input.button !== 0 ||
+      this.nudge
+    ) {
       return false;
     }
     const layout = activeLayout(state);

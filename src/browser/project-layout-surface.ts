@@ -1,11 +1,10 @@
-import { addPiece, deletePieces, duplicatePieces, renamePiece, transformPieces, assignPiecesToArea, setSelection } from '../app/commands';
+import { addPiece, deletePieces, duplicatePieces, mirrorPieces, renamePiece, resizePieceDimension, transformPieces, assignPiecesToArea, setSelection } from '../app/commands';
 import {
   clampPiecePoseToWorkspace,
   getPieceDeletionPlan,
   pieceGeometry,
   piecePose,
   preparePieceDuplication,
-  resizePieceGeometry,
 } from '../domain/pieces';
 import {
   addArea,
@@ -1048,34 +1047,8 @@ export class ProjectLayoutSurface {
       };
 
       const editSize = (dimension: 'width' | 'height', value: number): void => {
-        const latest = this.store.getState();
-        const latestLayout = latest.project.layouts.find(item => item.id === layout.id);
-        const latestPiece = latestLayout?.pieces.find(item => item.id === first.id);
-        if (!latestLayout || !latestPiece) return;
-        const current = pieceGeometry(latestPiece);
-        const geometry = resizePieceGeometry(
-          latestPiece,
-          dimension === 'width' ? value : current.width,
-          dimension === 'height' ? value : current.height,
-        );
-        const designPose = clampPiecePoseToWorkspace(
-          latestLayout,
-          'design',
-          geometry,
-          piecePose(latestPiece, 'design'),
-        );
-        const slabPose = clampPiecePoseToWorkspace(
-          latestLayout,
-          'slab',
-          geometry,
-          piecePose(latestPiece, 'slab'),
-        );
         this.commands.execute(
-          transformPieces(
-            latestLayout.id,
-            [{ id: latestPiece.id, geometry, designPose, slabPose }],
-            { label: 'Resize piece' },
-          ),
+          resizePieceDimension(layout.id, first.id, dimension, value),
         );
       };
 
@@ -1125,6 +1098,28 @@ export class ProjectLayoutSurface {
       );
       mount.append(geometryFields);
     }
+
+    if (state.session.workspace === 'design') {
+      const mirrorActions = document.createElement('div');
+      mirrorActions.className = 'lc-piece-mirror-actions';
+      const mirrorH = document.createElement('button');
+      mirrorH.type = 'button';
+      mirrorH.textContent = 'Mirror H';
+      mirrorH.title = 'Mirror selected piece(s) left ↔ right';
+      mirrorH.addEventListener('click', () => {
+        this.commands.execute(mirrorPieces(layout.id, selection.ids, 'h'));
+      });
+      const mirrorV = document.createElement('button');
+      mirrorV.type = 'button';
+      mirrorV.textContent = 'Mirror V';
+      mirrorV.title = 'Mirror selected piece(s) top ↔ bottom';
+      mirrorV.addEventListener('click', () => {
+        this.commands.execute(mirrorPieces(layout.id, selection.ids, 'v'));
+      });
+      mirrorActions.append(mirrorH, mirrorV);
+      mount.append(mirrorActions);
+    }
+
     const areaLabel = document.createElement('label');
     areaLabel.textContent = 'Area';
     const select = document.createElement('select');
