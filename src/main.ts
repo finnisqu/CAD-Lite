@@ -1,0 +1,9 @@
+import './styles/index.css';
+
+export {
+  CAD_LITE_ARCHITECTURE_VERSION,
+  CAD_LITE_BEHAVIOR_BASELINE,
+  getBuildInfo,
+} from './app/build-info';
+
+export type { BuildInfo } from './app/build-info';

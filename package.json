@@ -1,0 +1,31 @@
+{
+  "name": "cad-lite",
+  "version": "1.6.0-dev.0",
+  "private": true,
+  "type": "module",
+  "description": "CAD Lite architecture foundation and build tooling.",
+  "engines": {
+    "node": ">=22.13.0"
+  },
+  "packageManager": "npm@10.9.2",
+  "scripts": {
+    "dev": "vite --open /dev/",
+    "build": "vite build",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc -p tsconfig.json",
+    "lint": "eslint src tests vite.config.ts vitest.config.ts",
+    "format": "prettier --write src tests dev docs/architecture vite.config.ts vitest.config.ts eslint.config.mjs package.json tsconfig.json",
+    "format:check": "prettier --check src tests dev docs/architecture vite.config.ts vitest.config.ts eslint.config.mjs package.json tsconfig.json",
+    "check": "npm run typecheck && npm run lint && npm run test && npm run build"
+  },
+  "devDependencies": {
+    "@eslint/js": "10.0.1",
+    "eslint": "10.10.0",
+    "prettier": "3.9.9",
+    "typescript": "6.0.3",
+    "typescript-eslint": "8.70.1",
+    "vite": "8.3.1",
+    "vitest": "5.0.2"
+  }
+}

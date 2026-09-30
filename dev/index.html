@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>CAD Lite Architecture Harness</title>
+  </head>
+  <body>
+    <main>
+      <h1>CAD Lite Architecture Harness</h1>
+      <pre id="build-info"></pre>
+    </main>
+
+    <script type="module">
+      import { getBuildInfo } from '/src/main.ts';
+
+      document.querySelector('#build-info').textContent = JSON.stringify(getBuildInfo(), null, 2);
+    </script>
+  </body>
+</html>

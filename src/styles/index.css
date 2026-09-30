@@ -1,0 +1,9 @@
+/*
+ * Architecture scaffold only.
+ *
+ * This selector is intentionally inert unless explicitly used by the development
+ * harness. v1.5.99 remains the behavioral and visual baseline during migration.
+ */
+.cad-lite-architecture-sentinel {
+  --cad-lite-architecture-scaffold: 1;
+}
