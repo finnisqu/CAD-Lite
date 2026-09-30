@@ -1,9 +1,9 @@
 import {
-  PieceInteractionController,
   pieceResizeLockedSides,
   setWorkspace,
   updatePreferences,
   type ApplicationEffects,
+  type PieceInteractionController,
   type AppStore,
   type CommandDispatcher,
   type ToolPointerInput,

@@ -899,7 +899,7 @@ export function previewPieceResize(
     return null;
   }
 
-  let next = resizeCenterAndSize(session, input);
+  const next = resizeCenterAndSize(session, input);
   let geometry = resizePieceGeometry(
     piece,
     next.width,

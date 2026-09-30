@@ -438,7 +438,7 @@ describe('Piece resize projection', () => {
 
 describe('Piece interaction controller and commands', () => {
   it('keeps click selection out of history and commits a drag as one history step', () => {
-    const { store, commands, controller } = setup();
+    const { store, controller } = setup();
     const history = new HistoryManager(store);
     history.start();
 
