@@ -1,4 +1,7 @@
 import {
+  deleteCanvasNote,
+  deleteDimension,
+  deleteDrawingLine,
   pieceResizeLockedSides,
   setSelection,
   setWorkspace,
@@ -7,6 +10,7 @@ import {
   type PieceInteractionController,
   type AppStore,
   type CommandDispatcher,
+  type ToolController,
   type ToolPointerInput,
   type ViewInvalidationBatch,
 } from '../app';
@@ -35,6 +39,7 @@ export interface PieceCanvasSurfaceOptions {
   commands: CommandDispatcher;
   effects: ApplicationEffects;
   interaction: PieceInteractionController;
+  tools: ToolController;
 }
 
 function formatCanvasInches(
@@ -79,6 +84,7 @@ export class PieceCanvasSurface {
   private readonly commands: CommandDispatcher;
   private readonly effects: ApplicationEffects;
   private readonly interaction: PieceInteractionController;
+  private readonly tools: ToolController;
 
   private abort: AbortController | null = null;
   private subscriptions: Array<() => void> = [];
@@ -99,6 +105,7 @@ export class PieceCanvasSurface {
     this.commands = options.commands;
     this.effects = options.effects;
     this.interaction = options.interaction;
+    this.tools = options.tools;
   }
 
   mount(): void {
@@ -316,6 +323,15 @@ export class PieceCanvasSurface {
     const input = this.eventInput(event, projection);
     if (!input) return;
 
+    if (this.tools.getActiveTool()) {
+      if (this.tools.pointerDown(input)) {
+        event.preventDefault();
+        this.svg?.setPointerCapture?.(event.pointerId);
+        this.render();
+      }
+      return;
+    }
+
     const target =
       event.target instanceof Element ? event.target : null;
     const rotate = target?.closest<SVGElement>(
@@ -388,11 +404,19 @@ export class PieceCanvasSurface {
   }
 
   private onPointerMove(event: PointerEvent): void {
-    if (!this.interaction.hasActivePointer()) return;
     const projection = this.currentProjection();
     const input = this.eventInput(event, projection);
     if (!input) return;
 
+    if (this.tools.getActiveTool()) {
+      if (this.tools.pointerMove(input)) {
+        event.preventDefault();
+        this.render();
+      }
+      return;
+    }
+
+    if (!this.interaction.hasActivePointer()) return;
     if (this.interaction.pointerMove(input)) {
       event.preventDefault();
       this.render();
@@ -400,11 +424,22 @@ export class PieceCanvasSurface {
   }
 
   private onPointerUp(event: PointerEvent): void {
-    if (!this.interaction.hasActivePointer()) return;
     const projection = this.currentProjection();
     const input = this.eventInput(event, projection);
     if (!input) return;
 
+    if (this.tools.getActiveTool()) {
+      if (this.tools.pointerUp({ ...input, buttons: 0 })) {
+        event.preventDefault();
+      }
+      try {
+        this.svg?.releasePointerCapture?.(event.pointerId);
+      } catch {}
+      this.render();
+      return;
+    }
+
+    if (!this.interaction.hasActivePointer()) return;
     if (this.interaction.pointerUp({ ...input, buttons: 0 })) {
       event.preventDefault();
     }
@@ -417,6 +452,14 @@ export class PieceCanvasSurface {
   }
 
   private onPointerCancel(event: PointerEvent): void {
+    if (this.tools.getActiveTool()) {
+      this.tools.cancel();
+      try {
+        this.svg?.releasePointerCapture?.(event.pointerId);
+      } catch {}
+      this.render();
+      return;
+    }
     if (!this.interaction.hasActivePointer()) return;
     this.interaction.cancel();
     try {
@@ -450,6 +493,43 @@ export class PieceCanvasSurface {
 
   private onKeyDown(event: KeyboardEvent): void {
     if (this.editableTarget(event.target)) return;
+
+    if (
+      this.tools.handleKeyDown({
+        key: event.key,
+        repeat: event.repeat,
+        shiftKey: event.shiftKey,
+        altKey: event.altKey,
+        ctrlKey: event.ctrlKey,
+        metaKey: event.metaKey,
+      })
+    ) {
+      event.preventDefault();
+      this.render();
+      return;
+    }
+
+    if (event.key === 'Delete' || event.key === 'Backspace') {
+      const state = this.store.getState();
+      const layoutId = state.session.activeLayoutId;
+      const selection = state.session.selection;
+      if (layoutId && selection.kind === 'dimension') {
+        this.commands.execute(deleteDimension(layoutId, selection.id));
+        event.preventDefault();
+        return;
+      }
+      if (layoutId && selection.kind === 'line') {
+        this.commands.execute(deleteDrawingLine(layoutId, selection.id));
+        event.preventDefault();
+        return;
+      }
+      if (layoutId && selection.kind === 'note') {
+        this.commands.execute(deleteCanvasNote(layoutId, selection.id));
+        event.preventDefault();
+        return;
+      }
+    }
+
     if (
       this.interaction.nudgeKeyDown(
         event.key,
@@ -463,6 +543,11 @@ export class PieceCanvasSurface {
 
   private onKeyUp(event: KeyboardEvent): void {
     if (this.editableTarget(event.target)) return;
+    if (this.tools.handleKeyUp({ key: event.key })) {
+      event.preventDefault();
+      this.render();
+      return;
+    }
     if (this.interaction.nudgeKeyUp(event.key)) {
       event.preventDefault();
       this.render();
@@ -774,9 +859,43 @@ export class PieceCanvasSurface {
     });
 
     this.renderAnnotations(document, svg, projection, annotations);
+    this.renderAnnotationToolPreview(document, svg, projection);
     this.renderSnapGuides(document, svg, projection);
     this.renderResizeHandles(document, svg, projection);
     this.renderRotateHandle(document, svg, projection);
+  }
+
+  private renderAnnotationToolPreview(
+    document: Document,
+    svg: SVGSVGElement,
+    projection: PieceCanvasProjection,
+  ): void {
+    if (projection.workspace !== 'design') return;
+    const raw = this.store.getState().session.interaction.preview;
+    if (!raw || Array.isArray(raw) || typeof raw !== 'object') return;
+    const preview = raw as Record<string, unknown>;
+    if (
+      preview.kind !== 'annotation-segment' ||
+      typeof preview.x1 !== 'number' ||
+      typeof preview.y1 !== 'number' ||
+      typeof preview.x2 !== 'number' ||
+      typeof preview.y2 !== 'number'
+    ) {
+      return;
+    }
+
+    const line = document.createElementNS(SVG_NS, 'line');
+    line.setAttribute('class', 'lc-annotation-tool-preview');
+    line.setAttribute('x1', String(preview.x1));
+    line.setAttribute('y1', String(preview.y1));
+    line.setAttribute('x2', String(preview.x2));
+    line.setAttribute('y2', String(preview.y2));
+    line.setAttribute('stroke', '#2563eb');
+    line.setAttribute('stroke-width', '1.5');
+    line.setAttribute('stroke-dasharray', '6 4');
+    line.setAttribute('vector-effect', 'non-scaling-stroke');
+    line.setAttribute('pointer-events', 'none');
+    svg.appendChild(line);
   }
 
   private renderAnnotations(
