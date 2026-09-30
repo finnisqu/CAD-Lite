@@ -54,3 +54,6 @@ export type {
   PiecePointerSelectionPlan,
   PieceResizeSide,
 } from './pieces';
+
+export { registerAnnotationToolHandlers } from './annotations';
+export type { AnnotationIdFactory, AnnotationSegmentPreview } from './annotations';
