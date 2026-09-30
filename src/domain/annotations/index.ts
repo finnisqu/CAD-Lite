@@ -314,7 +314,7 @@ export function syncNoteLeaderLines(
     changed = true;
     return {
       ...line,
-      attachedEnd: 'start',
+      attachedEnd: 'start' as const,
       x1: round3(note.x),
       y1: round3(note.y),
     };
