@@ -8,6 +8,7 @@ import type {
   PieceSink,
   PieceSinkSide,
   PieceSinkType,
+  PieceSide,
   PieceCutout,
   PieceCutoutKind,
 } from '../domain/pieces/types';
@@ -291,10 +292,33 @@ export function normalizePieces(raw: unknown, areaIds: readonly string[], prefix
     const attachment = object(source.attachment);
     const tags = Array.isArray(source.tags) ? source.tags.filter((tag): tag is string => typeof tag === 'string') : [];
     const splash = source.pieceType === 'backsplash' || tags.includes('backsplash') || attachment.kind === 'backsplash';
-    const links: AssemblyLink[] = children(source.assemblyLinks, id + '-link').map(link => ({
-      ...link, kind: text(link.kind), matePieceId: text(link.matePieceId),
-      sourceSeamId: text(link.sourceSeamId) || null,
-    }));
+    const links: AssemblyLink[] = children(source.assemblyLinks, id + '-link').map(link => {
+      const side = ['top','right','bottom','left'].includes(text(link.side))
+        ? text(link.side) as PieceSide
+        : undefined;
+      const mateSide = ['top','right','bottom','left'].includes(text(link.mateSide))
+        ? text(link.mateSide) as PieceSide
+        : undefined;
+      const orientation =
+        link.orientation === 'horizontal' || link.orientation === 'vertical'
+          ? link.orientation
+          : undefined;
+      return {
+        ...link,
+        kind: text(link.kind),
+        matePieceId: text(link.matePieceId),
+        sourceSeamId: text(link.sourceSeamId) || null,
+        ...(side ? { side } : {}),
+        ...(mateSide ? { mateSide } : {}),
+        ...(orientation ? { orientation } : {}),
+        ...(text(link.sourceName).trim()
+          ? { sourceName: text(link.sourceName).trim() }
+          : {}),
+        ...(Number.isFinite(Number(link.cutCoordinate))
+          ? { cutCoordinate: Number(link.cutCoordinate) }
+          : {}),
+      };
+    });
     const legacy = cloneJson(object(source.legacy));
     Object.entries(source).forEach(([key, value]) => {
       if (!known.has(key)) legacy[key] = cloneJson(value);
@@ -309,8 +333,25 @@ export function normalizePieces(raw: unknown, areaIds: readonly string[], prefix
       pieceGroupName: text(source.pieceGroupName) || null,
       pieceType: text(source.pieceType, splash ? 'backsplash' : 'countertop'),
       tags,
-      attachment: attachment.kind === 'backsplash' && text(attachment.parentPieceId)
-        ? { ...cloneJson(attachment), kind: 'backsplash', parentPieceId: text(attachment.parentPieceId) } : null,
+      attachment: attachment.kind === 'backsplash'
+        ? {
+            ...cloneJson(attachment),
+            kind: 'backsplash',
+            parentPieceId: text(attachment.parentPieceId) || null,
+            ...(['top','right','bottom','left'].includes(text(attachment.sourceEdge))
+              ? { sourceEdge: text(attachment.sourceEdge) as PieceSide }
+              : {}),
+            ...(typeof attachment.linkedLength === 'boolean'
+              ? { linkedLength: attachment.linkedLength }
+              : {}),
+            ...(typeof attachment.snapped === 'boolean'
+              ? { snapped: attachment.snapped }
+              : {}),
+            ...(Number.isFinite(Number(attachment.offset))
+              ? { offset: Number(attachment.offset) }
+              : {}),
+          }
+        : null,
       assemblyLinks: links,
       slabPlacement: { x: number(slab.x, x), y: number(slab.y, y), rotation: number(slab.rotation, rotation) },
       cornerRadii: { tl: radius('tl','rTL'), tr: radius('tr','rTR'), br: radius('br','rBR'), bl: radius('bl','rBL') },

@@ -1,5 +1,6 @@
 import {
   addPiece,
+  applyFabricationTransaction,
   addPieceCutout,
   addPieceSeam,
   addPieceSink,
@@ -29,6 +30,9 @@ import {
   MAX_SINKS_PER_PIECE,
   pieceGeometry,
   piecePose,
+  pieceSeamLocalCoordinate,
+  prepareFabricationMerge,
+  prepareFabricationSplit,
   preparePieceDuplication,
   SINK_MODELS,
 } from '../domain/pieces';
@@ -1986,6 +1990,44 @@ export class ProjectLayoutSurface {
 
         fields.append(orientationLabel, referenceLabel, offsetLabel);
         row.append(rowHeader, fields);
+
+        if (state.session.workspace === 'slab') {
+          const cut = document.createElement('button');
+          cut.type = 'button';
+          cut.className = 'lc-btn ghost sm lc-seam-cut-action';
+          cut.textContent = 'Cut into Pieces';
+          const coordinate = pieceSeamLocalCoordinate(first, seam);
+          const maximum =
+            seam.orientation === 'horizontal' ? first.h : first.w;
+          const invalid =
+            coordinate <= 0.25 || coordinate >= maximum - 0.25;
+          cut.disabled = invalid;
+          cut.title = invalid
+            ? 'Move the seam at least 1/4" away from the piece edge'
+            : 'Convert this planning seam into two real fabrication pieces';
+          cut.addEventListener('click', () => {
+            const latest = this.store.getState();
+            const latestLayout = latest.project.layouts.find(
+              (item) => item.id === layout.id,
+            );
+            if (!latestLayout) return;
+            const result = prepareFabricationSplit(
+              latestLayout,
+              first.id,
+              seam.id,
+              this.createId,
+            );
+            if (!result.ok) {
+              document.defaultView?.alert(result.reason);
+              return;
+            }
+            this.commands.execute(
+              applyFabricationTransaction(layout.id, result.plan),
+            );
+          });
+          row.append(cut);
+        }
+
         seamRows.append(row);
       });
 
@@ -2012,6 +2054,77 @@ export class ProjectLayoutSurface {
 
       seamSection.append(addSeam, seamRows);
       mount.append(seamSection);
+    }
+
+    const selectedSet = new Set(selection.ids);
+    const fabricationLinks = new Map<
+      string,
+      { a: string; b: string; label: string }
+    >();
+    pieces.forEach((piece) => {
+      piece.assemblyLinks.forEach((link) => {
+        if (
+          link.kind !== 'seam' ||
+          !link.id ||
+          !selectedSet.has(link.matePieceId) ||
+          fabricationLinks.has(link.id)
+        ) {
+          return;
+        }
+        const mate = layout.pieces.find(
+          (candidate) => candidate.id === link.matePieceId,
+        );
+        if (!mate) return;
+        fabricationLinks.set(link.id, {
+          a: piece.id,
+          b: mate.id,
+          label: piece.name + ' ↔ ' + mate.name,
+        });
+      });
+    });
+
+    if (fabricationLinks.size) {
+      const section = document.createElement('div');
+      section.className = 'lc-fabrication-seams-inspector';
+      const title = document.createElement('strong');
+      title.textContent = 'Fabrication Seams';
+      section.append(title);
+
+      fabricationLinks.forEach((info, linkId) => {
+        const row = document.createElement('div');
+        row.className = 'lc-fabrication-seam-row';
+        const text = document.createElement('span');
+        text.textContent = info.label;
+        const merge = document.createElement('button');
+        merge.type = 'button';
+        merge.className = 'lc-btn ghost sm';
+        merge.textContent = 'Merge';
+        merge.title =
+          'Merge these known mating seam edges back into one piece';
+        merge.addEventListener('click', () => {
+          const latest = this.store.getState();
+          const latestLayout = latest.project.layouts.find(
+            (item) => item.id === layout.id,
+          );
+          if (!latestLayout) return;
+          const result = prepareFabricationMerge(
+            latestLayout,
+            linkId,
+            this.createId,
+          );
+          if (!result.ok) {
+            document.defaultView?.alert(result.reason);
+            return;
+          }
+          this.commands.execute(
+            applyFabricationTransaction(layout.id, result.plan),
+          );
+        });
+        row.append(text, merge);
+        section.append(row);
+      });
+
+      mount.append(section);
     }
 
     if (state.session.workspace === 'design') {

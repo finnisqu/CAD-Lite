@@ -457,3 +457,35 @@
 .cad-lite-architecture-harness .lc-piece-cutout-note {
   margin-top: 7px;
 }
+
+
+/* Batch 17: fabrication seam transaction validation UI. */
+.cad-lite-architecture-harness .lc-seam-cut-action {
+  width: 100%;
+  margin-top: 6px;
+}
+
+.cad-lite-architecture-harness .lc-fabrication-seams-inspector {
+  display: grid;
+  gap: 6px;
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border, #d1d5db);
+}
+
+.cad-lite-architecture-harness .lc-fabrication-seam-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 6px;
+  border: 1px solid var(--border, #d1d5db);
+  border-radius: 4px;
+}
+
+.cad-lite-architecture-harness .lc-fabrication-seam-row > span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

@@ -11,6 +11,7 @@ import {
   type PieceDimension, type PieceDuplicationPlan,
   type PieceGeometry, type PieceMirrorAxis, type PiecePose,
   type PieceSeamPatch, type PieceSinkPatch,
+  type PreparedFabricationTransaction,
 } from '../../domain/pieces';
 import { cloneJson } from '../../domain/types';
 import { normalizeSelection } from '../selection';
@@ -460,4 +461,61 @@ export function copyPieceCutout(
     (piece) =>
       duplicatePieceCutout(piece, cutoutId, copyId) ?? piece,
   );
+}
+
+
+export function applyFabricationTransaction(
+  layoutId: string,
+  plan: PreparedFabricationTransaction,
+): AppCommand {
+  const prepared: PreparedFabricationTransaction = {
+    ...plan,
+    pieces: structuredClone(plan.pieces),
+    selectionIds: [...plan.selectionIds],
+  };
+  return {
+    type:
+      prepared.kind === 'split'
+        ? 'piece.fabrication.split'
+        : 'piece.fabrication.merge',
+    label: prepared.label,
+    history: 'record',
+    persistence: 'save',
+    reduce(state) {
+      if (
+        state.session.activeLayoutId !== layoutId ||
+        (prepared.kind === 'split' &&
+          state.session.workspace !== 'slab')
+      ) {
+        return state;
+      }
+      const layout = state.project.layouts.find(
+        (item) => item.id === layoutId,
+      );
+      if (
+        !layout ||
+        JSON.stringify(layout) !== prepared.sourceSignature
+      ) {
+        return state;
+      }
+      const ids = prepared.pieces.map((piece) => piece.id);
+      if (
+        new Set(ids).size !== ids.length ||
+        prepared.selectionIds.some((id) => !ids.includes(id))
+      ) {
+        return state;
+      }
+      return replace(
+        state,
+        {
+          ...layout,
+          pieces: structuredClone(prepared.pieces),
+        },
+        {
+          kind: 'pieces',
+          ids: [...prepared.selectionIds],
+        },
+      );
+    },
+  };
 }

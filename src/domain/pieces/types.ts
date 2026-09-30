@@ -107,10 +107,19 @@ export type AssemblyLink = JsonObject & {
   kind: string;
   matePieceId: string;
   sourceSeamId: string | null;
+  side?: PieceSide;
+  mateSide?: PieceSide;
+  orientation?: PieceSeamOrientation;
+  sourceName?: string;
+  cutCoordinate?: number;
 };
 export type SplashAttachment = JsonObject & {
   kind: 'backsplash';
-  parentPieceId: string;
+  parentPieceId: string | null;
+  sourceEdge?: PieceSide;
+  linkedLength?: boolean;
+  snapped?: boolean;
+  offset?: number;
 };
 
 /** Typed rectangle-era storage. Consumers obtain geometry through pieceGeometry.

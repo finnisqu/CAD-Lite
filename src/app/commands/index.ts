@@ -43,6 +43,7 @@ export { summarizeCommand } from './types';
 
 export {
   addPiece,
+  applyFabricationTransaction,
   addPieceCutout,
   addPieceSeam,
   addPieceSink,

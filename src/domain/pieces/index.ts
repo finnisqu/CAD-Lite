@@ -16,3 +16,5 @@ export * from './seams';
 export * from './sinks';
 
 export * from './cutouts';
+
+export * from './fabrication';
