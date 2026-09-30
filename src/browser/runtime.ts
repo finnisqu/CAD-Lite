@@ -13,6 +13,7 @@ import {
   type BrowserConfirm,
   type BrowserEntityIdFactory,
 } from './project-layout-surface';
+import { PieceCanvasSurface } from './piece-canvas-surface';
 
 export interface CadLiteBrowserRuntimeOptions {
   root?: ParentNode;
@@ -31,6 +32,7 @@ export interface CadLiteBrowserRuntime {
   tools: ToolController;
   effects: ApplicationEffects;
   surface: ProjectLayoutSurface;
+  pieceCanvas: PieceCanvasSurface;
   destroy(): void;
 }
 
@@ -74,7 +76,15 @@ export function mountCadLiteBrowserRuntime(
     ...(options.confirm ? { confirm: options.confirm } : {}),
   });
 
+  const pieceCanvas = new PieceCanvasSurface({
+    root,
+    store,
+    commands,
+    effects,
+  });
+
   surface.mount();
+  pieceCanvas.mount();
   effects.start();
 
   const beforeUnload = (): void => {
@@ -92,10 +102,12 @@ export function mountCadLiteBrowserRuntime(
     tools,
     effects,
     surface,
+    pieceCanvas,
     destroy() {
       if (typeof window !== 'undefined') {
         window.removeEventListener('beforeunload', beforeUnload);
       }
+      pieceCanvas.unmount();
       surface.unmount();
       effects.stop(false);
     },

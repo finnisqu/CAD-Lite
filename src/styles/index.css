@@ -181,3 +181,41 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* Batch 11: read-only Piece canvas projection. */
+.cad-lite-architecture-harness__workspace-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.cad-lite-architecture-harness__workspace-bar #lc-canvas-meta {
+  margin-left: auto;
+  font-size: 11px;
+  color: #666;
+}
+
+.cad-lite-architecture-harness__workspace-bar button.is-active {
+  border-color: #737373;
+  background: #e5e5e5;
+  font-weight: 700;
+}
+
+.cad-lite-architecture-harness__canvas-wrap {
+  max-width: 100%;
+  overflow: auto;
+  border: 1px solid #d4d4d4;
+  border-radius: 6px;
+  background: white;
+}
+
+.cad-lite-architecture-harness #lc-svg {
+  display: block;
+  max-width: none;
+  background: white;
+}
+
+.cad-lite-architecture-harness #lc-svg .lc-piece-shape {
+  shape-rendering: geometricPrecision;
+}

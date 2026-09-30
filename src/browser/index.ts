@@ -25,3 +25,24 @@ export type {
   CadLiteBrowserRuntime,
   CadLiteBrowserRuntimeOptions,
 } from './runtime';
+
+export {
+  createPieceCanvasProjection,
+  projectPieceForCanvas,
+  DEFAULT_SLAB_CANVAS_HEIGHT,
+  DEFAULT_SLAB_CANVAS_WIDTH,
+  SLAB_CONTENT_GUTTER,
+} from './piece-canvas-model';
+export type {
+  PieceCanvasAppearance,
+  PieceCanvasItem,
+  PieceCanvasProjection,
+  PieceCanvasRenderOptions,
+} from './piece-canvas-model';
+
+export {
+  PieceCanvasSurface,
+} from './piece-canvas-surface';
+export type {
+  PieceCanvasSurfaceOptions,
+} from './piece-canvas-surface';

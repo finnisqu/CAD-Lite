@@ -44,3 +44,38 @@ export function rectContainsPolygon(
 ): boolean {
   return polygon.length > 0 && polygon.every((point) => rectContainsPoint(rect, point, epsilon));
 }
+
+export interface RoundedRectCornerRadii {
+  tl: number;
+  tr: number;
+  br: number;
+  bl: number;
+}
+
+/**
+ * Rounded rectangle path used by Piece rendering.
+ * Values remain in caller units and are never rounded here.
+ */
+export function roundedRectPathCorners(
+  rect: XYWHRect,
+  radii: RoundedRectCornerRadii,
+): string {
+  const { x, y, w, h } = rect;
+  const rtl = radii.tl || 0;
+  const rtr = radii.tr || 0;
+  const rbr = radii.br || 0;
+  const rbl = radii.bl || 0;
+
+  return [
+    'M' + String(x + rtl) + ',' + String(y),
+    'H' + String(x + w - rtr),
+    'Q' + String(x + w) + ',' + String(y) + ' ' + String(x + w) + ',' + String(y + rtr),
+    'V' + String(y + h - rbr),
+    'Q' + String(x + w) + ',' + String(y + h) + ' ' + String(x + w - rbr) + ',' + String(y + h),
+    'H' + String(x + rbl),
+    'Q' + String(x) + ',' + String(y + h) + ' ' + String(x) + ',' + String(y + h - rbl),
+    'V' + String(y + rtl),
+    'Q' + String(x) + ',' + String(y) + ' ' + String(x + rtl) + ',' + String(y),
+    'Z',
+  ].join(' ');
+}

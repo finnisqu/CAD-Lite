@@ -56,10 +56,22 @@
         </aside>
 
         <section class="cad-lite-architecture-harness__canvas">
-          <h2>Structure vertical slice</h2>
-          <p>
-            Project, Layout, Area, and Piece ownership now run through Commands,
-            Store, History, Autosave, Selection, and central invalidation.
+          <h2>Piece geometry projection</h2>
+          <div class="cad-lite-architecture-harness__workspace-bar">
+            <button id="lc-workspace-design" type="button">DESIGN</button>
+            <button id="lc-workspace-slab" type="button">SLAB</button>
+            <span id="lc-canvas-meta" aria-live="polite"></span>
+          </div>
+          <div class="cad-lite-architecture-harness__canvas-wrap">
+            <svg
+              id="lc-svg"
+              role="img"
+              aria-label="Read-only Piece rendering architecture harness"
+            ></svg>
+          </div>
+          <p class="lc-small">
+            Read-only Batch 11 projection. Piece pointer interactions intentionally
+            remain deferred.
           </p>
           <pre id="build-info"></pre>
         </section>
@@ -109,6 +121,46 @@
                 id: 'piece-1',
                 name: 'Island',
                 areaId: 'area-island',
+                w: 81.997,
+                h: 36.125,
+                x: 18.375,
+                y: 52.625,
+                rotation: 8.5,
+                layer: 2,
+                color: '#dbeafe',
+                fillOpacity: 0.82,
+                cornerRadii: { tl: 3.125, tr: 0.75, br: 1.5, bl: 0.25 },
+                slabPlacement: { x: 55.875, y: 15.125, rotation: 90.25 },
+              },
+              {
+                id: 'piece-2',
+                name: 'Range Run',
+                areaId: 'area-kitchen',
+                w: 48.5,
+                h: 25.5,
+                x: 16.75,
+                y: 12.25,
+                rotation: 17.25,
+                layer: 1,
+                color: '#fde68a',
+                fillOpacity: 0.58,
+                cornerRadii: { tl: 0, tr: 2.25, br: 0.5, bl: 0 },
+                slabPlacement: { x: 5.125, y: 54.75, rotation: 0 },
+              },
+              {
+                id: 'piece-3',
+                name: 'No Fill Sample',
+                areaId: 'area-kitchen',
+                w: 32.375,
+                h: 18.625,
+                x: 126.5,
+                y: 18.875,
+                rotation: -12.5,
+                layer: 3,
+                color: '#fecaca',
+                noFill: true,
+                cornerRadii: { tl: 1, tr: 1, br: 1, bl: 1 },
+                slabPlacement: { x: 112.375, y: 62.125, rotation: 22.75 },
               },
             ],
             dims: [],
