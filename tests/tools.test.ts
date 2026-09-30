@@ -77,20 +77,35 @@ describe('tool controller lifecycle', () => {
     expect(tools.releaseHeld('s')).toBe(false);
   });
 
-  it('toggles locked tool families off', () => {
-    const { tools } = setup();
+  it('toggles locked tool families off without losing HUD/tool memory', () => {
+    const { store, tools } = setup();
 
     tools.toggleLocked('edgePainter');
-    expect(tools.getActiveTool()?.id).toBe('edgePainter');
-
+    tools.setHudPosition(320, 80);
+    tools.setToolOption('brush', 'erase');
     tools.toggleLocked('edgePainter');
+
     expect(tools.getActiveTool()).toBeNull();
+    expect(store.getState().session.interaction.hud).toEqual({
+      left: 320,
+      top: 80,
+      userMoved: true,
+    });
+    expect(store.getState().session.interaction.toolMemory.edgePainter).toEqual({
+      brush: 'erase',
+    });
   });
 
   it('uses S as slab move in SLAB and rejects DESIGN-only tools', () => {
     const { store, commands, tools } = setup();
+    tools.setHudPosition(250, 70);
     commands.execute(setWorkspace('slab'));
 
+    expect(store.getState().session.interaction.hud).toEqual({
+      left: 250,
+      top: 70,
+      userMoved: true,
+    });
     expect(tools.handleKeyDown({ key: 's' })).toBe(true);
     expect(tools.getActiveTool()?.id).toBe('slabMove');
     expect(tools.activateHeld('splash', 's')).toBe(false);
