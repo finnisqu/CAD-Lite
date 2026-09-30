@@ -37,3 +37,10 @@ jobs:
           test -f dist/cad-lite-v1.6.0.js
           test -f dist/cad-lite-v1.6.0.css
           ls -lh dist/
+
+      - name: Export generated lockfile
+        uses: actions/upload-artifact@v4
+        with:
+          name: architecture-package-lock
+          path: package-lock.json
+          retention-days: 1
