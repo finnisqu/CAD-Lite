@@ -8,6 +8,9 @@ import {
   assignPiecesToArea,
   copyPieceCutout,
   copyPieceSink,
+  deleteCanvasNote,
+  deleteDimension,
+  deleteDrawingLine,
   deletePieces,
   deleteSlabSurface,
   duplicatePieces,
@@ -25,6 +28,10 @@ import {
   setSelection,
   transformPieces,
   ungroupPieceGroups,
+  updateCanvasNote,
+  updateDimension,
+  updateDrawingLine,
+  removeNoteLeaders,
   updateSlabSurface,
 } from '../app/commands';
 import {
@@ -575,7 +582,17 @@ export class ProjectLayoutSurface {
       return;
     }
 
-    if (this.store.getState().session.selection.kind === 'slab') {
+    const selection = this.store.getState().session.selection;
+    if (
+      selection.kind === 'dimension' ||
+      selection.kind === 'line' ||
+      selection.kind === 'note'
+    ) {
+      this.renderAnnotationInspector();
+      return;
+    }
+
+    if (selection.kind === 'slab') {
       this.renderSlabInspector();
       return;
     }
@@ -1446,6 +1463,319 @@ export class ProjectLayoutSurface {
     return group.kind === 'fabrication'
       ? 'fabrication'
       : 'ordinary';
+  }
+
+  private renderAnnotationInspector(): void {
+    const mount = this.inspectorElement;
+    if (!mount) return;
+    const state = this.store.getState();
+    const layout = state.project.layouts.find(
+      (item) => item.id === state.session.activeLayoutId,
+    );
+    const selection = state.session.selection;
+    if (!layout || state.session.workspace !== 'design') return;
+    if (
+      selection.kind !== 'dimension' &&
+      selection.kind !== 'line' &&
+      selection.kind !== 'note'
+    ) {
+      return;
+    }
+
+    const document = mount.ownerDocument;
+    const root = document.createElement('div');
+    root.className = 'lc-item selected lc-annotation-inspector';
+
+    const heading = document.createElement('div');
+    heading.className = 'lc-inspector-context-title';
+
+    const fields = document.createElement('div');
+    fields.className = 'lc-annotation-inspector-fields';
+
+    const numberField = (
+      labelText: string,
+      value: number,
+      onChange: (value: number) => void,
+      step = '0.001',
+    ): HTMLElement => {
+      const label = document.createElement('label');
+      label.textContent = labelText;
+      const input = document.createElement('input');
+      input.type = 'number';
+      input.step = step;
+      input.value = String(value);
+      input.addEventListener('change', () => {
+        const next = Number(input.value);
+        if (Number.isFinite(next)) onChange(next);
+      });
+      label.append(input);
+      return label;
+    };
+
+    const textField = (
+      labelText: string,
+      value: string,
+      onChange: (value: string) => void,
+    ): HTMLElement => {
+      const label = document.createElement('label');
+      label.textContent = labelText;
+      const input = document.createElement('input');
+      input.type = 'text';
+      input.value = value;
+      input.addEventListener('change', () => onChange(input.value));
+      label.append(input);
+      return label;
+    };
+
+    const selectField = (
+      labelText: string,
+      value: string,
+      options: readonly string[],
+      onChange: (value: string) => void,
+    ): HTMLElement => {
+      const label = document.createElement('label');
+      label.textContent = labelText;
+      const select = document.createElement('select');
+      options.forEach((optionValue) => {
+        const option = document.createElement('option');
+        option.value = optionValue;
+        option.textContent = optionValue;
+        select.append(option);
+      });
+      select.value = value;
+      select.addEventListener('change', () => onChange(select.value));
+      label.append(select);
+      return label;
+    };
+
+    const deleteButton = document.createElement('button');
+    deleteButton.type = 'button';
+    deleteButton.className = 'lc-btn red lc-annotation-delete';
+
+    if (selection.kind === 'dimension') {
+      const dimension = layout.dims.find((item) => item.id === selection.id);
+      if (!dimension) return;
+      heading.textContent = dimension.name || 'Dimension';
+      fields.append(
+        textField('Name', dimension.name, (value) =>
+          this.commands.execute(
+            updateDimension(layout.id, dimension.id, { name: value }),
+          ),
+        ),
+        numberField('Start X', dimension.x1, (value) =>
+          this.commands.execute(
+            updateDimension(layout.id, dimension.id, { x1: value }),
+          ),
+        ),
+        numberField('Start Y', dimension.y1, (value) =>
+          this.commands.execute(
+            updateDimension(layout.id, dimension.id, { y1: value }),
+          ),
+        ),
+        numberField('End X', dimension.x2, (value) =>
+          this.commands.execute(
+            updateDimension(layout.id, dimension.id, { x2: value }),
+          ),
+        ),
+        numberField('End Y', dimension.y2, (value) =>
+          this.commands.execute(
+            updateDimension(layout.id, dimension.id, { y2: value }),
+          ),
+        ),
+        numberField('Offset (px)', dimension.offsetPx, (value) =>
+          this.commands.execute(
+            updateDimension(layout.id, dimension.id, { offsetPx: value }),
+          ),
+          '1',
+        ),
+      );
+      deleteButton.textContent = 'Delete Dimension';
+      deleteButton.addEventListener('click', () => {
+        this.commands.execute(deleteDimension(layout.id, dimension.id));
+      });
+    } else if (selection.kind === 'line') {
+      const line = layout.lines.find((item) => item.id === selection.id);
+      if (!line) return;
+      heading.textContent = line.name || 'Line';
+      fields.append(
+        textField('Name', line.name, (value) =>
+          this.commands.execute(
+            updateDrawingLine(layout.id, line.id, { name: value }),
+          ),
+        ),
+        numberField('Start X', line.x1, (value) =>
+          this.commands.execute(
+            updateDrawingLine(layout.id, line.id, { x1: value }),
+          ),
+        ),
+        numberField('Start Y', line.y1, (value) =>
+          this.commands.execute(
+            updateDrawingLine(layout.id, line.id, { y1: value }),
+          ),
+        ),
+        numberField('End X', line.x2, (value) =>
+          this.commands.execute(
+            updateDrawingLine(layout.id, line.id, { x2: value }),
+          ),
+        ),
+        numberField('End Y', line.y2, (value) =>
+          this.commands.execute(
+            updateDrawingLine(layout.id, line.id, { y2: value }),
+          ),
+        ),
+        numberField('Thickness', line.thickness, (value) =>
+          this.commands.execute(
+            updateDrawingLine(layout.id, line.id, { thickness: value }),
+          ),
+          '0.25',
+        ),
+        selectField('Style', line.style, ['solid', 'dashed'], (value) =>
+          this.commands.execute(
+            updateDrawingLine(layout.id, line.id, {
+              style: value === 'dashed' ? 'dashed' : 'solid',
+            }),
+          ),
+        ),
+        selectField('Start cap', line.startCap, ['none', 'arrow', 'dot'], (value) =>
+          this.commands.execute(
+            updateDrawingLine(layout.id, line.id, {
+              startCap:
+                value === 'arrow' || value === 'dot' ? value : 'none',
+            }),
+          ),
+        ),
+        selectField('End cap', line.endCap, ['none', 'arrow', 'dot'], (value) =>
+          this.commands.execute(
+            updateDrawingLine(layout.id, line.id, {
+              endCap:
+                value === 'arrow' || value === 'dot' ? value : 'none',
+            }),
+          ),
+        ),
+      );
+      const color = document.createElement('label');
+      color.textContent = 'Color';
+      const input = document.createElement('input');
+      input.type = 'color';
+      input.value = line.color;
+      input.addEventListener('change', () => {
+        this.commands.execute(
+          updateDrawingLine(layout.id, line.id, { color: input.value }),
+        );
+      });
+      color.append(input);
+      fields.append(color);
+      deleteButton.textContent = 'Delete Line';
+      deleteButton.addEventListener('click', () => {
+        this.commands.execute(deleteDrawingLine(layout.id, line.id));
+      });
+    } else {
+      const note = layout.notes.find((item) => item.id === selection.id);
+      if (!note) return;
+      heading.textContent = 'Note';
+
+      const textLabel = document.createElement('label');
+      textLabel.textContent = 'Text';
+      const textarea = document.createElement('textarea');
+      textarea.rows = 3;
+      textarea.value = note.text;
+      textarea.addEventListener('change', () => {
+        this.commands.execute(
+          updateCanvasNote(layout.id, note.id, { text: textarea.value }),
+        );
+      });
+      textLabel.append(textarea);
+
+      fields.append(
+        textLabel,
+        numberField('X', note.x, (value) =>
+          this.commands.execute(updateCanvasNote(layout.id, note.id, { x: value })),
+        ),
+        numberField('Y', note.y, (value) =>
+          this.commands.execute(updateCanvasNote(layout.id, note.id, { y: value })),
+        ),
+        numberField('Font size', note.fontSize, (value) =>
+          this.commands.execute(
+            updateCanvasNote(layout.id, note.id, { fontSize: value }),
+          ),
+          '1',
+        ),
+        numberField('Rotation', note.rotation, (value) =>
+          this.commands.execute(
+            updateCanvasNote(layout.id, note.id, { rotation: value }),
+          ),
+          '1',
+        ),
+        selectField('Align', note.align, ['left', 'center', 'right'], (value) =>
+          this.commands.execute(
+            updateCanvasNote(layout.id, note.id, {
+              align:
+                value === 'center' || value === 'right' ? value : 'left',
+            }),
+          ),
+        ),
+      );
+
+      const color = document.createElement('label');
+      color.textContent = 'Color';
+      const colorInput = document.createElement('input');
+      colorInput.type = 'color';
+      colorInput.value = note.color;
+      colorInput.addEventListener('change', () => {
+        this.commands.execute(
+          updateCanvasNote(layout.id, note.id, { color: colorInput.value }),
+        );
+      });
+      color.append(colorInput);
+      fields.append(color);
+
+      const toggles = document.createElement('div');
+      toggles.className = 'lc-annotation-toggle-row';
+      ([
+        ['Bold', Boolean(note.bold), 'bold'],
+        ['Italic', note.italic, 'italic'],
+        ['Halo', note.halo, 'halo'],
+      ] as const).forEach(([labelText, checked, key]) => {
+        const label = document.createElement('label');
+        const checkbox = document.createElement('input');
+        checkbox.type = 'checkbox';
+        checkbox.checked = checked;
+        checkbox.addEventListener('change', () => {
+          this.commands.execute(
+            updateCanvasNote(layout.id, note.id, {
+              [key]: checkbox.checked,
+            }),
+          );
+        });
+        label.append(checkbox, document.createTextNode(labelText));
+        toggles.append(label);
+      });
+      fields.append(toggles);
+
+      const leaderCount = layout.lines.filter(
+        (line) => line.attachedNoteId === note.id,
+      ).length;
+      if (leaderCount) {
+        const removeLeaders = document.createElement('button');
+        removeLeaders.type = 'button';
+        removeLeaders.className = 'lc-btn ghost';
+        removeLeaders.textContent =
+          'Remove Leader' + (leaderCount === 1 ? '' : 's') +
+          ' (' + String(leaderCount) + ')';
+        removeLeaders.addEventListener('click', () => {
+          this.commands.execute(removeNoteLeaders(layout.id, note.id));
+        });
+        fields.append(removeLeaders);
+      }
+
+      deleteButton.textContent = 'Delete Note';
+      deleteButton.addEventListener('click', () => {
+        this.commands.execute(deleteCanvasNote(layout.id, note.id));
+      });
+    }
+
+    root.append(heading, fields, deleteButton);
+    mount.append(root);
   }
 
   private renderPieceInspector(): void {
