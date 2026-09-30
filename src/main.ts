@@ -13,6 +13,7 @@ export * from './browser';
 export * from './core/numeric';
 export * from './domain/project';
 export * from './domain/annotations';
+export * from './domain/room-features';
 export * from './domain/slabs';
 export type {
   EntityId,
