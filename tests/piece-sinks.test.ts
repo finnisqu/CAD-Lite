@@ -395,9 +395,11 @@ describe('sink domain geometry', () => {
     expect(duplicated?.sinks[1]?.name).toBe('Main Copy');
 
     if (!duplicated) throw new Error('Missing duplicate');
-    const three = duplicatePieceSink(duplicated, 'sink-front', 'sink-3');
-    if (!three) throw new Error('Missing third sink');
-    const four = duplicatePieceSink(three, 'sink-front', 'sink-4');
+    const four = duplicatePieceSink(
+      duplicated,
+      'sink-front',
+      'sink-4',
+    );
     if (!four) throw new Error('Missing fourth sink');
     expect(four.sinks).toHaveLength(MAX_SINKS_PER_PIECE);
     expect(
