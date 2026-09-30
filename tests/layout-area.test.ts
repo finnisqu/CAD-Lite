@@ -16,6 +16,7 @@ import {
   reorderAreas,
   reorderLayouts,
   setActiveArea,
+  setActiveLayout,
   type PersistedEntity,
 } from '../src/main';
 import { v159ProjectFixture } from './fixtures/v159-project';
@@ -184,8 +185,9 @@ describe('Area ownership commands', () => {
   it('keeps active-Area navigation out of history but persists it', () => {
     const { commands } = setup();
 
+    commands.execute(setActiveLayout('layout-kitchen'));
     const event = commands.execute(
-      setActiveArea('layout-kitchen', 'area-island', {
+      setActiveArea('layout-kitchen', 'area-kitchen', {
         select: true,
       }),
     );
@@ -260,6 +262,7 @@ describe('Area ownership commands', () => {
       'splash-a',
     ]);
 
+    commands.execute(setActiveLayout('layout-kitchen'));
     commands.execute(
       setActiveArea('layout-kitchen', 'area-kitchen', {
         select: true,
@@ -279,6 +282,22 @@ describe('Area ownership commands', () => {
       kind: 'area',
       id: 'area-island',
     });
+  });
+
+  it('preserves a different active Area when deleting a non-active Area', () => {
+    const { store, commands } = setup();
+    const layout = store.getState().project.layouts[0];
+    if (!layout) throw new Error('Missing fixture Layout');
+    layout.pieces = kitchenPieces();
+
+    commands.execute(setActiveLayout('layout-kitchen'));
+    expect(layout.activeAreaId).toBe('area-island');
+
+    commands.execute(deleteArea('layout-kitchen', 'area-kitchen'));
+
+    expect(
+      store.getState().project.layouts[0]?.activeAreaId,
+    ).toBe('area-island');
   });
 
   it('refuses to delete the final Area', () => {
