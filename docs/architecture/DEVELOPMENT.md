@@ -12,7 +12,7 @@ This document describes the development toolchain introduced in Architecture Bat
 ## Toolchain
 
 - Node.js 22.13+
-- npm 10
+- npm 11.20.0
 - TypeScript 6.0.3
 - Vite 8.3.1
 - Vitest 5.0.2
@@ -22,6 +22,9 @@ This document describes the development toolchain introduced in Architecture Bat
 TypeScript 6.0.3 is intentionally pinned instead of TypeScript 7 because the
 selected typescript-eslint line currently supports TypeScript versions below 6.1.
 Upgrade them together once that compatibility window advances.
+
+npm 11.20.0 is pinned explicitly in CI so the build does not depend on whichever
+npm patch happens to be bundled with a GitHub-hosted Node runner.
 
 ## Commands
 

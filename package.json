@@ -7,7 +7,7 @@
   "engines": {
     "node": ">=22.13.0"
   },
-  "packageManager": "npm@10.9.2",
+  "packageManager": "npm@11.20.0",
   "scripts": {
     "dev": "vite --open /dev/",
     "build": "vite build",
