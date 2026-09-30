@@ -3,18 +3,139 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>CAD Lite Architecture Harness</title>
+    <title>CAD Lite v1.6 Architecture Harness</title>
   </head>
   <body>
-    <main>
-      <h1>CAD Lite Architecture Harness</h1>
-      <pre id="build-info"></pre>
+    <main class="cad-lite-architecture-harness">
+      <header class="cad-lite-architecture-harness__toolbar">
+        <strong>CAD Lite v1.6 Architecture Harness</strong>
+        <div class="cad-lite-architecture-harness__history">
+          <button id="lc-undo" type="button">Undo</button>
+          <button id="lc-redo" type="button">Redo</button>
+          <span id="lc-save-status" aria-live="polite"></span>
+        </div>
+      </header>
+
+      <div class="cad-lite-architecture-harness__columns">
+        <aside>
+          <section class="lc-card">
+            <h2>Project</h2>
+            <label>
+              <span>Project Name</span>
+              <input id="lc-project" type="text" />
+            </label>
+            <label>
+              <span>Date</span>
+              <input id="lc-date" type="date" />
+            </label>
+            <label>
+              <span>Notes</span>
+              <textarea id="lc-notes" rows="4"></textarea>
+            </label>
+          </section>
+
+          <section class="lc-card">
+            <h2>Layouts</h2>
+            <div id="lc-layouts"></div>
+          </section>
+        </aside>
+
+        <section class="cad-lite-architecture-harness__canvas">
+          <h2>First vertical slice</h2>
+          <p>
+            This harness intentionally exercises Project + Layout state through
+            the v1.6 Store, Commands, History, Autosave, and invalidation layers.
+          </p>
+          <pre id="build-info"></pre>
+        </section>
+
+        <aside>
+          <section class="lc-card">
+            <h2>Inspector</h2>
+            <div id="lc-inspector"></div>
+          </section>
+        </aside>
+      </div>
     </main>
 
     <script type="module">
-      import { getBuildInfo } from '/src/main.ts';
+      import {
+        getBuildInfo,
+        mountCadLiteBrowserRuntime,
+      } from '/src/main.ts';
 
-      document.querySelector('#build-info').textContent = JSON.stringify(getBuildInfo(), null, 2);
+      const initialPayload = {
+        sinkSideConvention: 'front-bottom-v1',
+        project: {
+          name: 'Architecture Test',
+          date: '2026-09-30',
+          notes: 'Browser vertical-slice harness',
+          scratchpad: null,
+        },
+        materials: [],
+        layouts: [
+          {
+            id: 'layout-kitchen',
+            name: 'Kitchen',
+            quantity: 2,
+            cw: 300,
+            ch: 200,
+            scale: 6,
+            grid: 1,
+            showGrid: true,
+            pieceFillOpacity: 1,
+            areas: [{ id: 'area-kitchen', name: 'Kitchen' }],
+            activeAreaId: 'area-kitchen',
+            pieces: [{ id: 'piece-1', name: 'Island' }],
+            dims: [],
+            notes: [],
+            lines: [],
+            roomFeatures: [],
+            plan: null,
+            overlays: [],
+          },
+          {
+            id: 'layout-bath',
+            name: 'Bath',
+            quantity: 1,
+            cw: 180,
+            ch: 120,
+            scale: 6,
+            grid: 1,
+            showGrid: true,
+            pieceFillOpacity: 1,
+            areas: [{ id: 'area-bath', name: 'Bath' }],
+            activeAreaId: 'area-bath',
+            pieces: [],
+            dims: [],
+            notes: [],
+            lines: [],
+            roomFeatures: [],
+            plan: null,
+            overlays: [],
+          },
+        ],
+        ui: {
+          workspace: 'layout',
+          gridSnap: true,
+          showGrid: true,
+          showDims: true,
+          dimPrecision: 16,
+          dimFormat: 'fraction',
+        },
+        active: 0,
+      };
+
+      document.querySelector('#build-info').textContent =
+        JSON.stringify(getBuildInfo(), null, 2);
+
+      window.cadLiteArchitectureRuntime = mountCadLiteBrowserRuntime({
+        root: document,
+        initialPayload,
+        autosave: {
+          key: 'cadlite:architecture-harness',
+        },
+      });
     </script>
   </body>
 </html>

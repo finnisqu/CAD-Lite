@@ -1,9 +1,156 @@
 /*
- * Architecture scaffold only.
+ * Architecture-specific styles.
  *
- * This selector is intentionally inert unless explicitly used by the development
- * harness. v1.5.99 remains the behavioral and visual baseline during migration.
+ * Production CAD Lite remains on v1.5.99 during the architecture branch.
+ * These rules style only the development harness and do not redefine the
+ * production visual system.
  */
 .cad-lite-architecture-sentinel {
   --cad-lite-architecture-scaffold: 1;
+}
+
+.cad-lite-architecture-harness {
+  box-sizing: border-box;
+  min-height: 100vh;
+  padding: 16px;
+  font-family:
+    Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
+    "Segoe UI", sans-serif;
+  color: #171717;
+  background: #f5f5f5;
+}
+
+.cad-lite-architecture-harness *,
+.cad-lite-architecture-harness *::before,
+.cad-lite-architecture-harness *::after {
+  box-sizing: inherit;
+}
+
+.cad-lite-architecture-harness__toolbar,
+.cad-lite-architecture-harness__history,
+.cad-lite-architecture-harness .lc-layout-title-row,
+.cad-lite-architecture-harness .lc-layout-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.cad-lite-architecture-harness__toolbar {
+  justify-content: space-between;
+  margin-bottom: 12px;
+  padding: 10px 12px;
+  border: 1px solid #d4d4d4;
+  border-radius: 8px;
+  background: white;
+}
+
+.cad-lite-architecture-harness__columns {
+  display: grid;
+  grid-template-columns: minmax(220px, 280px) minmax(320px, 1fr) minmax(220px, 300px);
+  gap: 12px;
+}
+
+.cad-lite-architecture-harness .lc-card,
+.cad-lite-architecture-harness__canvas {
+  margin-bottom: 12px;
+  padding: 12px;
+  border: 1px solid #d4d4d4;
+  border-radius: 8px;
+  background: white;
+}
+
+.cad-lite-architecture-harness .lc-card h2,
+.cad-lite-architecture-harness__canvas h2 {
+  margin: 0 0 12px;
+  font-size: 14px;
+}
+
+.cad-lite-architecture-harness label {
+  display: grid;
+  gap: 4px;
+  margin-bottom: 10px;
+  font-size: 12px;
+}
+
+.cad-lite-architecture-harness input,
+.cad-lite-architecture-harness textarea,
+.cad-lite-architecture-harness button {
+  font: inherit;
+}
+
+.cad-lite-architecture-harness input,
+.cad-lite-architecture-harness textarea {
+  width: 100%;
+  padding: 7px 8px;
+  border: 1px solid #c7c7c7;
+  border-radius: 5px;
+  background: white;
+}
+
+.cad-lite-architecture-harness button {
+  padding: 6px 9px;
+  border: 1px solid #c7c7c7;
+  border-radius: 5px;
+  background: white;
+  cursor: pointer;
+}
+
+.cad-lite-architecture-harness button:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.cad-lite-architecture-harness .lc-layout-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 6px;
+  padding: 8px;
+  border: 1px solid #dedede;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.cad-lite-architecture-harness .lc-layout-item.is-active {
+  border-color: #8b8b8b;
+}
+
+.cad-lite-architecture-harness .lc-layout-item.selected {
+  outline: 2px solid #b8b8b8;
+}
+
+.cad-lite-architecture-harness .lc-layout-title-row {
+  min-width: 0;
+  flex: 1;
+}
+
+.cad-lite-architecture-harness .lc-layout-title {
+  min-width: 0;
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cad-lite-architecture-harness .lc-layout-qty-text,
+.cad-lite-architecture-harness #lc-save-status,
+.cad-lite-architecture-harness .lc-small {
+  font-size: 11px;
+  color: #666;
+}
+
+.cad-lite-architecture-harness .lc-inspector-context-title {
+  margin-bottom: 10px;
+  font-weight: 700;
+}
+
+.cad-lite-architecture-harness .lc-layout-architecture-summary {
+  margin-top: 8px;
+}
+
+@media (max-width: 900px) {
+  .cad-lite-architecture-harness__columns {
+    grid-template-columns: 1fr;
+  }
 }

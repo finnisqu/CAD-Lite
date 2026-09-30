@@ -1,4 +1,8 @@
-import type { ProjectState } from '../../domain/project';
+import type {
+  Material,
+  ProjectState,
+} from '../../domain/project';
+import type { Layout } from '../../domain/project';
 import type { Workspace } from '../../persistence';
 import { resetActiveInteraction } from '../interaction/state';
 import { normalizeSelection } from '../selection';
@@ -9,14 +13,15 @@ import type {
 } from '../state';
 
 export interface HistorySnapshot {
-  project: ProjectState;
+  materials: Material[];
+  layouts: Layout[];
   workspace: Workspace;
   activeLayoutId: string | null;
   fallbackSelection: Selection;
 }
 
-function cloneProject(project: ProjectState): ProjectState {
-  return JSON.parse(JSON.stringify(project)) as ProjectState;
+function cloneValue<T>(value: T): T {
+  return JSON.parse(JSON.stringify(value)) as T;
 }
 
 function cloneSelection(selection: Selection): Selection {
@@ -25,6 +30,17 @@ function cloneSelection(selection: Selection): Selection {
     return { kind: 'pieces', ids: [...selection.ids] };
   }
   return { ...selection };
+}
+
+function projectFromSnapshot(
+  current: ProjectState,
+  snapshot: HistorySnapshot,
+): ProjectState {
+  return {
+    ...current,
+    materials: cloneValue(snapshot.materials),
+    layouts: cloneValue(snapshot.layouts),
+  };
 }
 
 function resolveActiveLayoutId(
@@ -53,7 +69,8 @@ export function captureHistorySnapshot(
   state: ReadonlyApplicationState,
 ): HistorySnapshot {
   return {
-    project: cloneProject(state.project),
+    materials: cloneValue(state.project.materials),
+    layouts: cloneValue(state.project.layouts),
     workspace: state.session.workspace,
     activeLayoutId: state.session.activeLayoutId,
     fallbackSelection: cloneSelection(state.session.selection),
@@ -62,7 +79,8 @@ export function captureHistorySnapshot(
 
 export function historySnapshotSignature(snapshot: HistorySnapshot): string {
   return JSON.stringify({
-    project: snapshot.project,
+    materials: snapshot.materials,
+    layouts: snapshot.layouts,
     workspace: snapshot.workspace,
   });
 }
@@ -71,7 +89,7 @@ export function restoreHistorySnapshot(
   current: ReadonlyApplicationState,
   snapshot: HistorySnapshot,
 ): ApplicationState {
-  const project = cloneProject(snapshot.project);
+  const project = projectFromSnapshot(current.project, snapshot);
   const activeLayoutId = resolveActiveLayoutId(
     project,
     current.session.activeLayoutId,

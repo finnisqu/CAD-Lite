@@ -8,7 +8,7 @@ export function setProjectMeta(
   return {
     type: 'project.setMeta',
     label: 'Update project details',
-    history: 'record',
+    history: 'skip',
     persistence: 'save',
     reduce(state) {
       const current = state.project.meta;
@@ -16,7 +16,10 @@ export function setProjectMeta(
         name: patch.name === undefined ? current.name : patch.name,
         date: patch.date === undefined ? current.date : patch.date,
         notes: patch.notes === undefined ? current.notes : patch.notes,
-        scratchpad: patch.scratchpad === undefined ? current.scratchpad : patch.scratchpad,
+        scratchpad:
+          patch.scratchpad === undefined
+            ? current.scratchpad
+            : patch.scratchpad,
       };
 
       if (
@@ -48,7 +51,9 @@ export function renameLayout(layoutId: string, name: string): AppCommand {
     history: 'record',
     persistence: 'save',
     reduce(state) {
-      const index = state.project.layouts.findIndex((layout) => layout.id === layoutId);
+      const index = state.project.layouts.findIndex(
+        (layout) => layout.id === layoutId,
+      );
       const layout = state.project.layouts[index];
       if (index < 0 || !layout || layout.name === nextName) {
         return state;
@@ -68,8 +73,15 @@ export function renameLayout(layoutId: string, name: string): AppCommand {
   };
 }
 
-export function setLayoutQuantity(layoutId: string, quantity: number): AppCommand {
-  const nextQuantity = clamp(Math.round(Number(quantity) || 1), 1, 9999);
+export function setLayoutQuantity(
+  layoutId: string,
+  quantity: number,
+): AppCommand {
+  const nextQuantity = clamp(
+    Math.round(Number(quantity) || 1),
+    1,
+    9999,
+  );
 
   return {
     type: 'layout.setQuantity',
@@ -77,7 +89,9 @@ export function setLayoutQuantity(layoutId: string, quantity: number): AppComman
     history: 'record',
     persistence: 'save',
     reduce(state) {
-      const index = state.project.layouts.findIndex((layout) => layout.id === layoutId);
+      const index = state.project.layouts.findIndex(
+        (layout) => layout.id === layoutId,
+      );
       const layout = state.project.layouts[index];
       if (index < 0 || !layout || layout.quantity === nextQuantity) {
         return state;
@@ -97,7 +111,11 @@ export function setLayoutQuantity(layoutId: string, quantity: number): AppComman
   };
 }
 
-export function renameArea(layoutId: string, areaId: string, name: string): AppCommand {
+export function renameArea(
+  layoutId: string,
+  areaId: string,
+  name: string,
+): AppCommand {
   const nextName = name.trim();
 
   return {
@@ -106,11 +124,15 @@ export function renameArea(layoutId: string, areaId: string, name: string): AppC
     history: 'record',
     persistence: 'save',
     reduce(state) {
-      const layoutIndex = state.project.layouts.findIndex((layout) => layout.id === layoutId);
+      const layoutIndex = state.project.layouts.findIndex(
+        (layout) => layout.id === layoutId,
+      );
       const layout = state.project.layouts[layoutIndex];
       if (layoutIndex < 0 || !layout) return state;
 
-      const areaIndex = layout.areas.findIndex((area) => area.id === areaId);
+      const areaIndex = layout.areas.findIndex(
+        (area) => area.id === areaId,
+      );
       const area = layout.areas[areaIndex];
       if (areaIndex < 0 || !area || area.name === nextName) {
         return state;
@@ -133,7 +155,10 @@ export function renameArea(layoutId: string, areaId: string, name: string): AppC
   };
 }
 
-export function renameMaterial(materialId: string, name: string): AppCommand {
+export function renameMaterial(
+  materialId: string,
+  name: string,
+): AppCommand {
   const nextName = name.trim();
 
   return {
@@ -142,7 +167,9 @@ export function renameMaterial(materialId: string, name: string): AppCommand {
     history: 'record',
     persistence: 'save',
     reduce(state) {
-      const index = state.project.materials.findIndex((material) => material.id === materialId);
+      const index = state.project.materials.findIndex(
+        (material) => material.id === materialId,
+      );
       const material = state.project.materials[index];
       if (index < 0 || !material || material.name === nextName) {
         return state;
