@@ -23,6 +23,13 @@ import type {
 
 export type AnnotationIdFactory = (prefix: string) => string;
 
+export interface AnnotationSnapResult {
+  point: AnnotationPoint;
+  guideX: number | null;
+  guideY: number | null;
+  snapped: boolean;
+}
+
 export interface AnnotationSegmentPreview {
   kind: 'annotation-segment';
   tool: 'dimension' | 'line';
@@ -82,25 +89,81 @@ function nearestPieceSnap(
   return best;
 }
 
+export function resolveAnnotationPointer(
+  state: ReadonlyApplicationState,
+  input: ToolPointerInput,
+): AnnotationSnapResult {
+  const raw = { x: input.x, y: input.y };
+  if (input.modifiers.alt) {
+    return { point: raw, guideX: null, guideY: null, snapped: false };
+  }
+
+  const piece = nearestPieceSnap(state, raw);
+  if (piece) {
+    return {
+      point: piece,
+      guideX: piece.x,
+      guideY: piece.y,
+      snapped: true,
+    };
+  }
+
+  const layout = activeLayout(state);
+  if (layout && state.preferences.gridSnap && layout.grid > 0) {
+    const point = {
+      x: Math.round(raw.x / layout.grid) * layout.grid,
+      y: Math.round(raw.y / layout.grid) * layout.grid,
+    };
+    return {
+      point,
+      guideX: point.x === raw.x ? null : point.x,
+      guideY: point.y === raw.y ? null : point.y,
+      snapped: point.x !== raw.x || point.y !== raw.y,
+    };
+  }
+
+  return { point: raw, guideX: null, guideY: null, snapped: false };
+}
+
 function snapPoint(
   context: ToolHandlerContext,
   input: ToolPointerInput,
 ): AnnotationPoint {
-  const raw = { x: input.x, y: input.y };
-  if (input.modifiers.alt) return raw;
+  return resolveAnnotationPointer(context.state, input).point;
+}
 
-  const piece = nearestPieceSnap(context.state, raw);
-  if (piece) return piece;
-
-  const layout = activeLayout(context.state);
-  if (layout && context.state.preferences.gridSnap && layout.grid > 0) {
-    return {
-      x: Math.round(raw.x / layout.grid) * layout.grid,
-      y: Math.round(raw.y / layout.grid) * layout.grid,
-    };
+export function constrainAnnotationPoint(
+  start: AnnotationPoint,
+  end: AnnotationPoint,
+  shift: boolean,
+  weakDegrees = 3,
+): { point: AnnotationPoint; guideX: number | null; guideY: number | null } {
+  const dx = end.x - start.x;
+  const dy = end.y - start.y;
+  if (shift) {
+    return Math.abs(dx) >= Math.abs(dy)
+      ? { point: { x: end.x, y: start.y }, guideX: null, guideY: start.y }
+      : { point: { x: start.x, y: end.y }, guideX: start.x, guideY: null };
   }
 
-  return raw;
+  const angle = Math.abs(Math.atan2(dy, dx) * 180 / Math.PI);
+  const horizontalError = Math.min(angle, Math.abs(180 - angle));
+  const verticalError = Math.abs(90 - angle);
+  if (horizontalError <= weakDegrees) {
+    return {
+      point: { x: end.x, y: start.y },
+      guideX: null,
+      guideY: start.y,
+    };
+  }
+  if (verticalError <= weakDegrees) {
+    return {
+      point: { x: start.x, y: end.y },
+      guideX: start.x,
+      guideY: null,
+    };
+  }
+  return { point: end, guideX: null, guideY: null };
 }
 
 function constrain(
@@ -108,12 +171,7 @@ function constrain(
   end: AnnotationPoint,
   shift: boolean,
 ): AnnotationPoint {
-  if (!shift) return end;
-  const dx = Math.abs(end.x - start.x);
-  const dy = Math.abs(end.y - start.y);
-  return dx >= dy
-    ? { x: end.x, y: start.y }
-    : { x: start.x, y: end.y };
+  return constrainAnnotationPoint(start, end, shift).point;
 }
 
 function segmentPreview(
