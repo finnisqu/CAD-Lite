@@ -11,7 +11,7 @@ import {
 import type { CadLiteFile, PersistedEditorState } from '../schema';
 import { CAD_LITE_SCHEMA_VERSION } from '../schema';
 
-export const V159_SINK_SIDE_CONVENTION = 'front-v2';
+export const V159_SINK_SIDE_CONVENTION = 'front-bottom-v1';
 
 export interface LegacyV159ImportOptions {
   appVersion?: string;

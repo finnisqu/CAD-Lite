@@ -1,0 +1,108 @@
+import type {
+  ApplicationState,
+  ReadonlyApplicationState,
+} from './state';
+
+export type HistoryPolicy = 'record' | 'skip';
+export type PersistencePolicy = 'save' | 'skip';
+export type CommitKind = 'command' | 'transaction' | 'system';
+
+export interface ChangedDomains {
+  project: boolean;
+  session: boolean;
+  preferences: boolean;
+}
+
+export interface StoreCommitMetadata {
+  kind: CommitKind;
+  label: string;
+  commandTypes: string[];
+  history: HistoryPolicy;
+  persistence: PersistencePolicy;
+}
+
+export interface StoreChangeEvent extends StoreCommitMetadata {
+  revision: number;
+  changed: ChangedDomains;
+  previous: ReadonlyApplicationState;
+  current: ReadonlyApplicationState;
+}
+
+export type StoreListener = (event: StoreChangeEvent) => void;
+
+function changedDomains(
+  previous: ReadonlyApplicationState,
+  current: ReadonlyApplicationState,
+): ChangedDomains {
+  return {
+    project: previous.project !== current.project,
+    session: previous.session !== current.session,
+    preferences: previous.preferences !== current.preferences,
+  };
+}
+
+function hasChanges(changed: ChangedDomains): boolean {
+  return changed.project || changed.session || changed.preferences;
+}
+
+export class AppStore {
+  private state: ApplicationState;
+  private revision = 0;
+  private readonly listeners = new Set<StoreListener>();
+
+  constructor(initialState: ApplicationState) {
+    this.state = initialState;
+  }
+
+  getState(): ReadonlyApplicationState {
+    return this.state;
+  }
+
+  getRevision(): number {
+    return this.revision;
+  }
+
+  subscribe(listener: StoreListener): () => void {
+    this.listeners.add(listener);
+    return () => {
+      this.listeners.delete(listener);
+    };
+  }
+
+  commit(
+    nextState: ApplicationState,
+    metadata: StoreCommitMetadata,
+  ): StoreChangeEvent | null {
+    const previous = this.state;
+    const changed = changedDomains(previous, nextState);
+
+    if (!hasChanges(changed)) return null;
+
+    this.state = nextState;
+    this.revision += 1;
+
+    const event: StoreChangeEvent = {
+      ...metadata,
+      revision: this.revision,
+      changed,
+      previous,
+      current: nextState,
+    };
+
+    this.listeners.forEach((listener) => listener(event));
+    return event;
+  }
+
+  replaceState(
+    nextState: ApplicationState,
+    label = 'Replace application state',
+  ): StoreChangeEvent | null {
+    return this.commit(nextState, {
+      kind: 'system',
+      label,
+      commandTypes: [],
+      history: 'skip',
+      persistence: 'skip',
+    });
+  }
+}

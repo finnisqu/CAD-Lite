@@ -8,6 +8,7 @@ export {
 
 export type { BuildInfo } from './app/build-info';
 
+export * from './app';
 export * from './core/numeric';
 export * from './domain/project';
 export type {
