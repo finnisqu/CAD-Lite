@@ -6,6 +6,7 @@ import {
   setSelection,
   setWorkspace,
   updatePreferences,
+  type AnnotationInteractionController,
   type ApplicationEffects,
   type PieceInteractionController,
   type AppStore,
@@ -39,6 +40,7 @@ export interface PieceCanvasSurfaceOptions {
   commands: CommandDispatcher;
   effects: ApplicationEffects;
   interaction: PieceInteractionController;
+  annotationInteraction: AnnotationInteractionController;
   tools: ToolController;
 }
 
@@ -84,6 +86,7 @@ export class PieceCanvasSurface {
   private readonly commands: CommandDispatcher;
   private readonly effects: ApplicationEffects;
   private readonly interaction: PieceInteractionController;
+  private readonly annotationInteraction: AnnotationInteractionController;
   private readonly tools: ToolController;
 
   private abort: AbortController | null = null;
@@ -108,6 +111,7 @@ export class PieceCanvasSurface {
     this.commands = options.commands;
     this.effects = options.effects;
     this.interaction = options.interaction;
+    this.annotationInteraction = options.annotationInteraction;
     this.tools = options.tools;
   }
 
@@ -288,6 +292,7 @@ export class PieceCanvasSurface {
 
   unmount(): void {
     this.interaction.cancel();
+    this.annotationInteraction.cancel();
     this.abort?.abort();
     this.abort = null;
     this.subscriptions.forEach((unsubscribe) => unsubscribe());
@@ -367,6 +372,54 @@ export class PieceCanvasSurface {
 
     const target =
       event.target instanceof Element ? event.target : null;
+    const annotationEndpoint = target?.closest<SVGElement>(
+      '[data-annotation-endpoint][data-annotation-id][data-annotation-kind]',
+    );
+    const dimensionOffset = target?.closest<SVGElement>(
+      '[data-dimension-offset-handle][data-annotation-id]',
+    );
+    const noteMove = target?.closest<SVGElement>(
+      '[data-note-move-handle][data-annotation-id]',
+    );
+
+    if (annotationEndpoint) {
+      const id = annotationEndpoint.dataset.annotationId;
+      const kind = annotationEndpoint.dataset.annotationKind;
+      const endpoint = annotationEndpoint.dataset.annotationEndpoint;
+      if (
+        id &&
+        (endpoint === 'start' || endpoint === 'end') &&
+        ((kind === 'dimension' &&
+          this.annotationInteraction.beginDimensionEndpoint(id, endpoint, input)) ||
+          (kind === 'line' &&
+            this.annotationInteraction.beginLineEndpoint(id, endpoint, input)))
+      ) {
+        event.preventDefault();
+        this.svg?.setPointerCapture?.(event.pointerId);
+        this.render();
+        return;
+      }
+    }
+
+    const offsetId = dimensionOffset?.dataset.annotationId;
+    if (
+      offsetId &&
+      this.annotationInteraction.beginDimensionOffset(offsetId, input)
+    ) {
+      event.preventDefault();
+      this.svg?.setPointerCapture?.(event.pointerId);
+      this.render();
+      return;
+    }
+
+    const noteId = noteMove?.dataset.annotationId;
+    if (noteId && this.annotationInteraction.beginNoteMove(noteId, input)) {
+      event.preventDefault();
+      this.svg?.setPointerCapture?.(event.pointerId);
+      this.render();
+      return;
+    }
+
     const rotate = target?.closest<SVGElement>(
       '[data-piece-rotate-handle]',
     );
@@ -449,6 +502,14 @@ export class PieceCanvasSurface {
       return;
     }
 
+    if (this.annotationInteraction.hasActivePointer()) {
+      if (this.annotationInteraction.pointerMove(input)) {
+        event.preventDefault();
+        this.render();
+      }
+      return;
+    }
+
     if (!this.interaction.hasActivePointer()) return;
     if (this.interaction.pointerMove(input)) {
       event.preventDefault();
@@ -463,6 +524,19 @@ export class PieceCanvasSurface {
 
     if (this.tools.getActiveTool()) {
       if (this.tools.pointerUp({ ...input, buttons: 0 })) {
+        event.preventDefault();
+      }
+      try {
+        this.svg?.releasePointerCapture?.(event.pointerId);
+      } catch {
+        // Pointer capture may already have been released by the browser.
+      }
+      this.render();
+      return;
+    }
+
+    if (this.annotationInteraction.hasActivePointer()) {
+      if (this.annotationInteraction.pointerUp({ ...input, buttons: 0 })) {
         event.preventDefault();
       }
       try {
@@ -489,6 +563,16 @@ export class PieceCanvasSurface {
   private onPointerCancel(event: PointerEvent): void {
     if (this.tools.getActiveTool()) {
       this.tools.cancel();
+      try {
+        this.svg?.releasePointerCapture?.(event.pointerId);
+      } catch {
+        // Pointer capture may already have been released by the browser.
+      }
+      this.render();
+      return;
+    }
+    if (this.annotationInteraction.hasActivePointer()) {
+      this.annotationInteraction.cancel();
       try {
         this.svg?.releasePointerCapture?.(event.pointerId);
       } catch {
@@ -912,10 +996,59 @@ export class PieceCanvasSurface {
     });
 
     this.renderAnnotations(document, svg, projection, annotations);
+    this.renderAnnotationEditGuides(document, svg, projection);
     this.renderAnnotationToolPreview(document, svg, projection);
     this.renderSnapGuides(document, svg, projection);
     this.renderResizeHandles(document, svg, projection);
     this.renderRotateHandle(document, svg, projection);
+  }
+
+  private renderAnnotationEditGuides(
+    document: Document,
+    svg: SVGSVGElement,
+    projection: PieceCanvasProjection,
+  ): void {
+    if (projection.workspace !== 'design') return;
+    const raw = this.store.getState().session.interaction.preview;
+    if (!raw || Array.isArray(raw) || typeof raw !== 'object') return;
+    const preview = raw as Record<string, unknown>;
+    if (preview.kind !== 'annotation-edit') return;
+
+    const guideX = typeof preview.guideX === 'number' ? preview.guideX : null;
+    const guideY = typeof preview.guideY === 'number' ? preview.guideY : null;
+    if (guideX !== null) {
+      const line = document.createElementNS(SVG_NS, 'line');
+      line.setAttribute('class', 'lc-annotation-alignment-guide');
+      line.setAttribute('x1', String(guideX));
+      line.setAttribute('x2', String(guideX));
+      line.setAttribute('y1', '0');
+      line.setAttribute('y2', String(projection.canvas.height));
+      line.setAttribute('vector-effect', 'non-scaling-stroke');
+      svg.appendChild(line);
+    }
+    if (guideY !== null) {
+      const line = document.createElementNS(SVG_NS, 'line');
+      line.setAttribute('class', 'lc-annotation-alignment-guide');
+      line.setAttribute('x1', '0');
+      line.setAttribute('x2', String(projection.canvas.width));
+      line.setAttribute('y1', String(guideY));
+      line.setAttribute('y2', String(guideY));
+      line.setAttribute('vector-effect', 'non-scaling-stroke');
+      svg.appendChild(line);
+    }
+
+    const snapX = typeof preview.snapX === 'number' ? preview.snapX : null;
+    const snapY = typeof preview.snapY === 'number' ? preview.snapY : null;
+    if (snapX !== null && snapY !== null) {
+      const marker = document.createElementNS(SVG_NS, 'circle');
+      marker.setAttribute('class', 'lc-annotation-snap-marker');
+      marker.setAttribute('cx', String(snapX));
+      marker.setAttribute('cy', String(snapY));
+      marker.setAttribute('r', String(4 / Math.max(0.001, projection.scale)));
+      marker.setAttribute('vector-effect', 'non-scaling-stroke');
+      marker.setAttribute('pointer-events', 'none');
+      svg.appendChild(marker);
+    }
   }
 
   private renderAnnotationToolPreview(
@@ -1019,6 +1152,32 @@ export class PieceCanvasSurface {
       );
 
       group.append(witnessA, witnessB, line, label);
+
+      if (dimension.selected) {
+        const radius = 5 * unit;
+        [
+          ['start', dimension.x1, dimension.y1],
+          ['end', dimension.x2, dimension.y2],
+        ].forEach(([endpoint, x, y]) => {
+          const handle = document.createElementNS(SVG_NS, 'circle');
+          handle.setAttribute('class', 'lc-annotation-endpoint-handle');
+          handle.setAttribute('cx', String(x));
+          handle.setAttribute('cy', String(y));
+          handle.setAttribute('r', String(radius));
+          handle.setAttribute('data-annotation-kind', 'dimension');
+          handle.setAttribute('data-annotation-id', dimension.id);
+          handle.setAttribute('data-annotation-endpoint', String(endpoint));
+          handle.setAttribute('pointer-events', 'all');
+          handle.style.cursor = 'crosshair';
+          group.appendChild(handle);
+        });
+
+        label.setAttribute('data-dimension-offset-handle', '1');
+        label.setAttribute('data-annotation-id', dimension.id);
+        label.setAttribute('pointer-events', 'all');
+        label.style.cursor = 'move';
+      }
+
       layer.appendChild(group);
     });
 
@@ -1059,6 +1218,26 @@ export class PieceCanvasSurface {
         dot.setAttribute('fill', source.selected ? '#0ea5e9' : source.color);
         layer.appendChild(dot);
       }
+
+      if (source.selected) {
+        [
+          ['start', source.x1, source.y1],
+          ['end', source.x2, source.y2],
+        ].forEach(([endpoint, x, y]) => {
+          if (source.attachedNoteId && source.attachedEnd === endpoint) return;
+          const handle = document.createElementNS(SVG_NS, 'circle');
+          handle.setAttribute('class', 'lc-annotation-endpoint-handle');
+          handle.setAttribute('cx', String(x));
+          handle.setAttribute('cy', String(y));
+          handle.setAttribute('r', String(5 * unit));
+          handle.setAttribute('data-annotation-kind', 'line');
+          handle.setAttribute('data-annotation-id', source.id);
+          handle.setAttribute('data-annotation-endpoint', String(endpoint));
+          handle.setAttribute('pointer-events', 'all');
+          handle.style.cursor = 'crosshair';
+          layer.appendChild(handle);
+        });
+      }
     });
 
     annotations.notes.forEach((note) => {
@@ -1091,6 +1270,12 @@ export class PieceCanvasSurface {
         text.setAttribute('stroke-linejoin', 'round');
       }
       text.textContent = note.text;
+      if (note.selected) {
+        text.setAttribute('data-note-move-handle', '1');
+        text.setAttribute('data-annotation-id', note.id);
+        text.setAttribute('pointer-events', 'all');
+        text.style.cursor = 'move';
+      }
       layer.appendChild(text);
     });
 
