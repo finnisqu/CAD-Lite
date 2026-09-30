@@ -1343,6 +1343,190 @@ export class ProjectLayoutSurface {
       });
       mount.append(button);
     });
+
+    this.renderAnnotationNavigator(mount, layout.id);
+  }
+
+  private renderAnnotationNavigator(
+    mount: HTMLElement,
+    layoutId: string,
+  ): void {
+    const state = this.store.getState();
+    if (state.session.workspace !== 'design') return;
+    const layout = state.project.layouts.find((item) => item.id === layoutId);
+    if (!layout) return;
+    const document = mount.ownerDocument;
+    const selection = state.session.selection;
+
+    const section = (
+      titleText: string,
+      count: number,
+      visible: boolean,
+      toggle: () => void,
+    ): HTMLElement => {
+      const root = document.createElement('div');
+      root.className = 'lc-annotation-nav-section';
+      const header = document.createElement('div');
+      header.className = 'lc-annotation-nav-header';
+      const title = document.createElement('strong');
+      title.textContent = titleText + ' (' + String(count) + ')';
+      const show = document.createElement('button');
+      show.type = 'button';
+      show.className = 'lc-btn ghost sm';
+      show.textContent = visible ? 'Hide' : 'Show';
+      show.setAttribute('aria-pressed', String(visible));
+      show.addEventListener('click', toggle);
+      header.append(title, show);
+      root.append(header);
+      return root;
+    };
+
+    const row = (
+      kind: 'dimension' | 'line' | 'note',
+      id: string,
+      name: string,
+      visible: boolean,
+      rename: (name: string) => void,
+      setVisible: (visible: boolean) => void,
+      remove: () => void,
+    ): HTMLElement => {
+      const item = document.createElement('div');
+      item.className =
+        'lc-item nav lc-annotation-nav-row' +
+        (selection.kind === kind && selection.id === id ? ' selected' : '');
+      item.dataset.annotationKind = kind;
+      item.dataset.annotationId = id;
+
+      const input = document.createElement('input');
+      input.type = 'text';
+      input.className = 'lc-input lc-annotation-nav-name';
+      input.value = name;
+      input.setAttribute('aria-label', 'Rename ' + kind);
+      input.addEventListener('change', () => rename(input.value.trim() || name));
+      input.addEventListener('click', (event) => event.stopPropagation());
+
+      const eye = document.createElement('button');
+      eye.type = 'button';
+      eye.className = 'lc-btn ghost lc-iconbtn';
+      eye.title = visible ? 'Hide' : 'Show';
+      eye.textContent = visible ? '◉' : '○';
+      eye.addEventListener('click', (event) => {
+        event.stopPropagation();
+        setVisible(!visible);
+      });
+
+      const trash = document.createElement('button');
+      trash.type = 'button';
+      trash.className = 'lc-btn red lc-iconbtn';
+      trash.title = 'Delete';
+      trash.textContent = '×';
+      trash.addEventListener('click', (event) => {
+        event.stopPropagation();
+        remove();
+      });
+
+      item.addEventListener('click', () => {
+        this.commands.execute(setSelection({ kind, id }));
+      });
+      item.append(input, eye, trash);
+      return item;
+    };
+
+    const dims = section(
+      'Dimensions',
+      layout.dims.length,
+      state.preferences.showManualDims,
+      () =>
+        this.commands.execute(
+          updatePreferences({
+            showManualDims: !this.store.getState().preferences.showManualDims,
+          }),
+        ),
+    );
+    layout.dims.forEach((item, index) => {
+      dims.append(
+        row(
+          'dimension',
+          item.id,
+          item.name || 'Dimension ' + String(index + 1),
+          item.visible,
+          (name) =>
+            this.commands.execute(updateDimension(layout.id, item.id, { name })),
+          (visible) =>
+            this.commands.execute(
+              updateDimension(layout.id, item.id, { visible }),
+            ),
+          () => this.commands.execute(deleteDimension(layout.id, item.id)),
+        ),
+      );
+    });
+
+    const lines = section(
+      'Lines',
+      layout.lines.length,
+      state.preferences.showLines,
+      () =>
+        this.commands.execute(
+          updatePreferences({
+            showLines: !this.store.getState().preferences.showLines,
+          }),
+        ),
+    );
+    layout.lines.forEach((item, index) => {
+      lines.append(
+        row(
+          'line',
+          item.id,
+          item.name || 'Line ' + String(index + 1),
+          item.visible,
+          (name) =>
+            this.commands.execute(
+              updateDrawingLine(layout.id, item.id, { name }),
+            ),
+          (visible) =>
+            this.commands.execute(
+              updateDrawingLine(layout.id, item.id, { visible }),
+            ),
+          () => this.commands.execute(deleteDrawingLine(layout.id, item.id)),
+        ),
+      );
+    });
+
+    const notes = section(
+      'Notes',
+      layout.notes.length,
+      state.preferences.showNotes,
+      () =>
+        this.commands.execute(
+          updatePreferences({
+            showNotes: !this.store.getState().preferences.showNotes,
+          }),
+        ),
+    );
+    layout.notes.forEach((item, index) => {
+      const label =
+        item.text.trim().split(/\s+/).slice(0, 4).join(' ') ||
+        'Note ' + String(index + 1);
+      notes.append(
+        row(
+          'note',
+          item.id,
+          label,
+          item.visible,
+          (text) =>
+            this.commands.execute(
+              updateCanvasNote(layout.id, item.id, { text }),
+            ),
+          (visible) =>
+            this.commands.execute(
+              updateCanvasNote(layout.id, item.id, { visible }),
+            ),
+          () => this.commands.execute(deleteCanvasNote(layout.id, item.id)),
+        ),
+      );
+    });
+
+    mount.append(dims, lines, notes);
   }
 
   private renderSelectedPieceGroup(
