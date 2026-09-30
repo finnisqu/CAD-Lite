@@ -1,4 +1,4 @@
-import { createDefaultInteractionState } from '../interaction/state';
+import { resetActiveInteraction } from '../interaction/state';
 import type { InteractionState } from '../interaction/types';
 import type { Selection } from '../state';
 import type { AppCommand } from './types';
@@ -82,7 +82,7 @@ export function setActiveLayout(layoutId: string): AppCommand {
           ...state.session,
           activeLayoutId: layoutId,
           selection: { kind: 'layout', id: layoutId },
-          interaction: createDefaultInteractionState(),
+          interaction: resetActiveInteraction(state.session.interaction),
           transient: {},
         },
       };
@@ -112,7 +112,7 @@ export function setWorkspace(workspace: 'design' | 'slab'): AppCommand {
           ...state.session,
           workspace,
           selection,
-          interaction: createDefaultInteractionState(),
+          interaction: resetActiveInteraction(state.session.interaction),
           transient: {},
         },
       };
