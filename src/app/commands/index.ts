@@ -31,6 +31,11 @@ export {
 
 export { updatePreferences } from './preferences';
 export {
+  addSlabSurface,
+  deleteSlabSurface,
+  updateSlabSurface,
+} from './slabs';
+export {
   setActiveLayout,
   setSelection,
   setWorkspace,
