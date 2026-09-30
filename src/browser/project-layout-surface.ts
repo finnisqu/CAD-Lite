@@ -1,5 +1,6 @@
 import {
   addPiece,
+  addRoomFeature,
   addSlabSurface,
   applyFabricationTransaction,
   addPieceCutout,
@@ -12,6 +13,7 @@ import {
   deleteDimension,
   deleteDrawingLine,
   deletePieces,
+  deleteRoomFeature,
   deleteSlabSurface,
   duplicatePieces,
   editPieceCutout,
@@ -32,6 +34,7 @@ import {
   updateDimension,
   updateDrawingLine,
   removeNoteLeaders,
+  updateRoomFeature,
   updateSlabSurface,
 } from '../app/commands';
 import {
@@ -75,6 +78,10 @@ import {
   getAreaDeletionPlan,
 } from '../domain/project';
 import { createBlankSlabSurface } from '../domain/slabs';
+import {
+  createRoomFeature,
+  roomFeatureCategory,
+} from '../domain/room-features';
 import { normalizeDegrees } from '../core/numeric';
 import { createProjectLayoutViewModel } from './project-layout-model';
 
@@ -589,6 +596,11 @@ export class ProjectLayoutSurface {
       selection.kind === 'note'
     ) {
       this.renderAnnotationInspector();
+      return;
+    }
+
+    if (selection.kind === 'roomFeature') {
+      this.renderRoomFeatureInspector();
       return;
     }
 
@@ -1527,6 +1539,151 @@ export class ProjectLayoutSurface {
     });
 
     mount.append(notes, dims, lines);
+    this.renderRoomFeatureNavigator(mount, layout.id);
+  }
+
+  private renderRoomFeatureNavigator(
+    mount: HTMLElement,
+    layoutId: string,
+  ): void {
+    const state = this.store.getState();
+    if (state.session.workspace !== 'design') return;
+    const layout = state.project.layouts.find((item) => item.id === layoutId);
+    if (!layout) return;
+    const document = mount.ownerDocument;
+    const selection = state.session.selection;
+
+    const root = document.createElement('div');
+    root.className = 'lc-room-feature-nav-section';
+
+    const header = document.createElement('div');
+    header.className = 'lc-room-feature-nav-header';
+    const title = document.createElement('strong');
+    title.textContent =
+      'Room Features (' + String(layout.roomFeatures.length) + ')';
+
+    const visibility = document.createElement('button');
+    visibility.type = 'button';
+    visibility.className = 'lc-btn ghost sm';
+    visibility.textContent = state.preferences.showRoomFeatures
+      ? 'Hide'
+      : 'Show';
+    visibility.setAttribute(
+      'aria-pressed',
+      String(state.preferences.showRoomFeatures),
+    );
+    visibility.addEventListener('click', () => {
+      this.commands.execute(
+        updatePreferences({
+          showRoomFeatures:
+            !this.store.getState().preferences.showRoomFeatures,
+        }),
+      );
+    });
+    header.append(title, visibility);
+
+    const addActions = document.createElement('div');
+    addActions.className = 'lc-room-feature-add-actions';
+    (
+      [
+        ['base', '+ Base'],
+        ['filler', '+ Filler'],
+        ['appliance', '+ Appliance'],
+        ['wall', '+ Wall'],
+      ] as const
+    ).forEach(([featureType, label]) => {
+      const add = document.createElement('button');
+      add.type = 'button';
+      add.className = 'lc-btn ghost sm';
+      add.textContent = label;
+      add.addEventListener('click', () => {
+        const count = this.store.getState().project.layouts.find(
+          (item) => item.id === layout.id,
+        )?.roomFeatures.length ?? 0;
+        this.commands.execute(
+          addRoomFeature(
+            layout.id,
+            createRoomFeature(
+              this.createId('room-feature'),
+              featureType,
+              {
+                x: 8 + count * 4,
+                y: 8 + count * 4,
+                ...(featureType === 'wall'
+                  ? { kind: 'wall', wallType: 'full' }
+                  : {}),
+              },
+            ),
+          ),
+        );
+      });
+      addActions.append(add);
+    });
+
+    root.append(header, addActions);
+
+    layout.roomFeatures.forEach((feature) => {
+      const row = document.createElement('div');
+      row.className =
+        'lc-item nav lc-room-feature-nav-row' +
+        (selection.kind === 'roomFeature' &&
+        selection.id === feature.id
+          ? ' selected'
+          : '');
+      row.dataset.roomFeatureId = feature.id;
+
+      const text = document.createElement('div');
+      text.className = 'lc-room-feature-nav-text';
+      const name = document.createElement('strong');
+      name.textContent = feature.name;
+      const meta = document.createElement('span');
+      meta.className = 'lc-small';
+      const category = roomFeatureCategory(feature);
+      meta.textContent =
+        category.replace('-', ' ') +
+        ' · ' +
+        String(feature.length) +
+        '" × ' +
+        String(feature.depth) +
+        '"';
+      text.append(name, meta);
+
+      const eye = document.createElement('button');
+      eye.type = 'button';
+      eye.className = 'lc-btn ghost lc-iconbtn';
+      eye.title = feature.visible ? 'Hide' : 'Show';
+      eye.textContent = feature.visible ? '◉' : '○';
+      eye.addEventListener('click', (event) => {
+        event.stopPropagation();
+        this.commands.execute(
+          updateRoomFeature(layout.id, feature.id, {
+            visible: !feature.visible,
+          }),
+        );
+      });
+
+      const trash = document.createElement('button');
+      trash.type = 'button';
+      trash.className = 'lc-btn red lc-iconbtn';
+      trash.title = 'Delete';
+      trash.textContent = '×';
+      trash.addEventListener('click', (event) => {
+        event.stopPropagation();
+        this.commands.execute(
+          deleteRoomFeature(layout.id, feature.id),
+        );
+      });
+
+      row.addEventListener('click', () => {
+        this.commands.execute(
+          setSelection({ kind: 'roomFeature', id: feature.id }),
+        );
+      });
+      row.append(text, eye, trash);
+      root.append(row);
+    });
+
+    mount.append(root);
   }
 
   private renderSelectedPieceGroup(
@@ -1647,6 +1804,211 @@ export class ProjectLayoutSurface {
     return group.kind === 'fabrication'
       ? 'fabrication'
       : 'ordinary';
+  }
+
+  private renderRoomFeatureInspector(): void {
+    const mount = this.inspectorElement;
+    if (!mount) return;
+    const state = this.store.getState();
+    const selection = state.session.selection;
+    if (
+      state.session.workspace !== 'design' ||
+      selection.kind !== 'roomFeature'
+    ) {
+      return;
+    }
+
+    const layout = state.project.layouts.find(
+      (item) => item.id === state.session.activeLayoutId,
+    );
+    const feature = layout?.roomFeatures.find(
+      (item) => item.id === selection.id,
+    );
+    if (!layout || !feature) return;
+
+    const document = mount.ownerDocument;
+    const root = document.createElement('div');
+    root.className =
+      'lc-item selected lc-room-feature-inspector';
+
+    const heading = document.createElement('div');
+    heading.className = 'lc-inspector-context-title';
+    heading.textContent = feature.name;
+
+    const fields = document.createElement('div');
+    fields.className = 'lc-room-feature-inspector-fields';
+
+    const textField = (
+      labelText: string,
+      value: string,
+      patch: (value: string) => void,
+    ): HTMLElement => {
+      const label = document.createElement('label');
+      label.textContent = labelText;
+      const input = document.createElement('input');
+      input.type = 'text';
+      input.value = value;
+      input.addEventListener('change', () => patch(input.value));
+      label.append(input);
+      return label;
+    };
+
+    const numberField = (
+      labelText: string,
+      value: number,
+      patch: (value: number) => void,
+      step = '0.25',
+    ): HTMLElement => {
+      const label = document.createElement('label');
+      label.textContent = labelText;
+      const input = document.createElement('input');
+      input.type = 'number';
+      input.step = step;
+      input.value = String(value);
+      input.addEventListener('change', () => {
+        const next = Number(input.value);
+        if (Number.isFinite(next)) patch(next);
+      });
+      label.append(input);
+      return label;
+    };
+
+    fields.append(
+      textField('Name', feature.name, (name) =>
+        this.commands.execute(
+          updateRoomFeature(layout.id, feature.id, { name }),
+        ),
+      ),
+      textField('Type', feature.featureType, (featureType) =>
+        this.commands.execute(
+          updateRoomFeature(layout.id, feature.id, { featureType }),
+        ),
+      ),
+      numberField('X', feature.x, (x) =>
+        this.commands.execute(
+          updateRoomFeature(layout.id, feature.id, { x }),
+        ),
+        '0.001',
+      ),
+      numberField('Y', feature.y, (y) =>
+        this.commands.execute(
+          updateRoomFeature(layout.id, feature.id, { y }),
+        ),
+        '0.001',
+      ),
+      numberField('Length', feature.length, (length) =>
+        this.commands.execute(
+          updateRoomFeature(layout.id, feature.id, { length }),
+        ),
+      ),
+      numberField('Depth', feature.depth, (depth) =>
+        this.commands.execute(
+          updateRoomFeature(layout.id, feature.id, { depth }),
+        ),
+      ),
+      numberField('Rotation', feature.rotation, (rotation) =>
+        this.commands.execute(
+          updateRoomFeature(layout.id, feature.id, { rotation }),
+        ),
+        '1',
+      ),
+    );
+
+    const visible = document.createElement('label');
+    visible.className = 'lc-room-feature-check';
+    const visibleInput = document.createElement('input');
+    visibleInput.type = 'checkbox';
+    visibleInput.checked = feature.visible;
+    visibleInput.addEventListener('change', () => {
+      this.commands.execute(
+        updateRoomFeature(layout.id, feature.id, {
+          visible: visibleInput.checked,
+        }),
+      );
+    });
+    visible.append(
+      visibleInput,
+      document.createTextNode('Visible'),
+    );
+
+    const countertop = document.createElement('label');
+    countertop.className = 'lc-room-feature-check';
+    const countertopInput = document.createElement('input');
+    countertopInput.type = 'checkbox';
+    countertopInput.checked = feature.receivesCountertop;
+    countertopInput.addEventListener('change', () => {
+      this.commands.execute(
+        updateRoomFeature(layout.id, feature.id, {
+          receivesCountertop: countertopInput.checked,
+        }),
+      );
+    });
+    countertop.append(
+      countertopInput,
+      document.createTextNode('Receives countertop'),
+    );
+
+    fields.append(visible, countertop);
+
+    if (roomFeatureCategory(feature) === 'wall') {
+      const wallLabel = document.createElement('label');
+      wallLabel.textContent = 'Wall Type';
+      const wall = document.createElement('select');
+      (['full', 'knee', 'linked'] as const).forEach((value) => {
+        const option = document.createElement('option');
+        option.value = value;
+        option.textContent =
+          value.charAt(0).toUpperCase() + value.slice(1);
+        wall.append(option);
+      });
+      wall.value = feature.wallType ?? 'full';
+      wall.addEventListener('change', () => {
+        const value =
+          wall.value === 'knee' || wall.value === 'linked'
+            ? wall.value
+            : 'full';
+        this.commands.execute(
+          updateRoomFeature(layout.id, feature.id, {
+            wallType: value,
+          }),
+        );
+      });
+      wallLabel.append(wall);
+      fields.append(wallLabel);
+
+      fields.append(
+        numberField(
+          'Wall Height',
+          feature.height ?? 0,
+          (height) =>
+            this.commands.execute(
+              updateRoomFeature(layout.id, feature.id, {
+                height,
+              }),
+            ),
+          '0.25',
+        ),
+      );
+    }
+
+    const category = document.createElement('div');
+    category.className = 'lc-small lc-room-feature-category';
+    category.textContent =
+      'Category: ' + roomFeatureCategory(feature).replace('-', ' ');
+    fields.append(category);
+
+    const remove = document.createElement('button');
+    remove.type = 'button';
+    remove.className = 'lc-btn red';
+    remove.textContent = 'Delete Room Feature';
+    remove.addEventListener('click', () => {
+      this.commands.execute(
+        deleteRoomFeature(layout.id, feature.id),
+      );
+    });
+
+    root.append(heading, fields, remove);
+    mount.append(root);
   }
 
   private renderAnnotationInspector(): void {
