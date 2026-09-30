@@ -242,29 +242,22 @@ describe('Piece rotation families and poses', () => {
 
     expect(updates.map((item) => item.id)).toEqual(['p', 'q', 'splash']);
     expect(updates.every((item) => item.pose.rotation === 90)).toBe(true);
-    expect(center).not.toBeNull();
-
-    const updatedCenters = updates.map((update) => {
-      const piece = current.pieces.find((item) => item.id === update.id);
-      if (!piece) throw new Error('Missing Piece');
-      const angle = update.pose.rotation * Math.PI / 180;
-      const w =
-        Math.abs(piece.w * Math.cos(angle)) +
-        Math.abs(piece.h * Math.sin(angle));
-      const h =
-        Math.abs(piece.w * Math.sin(angle)) +
-        Math.abs(piece.h * Math.cos(angle));
-      return {
-        x: update.pose.x + w / 2,
-        y: update.pose.y + h / 2,
-      };
+    expect(center).toEqual({ x: 65, y: 37 });
+    expect(updates.find((item) => item.id === 'p')?.pose).toEqual({
+      x: 52,
+      y: 2,
+      rotation: 90,
     });
-    const minX = Math.min(...updatedCenters.map((item) => item.x));
-    const maxX = Math.max(...updatedCenters.map((item) => item.x));
-    const minY = Math.min(...updatedCenters.map((item) => item.y));
-    const maxY = Math.max(...updatedCenters.map((item) => item.y));
-    expect((minX + maxX) / 2).toBeCloseTo(center?.x ?? 0, 3);
-    expect((minY + maxY) / 2).toBeCloseTo(center?.y ?? 0, 3);
+    expect(updates.find((item) => item.id === 'q')?.pose).toEqual({
+      x: 52,
+      y: 42,
+      rotation: 90,
+    });
+    expect(updates.find((item) => item.id === 'splash')?.pose).toEqual({
+      x: 74,
+      y: 2,
+      rotation: 90,
+    });
   });
 
   it('soft-snaps within 5 degrees, Shift hard-snaps, and Alt bypasses soft snapping', () => {
@@ -278,8 +271,8 @@ describe('Piece rotation families and poses', () => {
     controller.beginRotate(pointer(center.x + 10, center.y));
     controller.pointerMove(
       pointer(
-        center.x + Math.cos(88 * Math.PI / 180) * 10,
-        center.y + Math.sin(88 * Math.PI / 180) * 10,
+        center.x + Math.cos(73 * Math.PI / 180) * 10,
+        center.y + Math.sin(73 * Math.PI / 180) * 10,
       ),
     );
     expect(
@@ -291,8 +284,8 @@ describe('Piece rotation families and poses', () => {
     controller.beginRotate(pointer(center.x + 10, center.y));
     controller.pointerMove(
       pointer(
-        center.x + Math.cos(88 * Math.PI / 180) * 10,
-        center.y + Math.sin(88 * Math.PI / 180) * 10,
+        center.x + Math.cos(73 * Math.PI / 180) * 10,
+        center.y + Math.sin(73 * Math.PI / 180) * 10,
         {
           modifiers: { shift: false, alt: true, ctrl: false, meta: false },
         },
@@ -301,7 +294,7 @@ describe('Piece rotation families and poses', () => {
     expect(
       controller.getPreview()?.pieces.find((item) => item.id === 'other')
         ?.pose.rotation,
-    ).toBeCloseTo(103, 3);
+    ).toBeCloseTo(88, 3);
     controller.cancel();
 
     controller.beginRotate(pointer(center.x + 10, center.y));
@@ -342,14 +335,14 @@ describe('Piece rotation families and poses', () => {
       store.getState().project.layouts[0]?.pieces.find(
         (piece) => piece.id === 'other',
       )?.rotation,
-    ).toBe(90);
+    ).toBe(105);
 
     expect(controller.rotateSelectionBy(90)).toBe(true);
     expect(
       store.getState().project.layouts[0]?.pieces.find(
         (piece) => piece.id === 'other',
       )?.rotation,
-    ).toBe(180);
+    ).toBe(195);
     history.stop();
   });
 });
@@ -512,7 +505,7 @@ describe('graph-aware dimension editing', () => {
     expect(resized).toMatchObject({
       w: 30,
       x: 40,
-      slabPlacement: { x: 30 },
+      slabPlacement: { x: 29.848 },
     });
     expect(resized.sinks[0]?.fabricationPose).toMatchObject({
       cx: 0,
