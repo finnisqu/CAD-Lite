@@ -13,7 +13,6 @@ import type {
   Area,
   Layout,
   Material,
-  PersistedEntity,
   ProjectMeta,
   ProjectState,
 } from '../domain/project';
@@ -61,18 +60,6 @@ function toJsonValue(value: unknown, fallback: JsonValue = null): JsonValue {
   }
 
   return fallback;
-}
-
-function normalizeEntityList(value: unknown, prefix: string): PersistedEntity[] {
-  if (!Array.isArray(value)) return [];
-
-  return value.map((raw, index) => {
-    const source = isJsonObject(raw) ? cloneJson(raw) : {};
-    return {
-      ...source,
-      id: stableId(prefix, index, source.id),
-    };
-  });
 }
 
 export function normalizeMaterial(raw: unknown, index: number): Material {
