@@ -690,3 +690,66 @@
     grid-template-columns: 1fr;
   }
 }
+
+
+/* Batch 22: annotation editing interactions and Navigator ownership. */
+.cad-lite-architecture-harness #lc-svg .lc-annotation-endpoint-handle {
+  fill: #ffffff;
+  stroke: #2563eb;
+  stroke-width: 1.5;
+}
+
+.cad-lite-architecture-harness #lc-svg .lc-annotation-endpoint-handle:hover {
+  fill: #dbeafe;
+}
+
+.cad-lite-architecture-harness #lc-svg .lc-annotation-alignment-guide {
+  stroke: #2563eb;
+  stroke-width: 1;
+  stroke-dasharray: 3 4;
+  pointer-events: none;
+}
+
+.cad-lite-architecture-harness #lc-svg .lc-annotation-snap-marker {
+  fill: #ffffff;
+  stroke: #2563eb;
+  stroke-width: 1.5;
+}
+
+.cad-lite-architecture-harness .lc-annotation-nav-section {
+  display: grid;
+  gap: 5px;
+  margin-top: 10px;
+  padding-top: 8px;
+  border-top: 1px solid var(--border, #d1d5db);
+}
+
+.cad-lite-architecture-harness .lc-annotation-nav-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.cad-lite-architecture-harness .lc-annotation-nav-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 5px;
+  padding: 5px;
+}
+
+.cad-lite-architecture-harness .lc-annotation-nav-row.selected {
+  outline: 2px solid #93c5fd;
+  outline-offset: -2px;
+}
+
+.cad-lite-architecture-harness .lc-annotation-nav-name {
+  min-width: 0;
+  padding: 5px 6px;
+}
+
+.cad-lite-architecture-harness .lc-annotation-nav-row .lc-iconbtn {
+  min-width: 30px;
+  padding: 5px;
+}
