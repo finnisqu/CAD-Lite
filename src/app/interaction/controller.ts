@@ -10,7 +10,7 @@ import {
   toolSupportsLock,
   toolSupportsMomentary,
 } from './definitions';
-import { createDefaultInteractionState } from './state';
+import { resetActiveInteraction } from './state';
 import type {
   ActiveToolSession,
   InteractionState,
@@ -428,7 +428,7 @@ export class ToolController {
     hook: string,
   ): boolean {
     const interactionCommand = replaceInteractionState(
-      result?.cancel ? createDefaultInteractionState() : next,
+      result?.cancel ? resetActiveInteraction(next) : next,
     );
     const domainCommands = result?.commands ? [...result.commands] : [];
 
@@ -460,11 +460,7 @@ export class ToolController {
 
     const commands = result.commands ? [...result.commands] : [];
     if (result.cancel) {
-      next = {
-        ...createDefaultInteractionState(),
-        hud: interaction.hud,
-        toolMemory: interaction.toolMemory,
-      };
+      next = resetActiveInteraction(interaction);
     }
 
     const interactionCommand = replaceInteractionState(next);
