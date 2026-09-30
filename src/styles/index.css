@@ -28,15 +28,23 @@
 
 .cad-lite-architecture-harness__toolbar,
 .cad-lite-architecture-harness__history,
+.cad-lite-architecture-harness__section-head,
 .cad-lite-architecture-harness .lc-layout-title-row,
-.cad-lite-architecture-harness .lc-layout-actions {
+.cad-lite-architecture-harness .lc-layout-actions,
+.cad-lite-architecture-harness .lc-area-header,
+.cad-lite-architecture-harness .lc-area-header-main,
+.cad-lite-architecture-harness .lc-area-header-actions {
   display: flex;
   align-items: center;
   gap: 8px;
 }
 
-.cad-lite-architecture-harness__toolbar {
+.cad-lite-architecture-harness__toolbar,
+.cad-lite-architecture-harness__section-head {
   justify-content: space-between;
+}
+
+.cad-lite-architecture-harness__toolbar {
   margin-bottom: 12px;
   padding: 10px 12px;
   border: 1px solid #d4d4d4;
@@ -44,9 +52,13 @@
   background: white;
 }
 
+.cad-lite-architecture-harness__section-head h2 {
+  margin-bottom: 0 !important;
+}
+
 .cad-lite-architecture-harness__columns {
   display: grid;
-  grid-template-columns: minmax(220px, 280px) minmax(320px, 1fr) minmax(220px, 300px);
+  grid-template-columns: minmax(240px, 300px) minmax(320px, 1fr) minmax(220px, 300px);
   gap: 12px;
 }
 
@@ -100,9 +112,8 @@
   cursor: default;
 }
 
-.cad-lite-architecture-harness .lc-layout-item {
-  display: flex;
-  align-items: center;
+.cad-lite-architecture-harness .lc-layout-item,
+.cad-lite-architecture-harness .lc-area-header {
   justify-content: space-between;
   gap: 8px;
   margin-bottom: 6px;
@@ -112,20 +123,25 @@
   cursor: pointer;
 }
 
-.cad-lite-architecture-harness .lc-layout-item.is-active {
+.cad-lite-architecture-harness .lc-layout-item.is-active,
+.cad-lite-architecture-harness .lc-area-header.is-active {
   border-color: #8b8b8b;
 }
 
-.cad-lite-architecture-harness .lc-layout-item.selected {
+.cad-lite-architecture-harness .lc-layout-item.selected,
+.cad-lite-architecture-harness .lc-area-header.is-selected {
   outline: 2px solid #b8b8b8;
 }
 
-.cad-lite-architecture-harness .lc-layout-title-row {
+.cad-lite-architecture-harness .lc-layout-title-row,
+.cad-lite-architecture-harness .lc-area-header-main,
+.cad-lite-architecture-harness .lc-area-header-text {
   min-width: 0;
   flex: 1;
 }
 
-.cad-lite-architecture-harness .lc-layout-title {
+.cad-lite-architecture-harness .lc-layout-title,
+.cad-lite-architecture-harness .lc-area-header-title {
   min-width: 0;
   flex: 1;
   overflow: hidden;
@@ -134,10 +150,21 @@
 }
 
 .cad-lite-architecture-harness .lc-layout-qty-text,
+.cad-lite-architecture-harness .lc-area-header-meta,
 .cad-lite-architecture-harness #lc-save-status,
 .cad-lite-architecture-harness .lc-small {
   font-size: 11px;
   color: #666;
+}
+
+.cad-lite-architecture-harness .lc-layout-actions button,
+.cad-lite-architecture-harness .lc-area-header-actions button {
+  padding: 4px 6px;
+  font-size: 11px;
+}
+
+.cad-lite-architecture-harness .lc-delete-btn.red {
+  color: #a61b1b;
 }
 
 .cad-lite-architecture-harness .lc-inspector-context-title {

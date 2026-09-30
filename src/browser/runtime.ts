@@ -8,7 +8,11 @@ import {
   type AutosaveManagerOptions,
   type AutosaveStorage,
 } from '../app';
-import { ProjectLayoutSurface } from './project-layout-surface';
+import {
+  ProjectLayoutSurface,
+  type BrowserConfirm,
+  type BrowserEntityIdFactory,
+} from './project-layout-surface';
 
 export interface CadLiteBrowserRuntimeOptions {
   root?: ParentNode;
@@ -16,6 +20,8 @@ export interface CadLiteBrowserRuntimeOptions {
   storage?: AutosaveStorage;
   autosave?: AutosaveManagerOptions;
   today?: () => string;
+  createId?: BrowserEntityIdFactory;
+  confirm?: BrowserConfirm;
 }
 
 export interface CadLiteBrowserRuntime {
@@ -64,6 +70,8 @@ export function mountCadLiteBrowserRuntime(
     commands,
     effects,
     ...(options.today ? { today: options.today } : {}),
+    ...(options.createId ? { createId: options.createId } : {}),
+    ...(options.confirm ? { confirm: options.confirm } : {}),
   });
 
   surface.mount();

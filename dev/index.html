@@ -35,16 +35,29 @@
           </section>
 
           <section class="lc-card">
-            <h2>Layouts</h2>
+            <div class="cad-lite-architecture-harness__section-head">
+              <h2>Layouts</h2>
+              <button id="lc-add-layout" type="button">+ Add Layout</button>
+            </div>
             <div id="lc-layouts"></div>
+          </section>
+
+          <section class="lc-card">
+            <div class="cad-lite-architecture-harness__section-head">
+              <h2>Areas / Pieces</h2>
+              <button id="lc-add-area" class="lc-add-area-btn" type="button">
+                + Add Area
+              </button>
+            </div>
+            <div id="lc-list"></div>
           </section>
         </aside>
 
         <section class="cad-lite-architecture-harness__canvas">
-          <h2>First vertical slice</h2>
+          <h2>Structure vertical slice</h2>
           <p>
-            This harness intentionally exercises Project + Layout state through
-            the v1.6 Store, Commands, History, Autosave, and invalidation layers.
+            Project, Layout, and Area ownership now run through Commands,
+            Store, History, Autosave, Selection, and central invalidation.
           </p>
           <pre id="build-info"></pre>
         </section>
@@ -69,7 +82,7 @@
         project: {
           name: 'Architecture Test',
           date: '2026-09-30',
-          notes: 'Browser vertical-slice harness',
+          notes: 'Layout + Area architecture harness',
           scratchpad: null,
         },
         materials: [],
@@ -84,9 +97,18 @@
             grid: 1,
             showGrid: true,
             pieceFillOpacity: 1,
-            areas: [{ id: 'area-kitchen', name: 'Kitchen' }],
+            areas: [
+              { id: 'area-kitchen', name: 'Kitchen' },
+              { id: 'area-island', name: 'Island' },
+            ],
             activeAreaId: 'area-kitchen',
-            pieces: [{ id: 'piece-1', name: 'Island' }],
+            pieces: [
+              {
+                id: 'piece-1',
+                name: 'Island',
+                areaId: 'area-island',
+              },
+            ],
             dims: [],
             notes: [],
             lines: [],
