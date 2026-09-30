@@ -16,12 +16,12 @@ export function getPieceDeletionPlan(
   const referencesDeletedPiece = (value: unknown): boolean =>
     isJsonObject(value) && typeof value.pieceId === 'string' && ids.has(value.pieceId);
   const noteIds = layout.notes.filter(note => referencesDeletedPiece(note.radiusRef))
-    .map(note => String(note.id));
+    .flatMap(note => typeof note.id === 'string' ? [note.id] : []);
   const noteSet = new Set(noteIds);
   const lineIds = layout.lines.filter(line =>
     referencesDeletedPiece(line.radiusRef) ||
     (typeof line.attachedNoteId === 'string' && noteSet.has(line.attachedNoteId)),
-  ).map(line => String(line.id));
+  ).flatMap(line => typeof line.id === 'string' ? [line.id] : []);
   return { pieceIds, noteIds, lineIds };
 }
 
@@ -44,8 +44,8 @@ export function deletePieceFamily(layout: Layout, plan: PieceDeletionPlan): Layo
       pieceGroupId: piece.pieceGroupId && (groupCounts.get(piece.pieceGroupId) ?? 0) < 2 ? null : piece.pieceGroupId,
       pieceGroupName: piece.pieceGroupId && (groupCounts.get(piece.pieceGroupId) ?? 0) < 2 ? null : piece.pieceGroupName,
     })),
-    notes: layout.notes.filter(note => !plan.noteIds.includes(String(note.id))),
-    lines: layout.lines.filter(line => !plan.lineIds.includes(String(line.id))),
+    notes: layout.notes.filter(note => typeof note.id !== 'string' || !plan.noteIds.includes(note.id)),
+    lines: layout.lines.filter(line => typeof line.id !== 'string' || !plan.lineIds.includes(line.id)),
   };
 }
 
