@@ -15,6 +15,7 @@ function setup() {
   const commands = new CommandDispatcher(store);
   const selection = new SelectionController(store, commands);
   commands.execute(setActiveLayout('layout-kitchen'));
+  commands.execute(setWorkspace('design'));
   return { store, commands, selection };
 }
 
