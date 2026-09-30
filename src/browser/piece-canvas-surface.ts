@@ -31,6 +31,11 @@ import {
   hitTestAnnotations,
   type AnnotationCanvasProjection,
 } from './annotation-canvas-model';
+import {
+  createRoomFeatureCanvasProjection,
+  hitTestRoomFeatures,
+  type RoomFeatureCanvasProjection,
+} from './room-feature-canvas-model';
 
 const SVG_NS = 'http://www.w3.org/2000/svg';
 
@@ -307,8 +312,9 @@ export class PieceCanvasSurface {
       preview?.pieces ?? [],
     );
     const annotations = createAnnotationCanvasProjection(state);
+    const roomFeatures = createRoomFeatureCanvasProjection(state);
     this.renderWorkspaceControls(projection);
-    this.renderSvg(projection, annotations);
+    this.renderSvg(projection, annotations, roomFeatures);
   }
 
   private renderInvalidation(batch: ViewInvalidationBatch): void {
@@ -467,6 +473,20 @@ export class PieceCanvasSurface {
       const hit = hitTestPieceCanvas(projection, point);
       if (hit) {
         handled = this.interaction.beginPiece(hit.id, input);
+      } else if (projection.workspace === 'design') {
+        const roomFeature = hitTestRoomFeatures(
+          createRoomFeatureCanvasProjection(this.store.getState()),
+          point,
+        );
+        if (roomFeature) {
+          this.commands.execute(
+            setSelection({ kind: 'roomFeature', id: roomFeature.id }),
+          );
+          event.preventDefault();
+          this.render();
+          return;
+        }
+        handled = this.interaction.beginBlank(input);
       } else if (projection.workspace === 'slab') {
         const slab = hitTestSlabCanvas(projection, point);
         if (slab) {
@@ -787,6 +807,7 @@ export class PieceCanvasSurface {
   private renderSvg(
     projection: PieceCanvasProjection,
     annotations: AnnotationCanvasProjection,
+    roomFeatures: RoomFeatureCanvasProjection,
   ): void {
     const svg = this.svg;
     if (!svg) return;
@@ -908,6 +929,8 @@ export class PieceCanvasSurface {
       });
     }
 
+    this.renderRoomFeatures(document, svg, projection, roomFeatures);
+
     projection.pieces.forEach((piece) => {
       const group = document.createElementNS(SVG_NS, 'g');
       group.setAttribute('class', 'lc-piece-render');
@@ -1001,6 +1024,82 @@ export class PieceCanvasSurface {
     this.renderSnapGuides(document, svg, projection);
     this.renderResizeHandles(document, svg, projection);
     this.renderRotateHandle(document, svg, projection);
+  }
+
+  private renderRoomFeatures(
+    document: Document,
+    svg: SVGSVGElement,
+    projection: PieceCanvasProjection,
+    roomFeatures: RoomFeatureCanvasProjection,
+  ): void {
+    if (projection.workspace !== 'design') return;
+
+    const unit = 1 / Math.max(0.001, projection.scale);
+    const layer = document.createElementNS(SVG_NS, 'g');
+    layer.setAttribute('class', 'lc-room-features-layer');
+    layer.setAttribute('pointer-events', 'none');
+
+    roomFeatures.items.forEach((feature) => {
+      const group = document.createElementNS(SVG_NS, 'g');
+      group.setAttribute(
+        'class',
+        'lc-room-feature lc-room-feature--' + feature.category +
+          (feature.selected ? ' selected' : ''),
+      );
+      group.setAttribute('data-room-feature-id', feature.id);
+      if (feature.rotation !== 0) {
+        group.setAttribute(
+          'transform',
+          'rotate(' +
+            String(feature.rotation) +
+            ' ' +
+            String(feature.center.x) +
+            ' ' +
+            String(feature.center.y) +
+            ')',
+        );
+      }
+
+      const shape = document.createElementNS(SVG_NS, 'path');
+      shape.setAttribute('d', feature.path);
+      shape.setAttribute('fill', '#d4d4d4');
+      shape.setAttribute('fill-opacity', String(feature.opacity));
+      shape.setAttribute('stroke', feature.selected ? '#0ea5e9' : '#525252');
+      shape.setAttribute('stroke-width', feature.selected ? '2' : '1');
+      shape.setAttribute('vector-effect', 'non-scaling-stroke');
+      group.appendChild(shape);
+
+      if (this.store.getState().preferences.showRoomFeatureLabels) {
+        const label = document.createElementNS(SVG_NS, 'text');
+        label.setAttribute('x', String(feature.center.x));
+        label.setAttribute('y', String(feature.center.y));
+        label.setAttribute('text-anchor', 'middle');
+        label.setAttribute('dominant-baseline', 'middle');
+        label.setAttribute('font-size', String(10 * unit));
+        label.setAttribute('fill', '#262626');
+        label.textContent = feature.name;
+        group.appendChild(label);
+      }
+
+      if (feature.receivesCountertop) {
+        const countertop = document.createElementNS(SVG_NS, 'line');
+        countertop.setAttribute('x1', String(feature.localRect.x));
+        countertop.setAttribute('y1', String(feature.localRect.y));
+        countertop.setAttribute(
+          'x2',
+          String(feature.localRect.x + feature.localRect.w),
+        );
+        countertop.setAttribute('y2', String(feature.localRect.y));
+        countertop.setAttribute('stroke', '#171717');
+        countertop.setAttribute('stroke-width', '2');
+        countertop.setAttribute('vector-effect', 'non-scaling-stroke');
+        group.appendChild(countertop);
+      }
+
+      layer.appendChild(group);
+    });
+
+    svg.appendChild(layer);
   }
 
   private renderAnnotationEditGuides(
