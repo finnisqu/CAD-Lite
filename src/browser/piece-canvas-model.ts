@@ -18,6 +18,11 @@ import {
 } from '../domain/pieces';
 import type { Layout } from '../domain/project';
 import {
+  slabSurfaceBounds,
+  slabSurfaceImageSource,
+  slabUsableBounds,
+} from '../domain/slabs';
+import {
   rotateVector,
   roundedRectContainsPoint,
   roundedRectPathCorners,
@@ -113,6 +118,17 @@ export interface PieceCanvasItem {
   seams: PieceCanvasSeam[];
 }
 
+export interface PieceCanvasSlab {
+  id: string;
+  name: string;
+  bounds: XYWHRect;
+  usableBounds: XYWHRect;
+  opacity: number;
+  visible: boolean;
+  selected: boolean;
+  imageSource: string | null;
+}
+
 export interface PieceCanvasProjection {
   layoutId: string | null;
   workspace: Workspace;
@@ -121,6 +137,7 @@ export interface PieceCanvasProjection {
     width: number;
     height: number;
   };
+  slabs: PieceCanvasSlab[];
   pieces: PieceCanvasItem[];
 }
 
@@ -435,6 +452,7 @@ export function projectPieceForCanvas(
 function slabCanvasSize(
   layout: Layout,
   pieces: readonly PieceCanvasItem[],
+  slabs: readonly PieceCanvasSlab[],
 ): { width: number; height: number } {
   const storedWidth = finiteNumber(layout.extra.slabCW) ?? 0;
   const storedHeight = finiteNumber(layout.extra.slabCH) ?? 0;
@@ -448,9 +466,39 @@ function slabCanvasSize(
       Math.max(maximum, piece.bounds.y + piece.bounds.h + SLAB_CONTENT_GUTTER),
     0,
   );
+  const slabWidth = slabs.reduce(
+    (maximum, slab) =>
+      slab.visible
+        ? Math.max(
+            maximum,
+            slab.bounds.x + slab.bounds.w + SLAB_CONTENT_GUTTER,
+          )
+        : maximum,
+    0,
+  );
+  const slabHeight = slabs.reduce(
+    (maximum, slab) =>
+      slab.visible
+        ? Math.max(
+            maximum,
+            slab.bounds.y + slab.bounds.h + SLAB_CONTENT_GUTTER,
+          )
+        : maximum,
+    0,
+  );
   return {
-    width: Math.max(DEFAULT_SLAB_CANVAS_WIDTH, storedWidth, contentWidth),
-    height: Math.max(DEFAULT_SLAB_CANVAS_HEIGHT, storedHeight, contentHeight),
+    width: Math.max(
+      DEFAULT_SLAB_CANVAS_WIDTH,
+      storedWidth,
+      contentWidth,
+      slabWidth,
+    ),
+    height: Math.max(
+      DEFAULT_SLAB_CANVAS_HEIGHT,
+      storedHeight,
+      contentHeight,
+      slabHeight,
+    ),
   };
 }
 
@@ -470,6 +518,7 @@ export function createPieceCanvasProjection(
       workspace,
       scale: 1,
       canvas: { width: 0, height: 0 },
+      slabs: [],
       pieces: [],
     };
   }
@@ -487,6 +536,29 @@ export function createPieceCanvasProjection(
       ? state.session.selection.ids
       : [],
   );
+  const selectedSlabId =
+    state.session.selection.kind === 'slab'
+      ? state.session.selection.id
+      : null;
+  const slabs: PieceCanvasSlab[] =
+    workspace === 'slab'
+      ? layout.overlays.map((slab) => ({
+          id: slab.id,
+          name: slab.name,
+          bounds: slabSurfaceBounds(slab),
+          usableBounds: slabUsableBounds(
+            slab,
+            state.preferences.slabEdgeAllowance,
+          ),
+          opacity: slab.opacity,
+          visible: slab.visible,
+          selected: slab.id === selectedSlabId,
+          imageSource: state.preferences.showSlabMaterial
+            ? slabSurfaceImageSource(slab)
+            : null,
+        }))
+      : [];
+
   const pieces = layout.pieces
     .map((piece, sourceIndex) =>
       projectPieceForCanvas(
@@ -506,8 +578,9 @@ export function createPieceCanvasProjection(
     scale: layout.scale,
     canvas:
       workspace === 'slab'
-        ? slabCanvasSize(layout, pieces)
+        ? slabCanvasSize(layout, pieces, slabs)
         : { width: layout.cw, height: layout.ch },
+    slabs,
     pieces,
   };
 }
@@ -546,6 +619,28 @@ export function hitTestPieceCanvas(
       )
     ) {
       return piece;
+    }
+  }
+  return null;
+}
+
+
+export function hitTestSlabCanvas(
+  projection: PieceCanvasProjection,
+  point: Point,
+): PieceCanvasSlab | null {
+  if (projection.workspace !== 'slab') return null;
+
+  for (let index = projection.slabs.length - 1; index >= 0; index -= 1) {
+    const slab = projection.slabs[index];
+    if (!slab?.visible) continue;
+    if (
+      point.x >= slab.bounds.x &&
+      point.x <= slab.bounds.x + slab.bounds.w &&
+      point.y >= slab.bounds.y &&
+      point.y <= slab.bounds.y + slab.bounds.h
+    ) {
+      return slab;
     }
   }
   return null;
