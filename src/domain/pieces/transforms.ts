@@ -2,7 +2,7 @@ import { clamp, normalizeDegrees, round3 } from '../../core/numeric';
 import { rotateVector, rotatedRectBoundingSize } from '../../geometry';
 import type { Workspace } from '../../persistence';
 import type { Layout } from '../project/types';
-import { cloneJson, type JsonValue } from '../types';
+import { cloneJson } from '../types';
 import { pieceGeometry, piecePose } from './factory';
 import { mirrorPieceSink } from './sinks';
 import {
@@ -273,18 +273,6 @@ export function nudgePieceGroup(
         },
       };
     });
-}
-
-function swapTopBottom(value: JsonValue | undefined): JsonValue {
-  if (value === 'top') return 'bottom';
-  if (value === 'bottom') return 'top';
-  return value ?? null;
-}
-
-function swapLeftRight(value: JsonValue | undefined): JsonValue {
-  if (value === 'left') return 'right';
-  if (value === 'right') return 'left';
-  return value ?? null;
 }
 
 function mirrorSeamReferenceH(
