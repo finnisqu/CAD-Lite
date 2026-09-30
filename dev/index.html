@@ -77,10 +77,9 @@
             ></svg>
           </div>
           <p class="lc-small">
-            Batch 19 SLAB harness: slab surfaces are typed Layout entities with
-            independent selection and Inspector editing. Piece placement stays
-            workspace-specific, snaps to slab usable edges after edge allowance, and
-            still uses fabrication clearance between nested Pieces.
+            Batch 20 annotation harness: manual Dimensions, Lines, Notes, and Note
+            leaders are typed Layout entities, render only in DESIGN, use the shared
+            Selection model, and edit through command-backed Inspector controls.
           </p>
           <pre id="build-info"></pre>
         </section>
@@ -172,9 +171,49 @@
                 slabPlacement: { x: 112.375, y: 62.125, rotation: 22.75 },
               },
             ],
-            dims: [],
-            notes: [],
-            lines: [],
+            dims: [
+              {
+                id: 'dim-demo-1',
+                name: 'Island overall',
+                x1: 18.375,
+                y1: 102,
+                x2: 100.372,
+                y2: 102,
+                offsetPx: 12,
+              },
+            ],
+            notes: [
+              {
+                id: 'note-demo-1',
+                x: 112,
+                y: 48,
+                text: 'Verify field seam',
+                fontSize: 12,
+                bold: true,
+                italic: false,
+                align: 'left',
+                color: '#7c2d12',
+                halo: true,
+                rotation: 0,
+              },
+            ],
+            lines: [
+              {
+                id: 'line-demo-1',
+                name: 'Note Leader',
+                x1: 112,
+                y1: 48,
+                x2: 96,
+                y2: 57,
+                style: 'solid',
+                color: '#7c2d12',
+                thickness: 2,
+                startCap: 'none',
+                endCap: 'arrow',
+                attachedNoteId: 'note-demo-1',
+                attachedEnd: 'start',
+              },
+            ],
             roomFeatures: [],
             plan: null,
             overlays: [
