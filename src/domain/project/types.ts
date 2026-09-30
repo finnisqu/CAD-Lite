@@ -1,4 +1,5 @@
 import type { Piece } from '../pieces/types';
+import type { SlabSurface } from '../slabs';
 import type { EntityId, JsonObject, JsonValue } from '../types';
 
 export interface ProjectMeta {
@@ -46,7 +47,7 @@ export interface Layout {
   lines: PersistedEntity[];
   roomFeatures: PersistedEntity[];
   plan: JsonValue;
-  overlays: PersistedEntity[];
+  overlays: SlabSurface[];
   extra: JsonObject;
 }
 
