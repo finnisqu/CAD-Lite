@@ -98,6 +98,9 @@ export class PieceCanvasSurface {
   private sinkCenterlineButton: HTMLButtonElement | null = null;
   private cutoutLabelButton: HTMLButtonElement | null = null;
   private slabMaterialButton: HTMLButtonElement | null = null;
+  private dimensionToolButton: HTMLButtonElement | null = null;
+  private lineToolButton: HTMLButtonElement | null = null;
+  private noteToolButton: HTMLButtonElement | null = null;
 
   constructor(options: PieceCanvasSurfaceOptions) {
     this.root = options.root;
@@ -137,6 +140,12 @@ export class PieceCanvasSurface {
       this.root.querySelector<HTMLButtonElement>(
         '#lc-show-slab-material',
       );
+    this.dimensionToolButton =
+      this.root.querySelector<HTMLButtonElement>('#lc-tool-dimension');
+    this.lineToolButton =
+      this.root.querySelector<HTMLButtonElement>('#lc-tool-line');
+    this.noteToolButton =
+      this.root.querySelector<HTMLButtonElement>('#lc-tool-note');
 
     this.designButton?.addEventListener(
       'click',
@@ -202,6 +211,30 @@ export class PieceCanvasSurface {
         this.commands.execute(
           updatePreferences({ showSlabMaterial: !current }),
         );
+      },
+      { signal },
+    );
+    this.dimensionToolButton?.addEventListener(
+      'click',
+      () => {
+        this.tools.toggleLocked('dimension');
+        this.render();
+      },
+      { signal },
+    );
+    this.lineToolButton?.addEventListener(
+      'click',
+      () => {
+        this.tools.toggleLocked('line');
+        this.render();
+      },
+      { signal },
+    );
+    this.noteToolButton?.addEventListener(
+      'click',
+      () => {
+        this.tools.toggleLocked('note');
+        this.render();
       },
       { signal },
     );
@@ -622,6 +655,22 @@ export class PieceCanvasSurface {
         String(state.preferences.showSlabMaterial),
       );
     }
+
+    [
+      [this.dimensionToolButton, 'dimension'],
+      [this.lineToolButton, 'line'],
+      [this.noteToolButton, 'note'],
+    ].forEach(([button, toolId]) => {
+      const control = button as HTMLButtonElement | null;
+      if (!control) return;
+      control.hidden = !design;
+      const active =
+        toolId === 'dimension' || toolId === 'line' || toolId === 'note'
+          ? this.tools.isActive(toolId)
+          : false;
+      control.classList.toggle('is-active', active);
+      control.setAttribute('aria-pressed', String(active));
+    });
 
     if (!this.meta) return;
     if (!projection.layoutId) {
