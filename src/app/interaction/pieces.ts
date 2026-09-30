@@ -19,6 +19,7 @@ import {
   type PieceSide,
 } from '../../domain/pieces';
 import type { Layout } from '../../domain/project';
+import { slabUsableBounds } from '../../domain/slabs';
 import type { JsonObject, JsonValue } from '../../domain/types';
 import {
   resolveSmartSnapAxes,
@@ -532,6 +533,7 @@ function slabMoveSnapCandidates(
       kind: string,
       priority: number,
       targetId: string,
+      source = 'piece',
     ): void => {
       const candidate = smartSnapBetter(
         null,
@@ -541,7 +543,7 @@ function slabMoveSnapCandidates(
           guide,
           kind,
           priority,
-          source: 'piece',
+          source,
           targetId,
         },
         { tolerance: SMART_SNAP_TOLERANCE },
@@ -633,6 +635,68 @@ function slabMoveSnapCandidates(
           'clearance',
           SMART_SNAP_PRIORITY.slabClearance,
           other.id,
+        );
+      }
+    });
+
+    layout.overlays.forEach((slab) => {
+      if (!slab.visible) return;
+      const safe = slabUsableBounds(
+        slab,
+        state.preferences.slabEdgeAllowance,
+      );
+      const safeEdges = {
+        left: safe.x,
+        right: safe.x + safe.w,
+        top: safe.y,
+        bottom: safe.y + safe.h,
+      };
+
+      const yOverlap =
+        Math.min(moving.bottom, safeEdges.bottom) -
+        Math.max(moving.top, safeEdges.top);
+      if (yOverlap >= -SMART_SNAP_TOLERANCE) {
+        add(
+          'x',
+          safeEdges.left - moving.left,
+          safeEdges.left,
+          'slab-edge',
+          SMART_SNAP_PRIORITY.reference,
+          slab.id,
+          'slab',
+        );
+        add(
+          'x',
+          safeEdges.right - moving.right,
+          safeEdges.right,
+          'slab-edge',
+          SMART_SNAP_PRIORITY.reference,
+          slab.id,
+          'slab',
+        );
+      }
+
+      const xOverlap =
+        Math.min(moving.right, safeEdges.right) -
+        Math.max(moving.left, safeEdges.left);
+      if (xOverlap >= -SMART_SNAP_TOLERANCE) {
+        add(
+          'y',
+          safeEdges.top - moving.top,
+          safeEdges.top,
+          'slab-edge',
+          SMART_SNAP_PRIORITY.reference,
+          slab.id,
+          'slab',
+        );
+        add(
+          'y',
+          safeEdges.bottom - moving.bottom,
+          safeEdges.bottom,
+          'slab-edge',
+          SMART_SNAP_PRIORITY.reference,
+          slab.id,
+          'slab',
         );
       }
     });
