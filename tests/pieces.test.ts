@@ -286,8 +286,9 @@ describe('Piece compatibility and application effects', () => {
   it('preserves another Layout and its selection while editing an inactive Layout', () => {
     const { store, commands } = setup();
     store.getState().project.layouts.push(createEmptyLayout({id:'other-layout',firstAreaId:'c',name:'Other'}));
-    commands.execute(setActiveLayout('other-layout'));
     commands.execute(setWorkspace('slab'));
+    commands.execute(setActiveLayout('other-layout'));
+    expect(store.getState().session.selection).toEqual({kind:'layout',id:'other-layout'});
     commands.execute(addPiece('l','new'));
     expect(store.getState().session.activeLayoutId).toBe('other-layout');
     expect(store.getState().session.selection).toEqual({kind:'layout',id:'other-layout'});
