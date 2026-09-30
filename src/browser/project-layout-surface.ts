@@ -31,7 +31,6 @@ import {
   cutoutPerimeterInches,
   getPieceDeletionPlan,
   isBacksplashPiece,
-  isFabricationAssemblyGroup,
   MAX_SINKS_PER_PIECE,
   nextPieceGroupName,
   pieceGeometry,
