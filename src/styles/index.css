@@ -629,3 +629,64 @@
     grid-template-columns: 1fr;
   }
 }
+
+
+/* Batch 20: typed manual Dimensions, Lines, Notes, and leaders. */
+.cad-lite-architecture-harness #lc-svg .lc-annotations-layer {
+  shape-rendering: geometricPrecision;
+}
+
+.cad-lite-architecture-harness #lc-svg .lc-manual-dimension.selected text,
+.cad-lite-architecture-harness #lc-svg .lc-canvas-note.selected {
+  font-weight: 700;
+}
+
+.cad-lite-architecture-harness .lc-annotation-inspector {
+  display: grid;
+  gap: 8px;
+}
+
+.cad-lite-architecture-harness .lc-annotation-inspector-fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.cad-lite-architecture-harness .lc-annotation-inspector-fields label {
+  display: grid;
+  gap: 3px;
+  margin: 0;
+  font-size: 12px;
+}
+
+.cad-lite-architecture-harness .lc-annotation-inspector-fields textarea,
+.cad-lite-architecture-harness .lc-annotation-inspector-fields > label:first-child {
+  grid-column: 1 / -1;
+}
+
+.cad-lite-architecture-harness .lc-annotation-toggle-row {
+  grid-column: 1 / -1;
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.cad-lite-architecture-harness .lc-annotation-toggle-row label {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.cad-lite-architecture-harness .lc-annotation-toggle-row input {
+  width: auto;
+}
+
+.cad-lite-architecture-harness .lc-annotation-delete {
+  width: 100%;
+}
+
+@media (max-width: 1100px) {
+  .cad-lite-architecture-harness .lc-annotation-inspector-fields {
+    grid-template-columns: 1fr;
+  }
+}
