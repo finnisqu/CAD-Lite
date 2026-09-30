@@ -11,6 +11,7 @@ import {
 } from '../../geometry';
 import type { Workspace } from '../../persistence';
 import type { Layout } from '../project/types';
+import { slabSurfaceBounds } from '../slabs';
 import { pieceGeometry, piecePose } from './factory';
 import type {
   CornerRadii,
@@ -131,17 +132,36 @@ export function pieceWorkspaceCanvasSize(
     },
     { w: 0, h: 0 },
   );
+  const slabExtent = layout.overlays.reduce(
+    (extent, slab) => {
+      if (!slab.visible) return extent;
+      const bounds = slabSurfaceBounds(slab);
+      return {
+        w: Math.max(
+          extent.w,
+          bounds.x + bounds.w + SLAB_CONTENT_GUTTER,
+        ),
+        h: Math.max(
+          extent.h,
+          bounds.y + bounds.h + SLAB_CONTENT_GUTTER,
+        ),
+      };
+    },
+    { w: 0, h: 0 },
+  );
 
   return {
     w: Math.max(
       DEFAULT_SLAB_CANVAS_WIDTH,
       finiteExtra(layout.extra.slabCW),
       pieceExtent.w,
+      slabExtent.w,
     ),
     h: Math.max(
       DEFAULT_SLAB_CANVAS_HEIGHT,
       finiteExtra(layout.extra.slabCH),
       pieceExtent.h,
+      slabExtent.h,
     ),
   };
 }
