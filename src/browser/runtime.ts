@@ -5,6 +5,7 @@ import {
   PieceInteractionController,
   SelectionController,
   ToolController,
+  registerAnnotationToolHandlers,
   applicationStateFromLegacyPayload,
   type AutosaveManagerOptions,
   type AutosaveStorage,
@@ -64,6 +65,20 @@ export function mountCadLiteBrowserRuntime(
   const commands = new CommandDispatcher(store);
   const selection = new SelectionController(store, commands);
   const tools = new ToolController(store, commands);
+  let runtimeIdCounter = 0;
+  const createId: BrowserEntityIdFactory =
+    options.createId ??
+    ((prefix) => {
+      runtimeIdCounter += 1;
+      const uuid = globalThis.crypto?.randomUUID?.();
+      return uuid
+        ? prefix + '-' + uuid
+        : prefix + '-' + Date.now().toString(36) + '-' + runtimeIdCounter.toString(36);
+    });
+  const unregisterAnnotationTools = registerAnnotationToolHandlers(
+    (toolId, handler) => tools.register(toolId, handler),
+    createId,
+  );
   const pieceInteractions = new PieceInteractionController(store, commands);
   const effects = new ApplicationEffects(store, {
     autosaveStorage: options.storage ?? browserStorage(),
@@ -75,7 +90,7 @@ export function mountCadLiteBrowserRuntime(
     commands,
     effects,
     ...(options.today ? { today: options.today } : {}),
-    ...(options.createId ? { createId: options.createId } : {}),
+    createId,
     ...(options.confirm ? { confirm: options.confirm } : {}),
   });
 
@@ -85,6 +100,7 @@ export function mountCadLiteBrowserRuntime(
     commands,
     effects,
     interaction: pieceInteractions,
+    tools,
   });
 
   surface.mount();
@@ -113,6 +129,7 @@ export function mountCadLiteBrowserRuntime(
         window.removeEventListener('beforeunload', beforeUnload);
       }
       pieceInteractions.cancel();
+      unregisterAnnotationTools.forEach((unregister) => unregister());
       pieceCanvas.unmount();
       surface.unmount();
       effects.stop(false);
