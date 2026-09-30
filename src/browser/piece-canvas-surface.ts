@@ -1,5 +1,6 @@
 import {
   pieceResizeLockedSides,
+  setSelection,
   setWorkspace,
   updatePreferences,
   type ApplicationEffects,
@@ -17,6 +18,7 @@ import { rotateVector } from '../geometry';
 import {
   createPieceCanvasProjection,
   hitTestPieceCanvas,
+  hitTestSlabCanvas,
   type PieceCanvasProjection,
 } from './piece-canvas-model';
 
@@ -84,6 +86,7 @@ export class PieceCanvasSurface {
   private showSeamsButton: HTMLButtonElement | null = null;
   private sinkCenterlineButton: HTMLButtonElement | null = null;
   private cutoutLabelButton: HTMLButtonElement | null = null;
+  private slabMaterialButton: HTMLButtonElement | null = null;
 
   constructor(options: PieceCanvasSurfaceOptions) {
     this.root = options.root;
@@ -117,6 +120,10 @@ export class PieceCanvasSurface {
     this.cutoutLabelButton =
       this.root.querySelector<HTMLButtonElement>(
         '#lc-show-cutout-labels',
+      );
+    this.slabMaterialButton =
+      this.root.querySelector<HTMLButtonElement>(
+        '#lc-show-slab-material',
       );
 
     this.designButton?.addEventListener(
@@ -171,6 +178,17 @@ export class PieceCanvasSurface {
           this.store.getState().preferences.showCutoutLabels;
         this.commands.execute(
           updatePreferences({ showCutoutLabels: !current }),
+        );
+      },
+      { signal },
+    );
+    this.slabMaterialButton?.addEventListener(
+      'click',
+      () => {
+        const current =
+          this.store.getState().preferences.showSlabMaterial;
+        this.commands.execute(
+          updatePreferences({ showSlabMaterial: !current }),
         );
       },
       { signal },
@@ -323,13 +341,24 @@ export class PieceCanvasSurface {
     }
 
     if (!handled && !rotate) {
-      const hit = hitTestPieceCanvas(projection, {
-        x: input.x,
-        y: input.y,
-      });
-      handled = hit
-        ? this.interaction.beginPiece(hit.id, input)
-        : this.interaction.beginBlank(input);
+      const point = { x: input.x, y: input.y };
+      const hit = hitTestPieceCanvas(projection, point);
+      if (hit) {
+        handled = this.interaction.beginPiece(hit.id, input);
+      } else if (projection.workspace === 'slab') {
+        const slab = hitTestSlabCanvas(projection, point);
+        if (slab) {
+          this.commands.execute(
+            setSelection({ kind: 'slab', id: slab.id }),
+          );
+          event.preventDefault();
+          this.render();
+          return;
+        }
+        handled = this.interaction.beginBlank(input);
+      } else {
+        handled = this.interaction.beginBlank(input);
+      }
     }
 
     if (!handled) return;
@@ -470,6 +499,17 @@ export class PieceCanvasSurface {
       'aria-pressed',
       String(state.preferences.showCutoutLabels),
     );
+    if (this.slabMaterialButton) {
+      this.slabMaterialButton.hidden = design;
+      this.slabMaterialButton.classList.toggle(
+        'is-active',
+        state.preferences.showSlabMaterial,
+      );
+      this.slabMaterialButton.setAttribute(
+        'aria-pressed',
+        String(state.preferences.showSlabMaterial),
+      );
+    }
 
     if (!this.meta) return;
     if (!projection.layoutId) {
@@ -488,6 +528,12 @@ export class PieceCanvasSurface {
       String(projection.pieces.length) +
       ' Piece' +
       (projection.pieces.length === 1 ? '' : 's') +
+      (design
+        ? ''
+        : ' · ' +
+          String(projection.slabs.length) +
+          ' Slab' +
+          (projection.slabs.length === 1 ? '' : 's')) +
       ' · ' +
       String(projection.scale) +
       ' px/in';
@@ -523,6 +569,96 @@ export class PieceCanvasSurface {
     background.setAttribute('stroke', '#e5e7eb');
     background.setAttribute('vector-effect', 'non-scaling-stroke');
     svg.appendChild(background);
+
+    if (projection.workspace === 'slab') {
+      const unit = 1 / Math.max(0.001, projection.scale);
+      projection.slabs.forEach((slab) => {
+        if (!slab.visible) return;
+        const group = document.createElementNS(SVG_NS, 'g');
+        group.setAttribute('class', 'lc-slab-surface');
+        group.setAttribute('data-slab-id', slab.id);
+        group.setAttribute('pointer-events', 'none');
+
+        const base = document.createElementNS(SVG_NS, 'rect');
+        base.setAttribute('x', String(slab.bounds.x));
+        base.setAttribute('y', String(slab.bounds.y));
+        base.setAttribute('width', String(slab.bounds.w));
+        base.setAttribute('height', String(slab.bounds.h));
+        base.setAttribute('fill', '#f5f5f4');
+        base.setAttribute('stroke', '#78716c');
+        base.setAttribute('stroke-width', '1');
+        base.setAttribute('vector-effect', 'non-scaling-stroke');
+        group.appendChild(base);
+
+        if (slab.imageSource) {
+          const image = document.createElementNS(SVG_NS, 'image');
+          image.setAttribute('href', slab.imageSource);
+          image.setAttribute('x', String(slab.bounds.x));
+          image.setAttribute('y', String(slab.bounds.y));
+          image.setAttribute('width', String(slab.bounds.w));
+          image.setAttribute('height', String(slab.bounds.h));
+          image.setAttribute('preserveAspectRatio', 'none');
+          image.setAttribute('opacity', String(slab.opacity));
+          group.appendChild(image);
+        }
+
+        const usable = slab.usableBounds;
+        if (
+          usable.x !== slab.bounds.x ||
+          usable.y !== slab.bounds.y ||
+          usable.w !== slab.bounds.w ||
+          usable.h !== slab.bounds.h
+        ) {
+          const allowance = document.createElementNS(SVG_NS, 'rect');
+          allowance.setAttribute('class', 'lc-slab-usable-boundary');
+          allowance.setAttribute('x', String(usable.x));
+          allowance.setAttribute('y', String(usable.y));
+          allowance.setAttribute('width', String(usable.w));
+          allowance.setAttribute('height', String(usable.h));
+          allowance.setAttribute('fill', 'none');
+          allowance.setAttribute('stroke', '#b45309');
+          allowance.setAttribute('stroke-width', '1');
+          allowance.setAttribute('stroke-dasharray', '5 4');
+          allowance.setAttribute('vector-effect', 'non-scaling-stroke');
+          group.appendChild(allowance);
+        }
+
+        const label = document.createElementNS(SVG_NS, 'text');
+        label.setAttribute('class', 'lc-slab-label');
+        label.setAttribute('x', String(slab.bounds.x + 4 * unit));
+        label.setAttribute('y', String(slab.bounds.y + 13 * unit));
+        label.setAttribute('font-size', String(11 * unit));
+        label.setAttribute('font-weight', '700');
+        label.setAttribute('fill', '#44403c');
+        label.textContent = slab.name;
+        group.appendChild(label);
+
+        if (slab.selected) {
+          const selected = document.createElementNS(SVG_NS, 'rect');
+          selected.setAttribute('class', 'lc-slab-selection-outline');
+          selected.setAttribute('x', String(slab.bounds.x));
+          selected.setAttribute('y', String(slab.bounds.y));
+          selected.setAttribute('width', String(slab.bounds.w));
+          selected.setAttribute('height', String(slab.bounds.h));
+          selected.setAttribute('fill', 'none');
+          selected.setAttribute('stroke', '#0ea5e9');
+          selected.setAttribute('stroke-width', '2');
+          selected.setAttribute('vector-effect', 'non-scaling-stroke');
+          group.appendChild(selected);
+        }
+
+        const title = document.createElementNS(SVG_NS, 'title');
+        title.textContent =
+          slab.name +
+          ' · ' +
+          String(slab.bounds.w) +
+          '" × ' +
+          String(slab.bounds.h) +
+          '"';
+        group.appendChild(title);
+        svg.appendChild(group);
+      });
+    }
 
     projection.pieces.forEach((piece) => {
       const group = document.createElementNS(SVG_NS, 'g');
