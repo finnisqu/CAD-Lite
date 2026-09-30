@@ -19,6 +19,8 @@ import type {
   FabricationChild,
   Piece,
   PiecePose,
+  PieceSeam,
+  PieceSeamReference,
   PieceSide,
 } from './types';
 
@@ -342,6 +344,22 @@ function mirrorSink(
   return next;
 }
 
+function mirrorSeamReferenceH(
+  reference: PieceSeamReference,
+): PieceSeamReference {
+  if (reference === 'left') return 'right';
+  if (reference === 'right') return 'left';
+  return reference;
+}
+
+function mirrorSeamReferenceV(
+  reference: PieceSeamReference,
+): PieceSeamReference {
+  if (reference === 'top') return 'bottom';
+  if (reference === 'bottom') return 'top';
+  return reference;
+}
+
 function mirrorPieceLocal(
   source: Piece,
   axis: PieceMirrorAxis,
@@ -372,9 +390,10 @@ function mirrorPieceLocal(
     };
     piece.pieceSeams = piece.pieceSeams.map((seam) => ({
       ...seam,
-      ...(seam.orientation === 'vertical'
-        ? { reference: swapLeftRight(seam.reference) }
-        : {}),
+      reference:
+        seam.orientation === 'vertical'
+          ? mirrorSeamReferenceH(seam.reference)
+          : seam.reference,
     }));
   } else {
     if (!isBacksplashPiece(piece)) {
@@ -398,9 +417,10 @@ function mirrorPieceLocal(
     };
     piece.pieceSeams = piece.pieceSeams.map((seam) => ({
       ...seam,
-      ...(seam.orientation === 'horizontal'
-        ? { reference: swapTopBottom(seam.reference) }
-        : {}),
+      reference:
+        seam.orientation === 'horizontal'
+          ? mirrorSeamReferenceV(seam.reference)
+          : seam.reference,
     }));
   }
 
@@ -551,17 +571,17 @@ function fabricationDimensionAnchor(
 }
 
 function clampPieceSeams(
-  seams: readonly FabricationChild[],
+  seams: readonly PieceSeam[],
   width: number,
   height: number,
-): FabricationChild[] {
+): PieceSeam[] {
   return seams.map((seam) => {
-    const horizontal = seam.orientation === 'horizontal';
-    const maximum = horizontal ? height : width;
+    const maximum =
+      seam.orientation === 'horizontal' ? height : width;
     return {
       ...seam,
       offset: round3(
-        clamp(childNumber(seam, 'offset'), 0, Math.max(0, maximum)),
+        clamp(seam.offset, 0, Math.max(0, maximum)),
       ),
     };
   });
