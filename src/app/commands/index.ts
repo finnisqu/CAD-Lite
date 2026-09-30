@@ -44,6 +44,11 @@ export {
   updateDrawingLine,
 } from './annotations';
 export {
+  addRoomFeature,
+  deleteRoomFeature,
+  updateRoomFeature,
+} from './room-features';
+export {
   addSlabSurface,
   deleteSlabSurface,
   updateSlabSurface,
