@@ -9,4 +9,12 @@ export {
 export type { BuildInfo } from './app/build-info';
 
 export * from './core/numeric';
+export * from './domain/project';
+export type {
+  EntityId,
+  JsonObject,
+  JsonPrimitive,
+  JsonValue,
+} from './domain/types';
 export * from './geometry';
+export * from './persistence';
