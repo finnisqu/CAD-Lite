@@ -6,6 +6,7 @@ import {
   ToolController,
   applicationStateFromLegacyPayload,
   registerAnnotationToolHandlers,
+  setWorkspace,
 } from '../src/app';
 import type { ToolPointerInput } from '../src/app/interaction';
 import { v159ProjectFixture } from './fixtures/v159-project';
@@ -147,18 +148,7 @@ describe('Batch 21 annotation tool interactions', () => {
 
   it('keeps annotation creation inert in SLAB', () => {
     const { store, commands, tools, unregister } = setup();
-    commands.execute({
-      type: 'test.workspace.slab',
-      label: 'SLAB',
-      history: 'ignore',
-      persistence: 'ignore',
-      reduce(state) {
-        return {
-          ...state,
-          session: { ...state.session, workspace: 'slab' as const },
-        };
-      },
-    });
+    commands.execute(setWorkspace('slab'));
 
     expect(tools.activateLocked('dimension')).toBe(false);
     const before = store.getState().project.layouts[0]!.dims.length;
