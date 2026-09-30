@@ -384,7 +384,7 @@ function designMoveSnapCandidates(
     const piece = layout.pieces.find((candidate) => candidate.id === item.id);
     return piece ? !isBacksplashPiece(piece) : false;
   });
-  const candidates: SmartSnapCandidate[] = [];
+  const candidates: Array<SmartSnapCandidate | null> = [];
   const seenAssemblies = new Set<string>();
 
   if (state.preferences.pieceSnap) {
@@ -488,7 +488,7 @@ function slabMoveSnapCandidates(
     bottom: bounds.maxY + dy,
   };
   const movingIds = new Set(session.items.map((item) => item.id));
-  const candidates: SmartSnapCandidate[] = [];
+  const candidates: Array<SmartSnapCandidate | null> = [];
   const clearance = Math.max(0, state.preferences.slabCutClearance);
 
   if (state.preferences.pieceSnap) {
