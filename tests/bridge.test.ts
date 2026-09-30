@@ -35,9 +35,11 @@ describe('application/persistence bridge', () => {
       store.getState() as Parameters<typeof cadLiteFileFromApplicationState>[0],
     );
     const json = serializeCadLiteFile(file);
+    const parsed = JSON.parse(json) as Record<string, unknown>;
 
-    expect(json).not.toContain('piece-1');
-    expect(json).not.toContain('selection');
+    expect(json).not.toContain('"selection"');
+    expect(parsed).not.toHaveProperty('selection');
+    expect(file.project.layouts[0]?.pieces[0]?.id).toBe('piece-1');
     expect(file.editor.workspace).toBe('design');
   });
 
