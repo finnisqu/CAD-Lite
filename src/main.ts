@@ -7,3 +7,6 @@ export {
 } from './app/build-info';
 
 export type { BuildInfo } from './app/build-info';
+
+export * from './core/numeric';
+export * from './geometry';
