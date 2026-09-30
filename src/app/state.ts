@@ -28,18 +28,15 @@ export interface ApplicationState {
   preferences: EditorPreferences;
 }
 
-type Primitive = string | number | boolean | bigint | symbol | null | undefined;
-
-export type DeepReadonly<T> =
-  T extends Primitive
-    ? T
-    : T extends readonly (infer U)[]
-      ? readonly DeepReadonly<U>[]
-      : T extends object
-        ? { readonly [K in keyof T]: DeepReadonly<T[K]> }
-        : T;
-
-export type ReadonlyApplicationState = DeepReadonly<ApplicationState>;
+/**
+ * Store consumers cannot replace top-level domains directly.
+ *
+ * Nested domain types remain mutable for now because the canonical schema still
+ * models historical JSON arrays/records as mutable values. Commands preserve
+ * immutability through structural sharing, and the domain types can become
+ * deeply readonly incrementally as those schemas are promoted.
+ */
+export type ReadonlyApplicationState = Readonly<ApplicationState>;
 
 export function emptySelection(): Selection {
   return { kind: 'none' };
