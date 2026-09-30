@@ -1,4 +1,5 @@
 import {
+  AnnotationInteractionController,
   AppStore,
   ApplicationEffects,
   CommandDispatcher,
@@ -36,6 +37,7 @@ export interface CadLiteBrowserRuntime {
   surface: ProjectLayoutSurface;
   pieceCanvas: PieceCanvasSurface;
   pieceInteractions: PieceInteractionController;
+  annotationInteractions: AnnotationInteractionController;
   destroy(): void;
 }
 
@@ -80,6 +82,7 @@ export function mountCadLiteBrowserRuntime(
     createId,
   );
   const pieceInteractions = new PieceInteractionController(store, commands);
+  const annotationInteractions = new AnnotationInteractionController(store, commands);
   const effects = new ApplicationEffects(store, {
     autosaveStorage: options.storage ?? browserStorage(),
     autosave: options.autosave ?? {},
@@ -100,6 +103,7 @@ export function mountCadLiteBrowserRuntime(
     commands,
     effects,
     interaction: pieceInteractions,
+    annotationInteraction: annotationInteractions,
     tools,
   });
 
@@ -124,11 +128,13 @@ export function mountCadLiteBrowserRuntime(
     surface,
     pieceCanvas,
     pieceInteractions,
+    annotationInteractions,
     destroy() {
       if (typeof window !== 'undefined') {
         window.removeEventListener('beforeunload', beforeUnload);
       }
       pieceInteractions.cancel();
+      annotationInteractions.cancel();
       unregisterAnnotationTools.forEach((unregister) => unregister());
       pieceCanvas.unmount();
       surface.unmount();
