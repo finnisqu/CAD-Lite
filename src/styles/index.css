@@ -581,3 +581,51 @@
 .cad-lite-architecture-harness .lc-group-selected-action {
   margin-bottom: 8px;
 }
+
+
+/* Batch 19: typed SLAB surfaces and usable-cut projection. */
+.cad-lite-architecture-harness #lc-svg .lc-slab-surface {
+  shape-rendering: geometricPrecision;
+}
+
+.cad-lite-architecture-harness #lc-svg .lc-slab-usable-boundary,
+.cad-lite-architecture-harness #lc-svg .lc-slab-selection-outline,
+.cad-lite-architecture-harness #lc-svg .lc-slab-label {
+  pointer-events: none;
+}
+
+.cad-lite-architecture-harness .lc-slab-inspector {
+  display: grid;
+  gap: 8px;
+}
+
+.cad-lite-architecture-harness .lc-slab-inspector-fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.cad-lite-architecture-harness .lc-slab-inspector-fields label {
+  display: grid;
+  gap: 3px;
+  font-size: 12px;
+}
+
+.cad-lite-architecture-harness .lc-slab-visible-field,
+.cad-lite-architecture-harness .lc-slab-inspector-note,
+.cad-lite-architecture-harness .lc-slab-inspector-fields > button {
+  grid-column: 1 / -1;
+}
+
+.cad-lite-architecture-harness .lc-slab-visible-field {
+  display: flex !important;
+  grid-template-columns: none !important;
+  align-items: center;
+  gap: 6px !important;
+}
+
+@media (max-width: 1100px) {
+  .cad-lite-architecture-harness .lc-slab-inspector-fields {
+    grid-template-columns: 1fr;
+  }
+}
