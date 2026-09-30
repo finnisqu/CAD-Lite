@@ -1,5 +1,6 @@
 import {
   addPiece,
+  addSlabSurface,
   applyFabricationTransaction,
   addPieceCutout,
   addPieceSeam,
@@ -8,6 +9,7 @@ import {
   copyPieceCutout,
   copyPieceSink,
   deletePieces,
+  deleteSlabSurface,
   duplicatePieces,
   editPieceCutout,
   editPieceSeam,
@@ -23,6 +25,7 @@ import {
   setSelection,
   transformPieces,
   ungroupPieceGroups,
+  updateSlabSurface,
 } from '../app/commands';
 import {
   clampPiecePoseToWorkspace,
@@ -64,6 +67,7 @@ import {
   createEmptyLayout,
   getAreaDeletionPlan,
 } from '../domain/project';
+import { createBlankSlabSurface } from '../domain/slabs';
 import { normalizeDegrees } from '../core/numeric';
 import { createProjectLayoutViewModel } from './project-layout-model';
 
@@ -249,6 +253,12 @@ export class ProjectLayoutSurface {
       const id = this.store.getState().session.activeLayoutId;
       if (id) this.commands.execute(addPiece(id, this.createId('piece')));
     }, { signal });
+
+    this.root.querySelector('#lc-add-slab')?.addEventListener(
+      'click',
+      () => this.addBlankSlab(),
+      { signal },
+    );
 
     this.addAreaButton?.addEventListener(
       'click',
@@ -564,6 +574,12 @@ export class ProjectLayoutSurface {
       this.renderAreaInspector(model.selectedArea);
       return;
     }
+
+    if (this.store.getState().session.selection.kind === 'slab') {
+      this.renderSlabInspector();
+      return;
+    }
+
     this.renderPieceInspector();
   }
 
@@ -726,6 +742,167 @@ export class ProjectLayoutSurface {
     this.saveStatusElement.dataset.saveState = status.phase;
     this.saveStatusElement.title =
       status.error?.message ?? text;
+  }
+
+  private addBlankSlab(): void {
+    const state = this.store.getState();
+    const layout = state.project.layouts.find(
+      (item) => item.id === state.session.activeLayoutId,
+    );
+    if (!layout || state.session.workspace !== 'slab') return;
+
+    const offset = 2 + layout.overlays.length * 4;
+    const slab = createBlankSlabSurface(
+      this.createId('slab'),
+      `Slab ${layout.overlays.length + 1}`,
+      state.preferences.defaultSlabW,
+      state.preferences.defaultSlabH,
+      offset,
+      offset,
+    );
+    this.commands.execute(addSlabSurface(layout.id, slab));
+  }
+
+  private renderSlabInspector(): void {
+    const mount = this.inspectorElement;
+    if (!mount) return;
+    const state = this.store.getState();
+    const selection = state.session.selection;
+    if (selection.kind !== 'slab' || state.session.workspace !== 'slab') {
+      return;
+    }
+    const layout = state.project.layouts.find(
+      (item) => item.id === state.session.activeLayoutId,
+    );
+    const slab = layout?.overlays.find(
+      (item) => item.id === selection.id,
+    );
+    if (!layout || !slab) return;
+
+    const document = mount.ownerDocument;
+    const root = document.createElement('div');
+    root.className =
+      'lc-item selected lc-annotation-inspector lc-slab-inspector';
+
+    const heading = document.createElement('div');
+    heading.className = 'lc-inspector-context-title';
+    heading.textContent = slab.name || 'Slab';
+
+    const fields = document.createElement('div');
+    fields.className = 'lc-slab-inspector-fields';
+
+    const textField = (
+      labelText: string,
+      value: string,
+      onChange: (value: string) => void,
+    ): HTMLLabelElement => {
+      const label = document.createElement('label');
+      const text = document.createElement('span');
+      text.textContent = labelText;
+      const input = document.createElement('input');
+      input.className = 'lc-input';
+      input.type = 'text';
+      input.value = value;
+      input.addEventListener('change', () => onChange(input.value));
+      label.append(text, input);
+      return label;
+    };
+
+    const numberField = (
+      labelText: string,
+      value: number,
+      step: string,
+      onChange: (value: number) => void,
+    ): HTMLLabelElement => {
+      const label = document.createElement('label');
+      const text = document.createElement('span');
+      text.textContent = labelText;
+      const input = document.createElement('input');
+      input.className = 'lc-input';
+      input.type = 'number';
+      input.step = step;
+      input.value = String(value);
+      input.addEventListener('change', () => {
+        const next = Number(input.value);
+        if (Number.isFinite(next)) onChange(next);
+      });
+      label.append(text, input);
+      return label;
+    };
+
+    fields.append(
+      textField('Name', slab.name, (name) => {
+        this.commands.execute(
+          updateSlabSurface(layout.id, slab.id, { name }),
+        );
+      }),
+      numberField('Width', slab.slabW, '0.25', (slabW) => {
+        this.commands.execute(
+          updateSlabSurface(layout.id, slab.id, { slabW }),
+        );
+      }),
+      numberField('Height', slab.slabH, '0.25', (slabH) => {
+        this.commands.execute(
+          updateSlabSurface(layout.id, slab.id, { slabH }),
+        );
+      }),
+      numberField('X', slab.x, '0.125', (x) => {
+        this.commands.execute(
+          updateSlabSurface(layout.id, slab.id, { x }),
+        );
+      }),
+      numberField('Y', slab.y, '0.125', (y) => {
+        this.commands.execute(
+          updateSlabSurface(layout.id, slab.id, { y }),
+        );
+      }),
+      numberField('Opacity', slab.opacity, '0.05', (opacity) => {
+        this.commands.execute(
+          updateSlabSurface(layout.id, slab.id, { opacity }),
+        );
+      }),
+    );
+
+    const visible = document.createElement('label');
+    visible.className = 'lc-slab-visible-field';
+    const visibleInput = document.createElement('input');
+    visibleInput.type = 'checkbox';
+    visibleInput.checked = slab.visible;
+    visibleInput.addEventListener('change', () => {
+      this.commands.execute(
+        updateSlabSurface(layout.id, slab.id, {
+          visible: visibleInput.checked,
+        }),
+      );
+    });
+    const visibleText = document.createElement('span');
+    visibleText.textContent = 'Visible';
+    visible.append(visibleInput, visibleText);
+    fields.append(visible);
+
+    const note = document.createElement('div');
+    note.className = 'lc-small lc-slab-inspector-note';
+    note.textContent =
+      'Usable cut boundary is inset by ' +
+      String(state.preferences.slabEdgeAllowance) +
+      '" from each slab edge.';
+    fields.append(note);
+
+    const remove = document.createElement('button');
+    remove.type = 'button';
+    remove.className = 'lc-btn red sm';
+    remove.textContent = 'Delete Slab';
+    remove.addEventListener('click', () => {
+      if (this.confirm(`Delete "${slab.name}"?`)) {
+        this.commands.execute(
+          deleteSlabSurface(layout.id, slab.id),
+        );
+      }
+    });
+    fields.append(remove);
+
+    root.append(heading, fields);
+    mount.append(root);
   }
 
   private addNewLayout(): void {
