@@ -80,9 +80,9 @@
             ></svg>
           </div>
           <p class="lc-small">
-            Batch 21 annotation harness: D / L / N use typed tool handlers with live
-            segment previews, object/grid snapping, Alt snap bypass, Shift H/V
-            constraint, shared Selection, Inspector editing, and Delete/Backspace.
+            Batch 23 harness: typed Room Features and Walls now share Layout
+            ownership, selection, visibility filters, canvas projection, Navigator,
+            and command-backed Inspector editing alongside the annotation stack.
           </p>
           <pre id="build-info"></pre>
         </section>
@@ -217,7 +217,48 @@
                 attachedEnd: 'start',
               },
             ],
-            roomFeatures: [],
+            roomFeatures: [
+              {
+                id: 'room-base-demo',
+                kind: 'feature',
+                featureType: 'base',
+                name: 'Sink Base',
+                x: 28,
+                y: 132,
+                length: 36,
+                depth: 24,
+                rotation: 0,
+                visible: true,
+                receivesCountertop: true,
+              },
+              {
+                id: 'room-panel-demo',
+                kind: 'feature',
+                featureType: 'end-panel',
+                name: 'Fridge Panel',
+                x: 72,
+                y: 132,
+                length: 2,
+                depth: 24,
+                rotation: 0,
+                visible: true,
+                receivesCountertop: false,
+              },
+              {
+                id: 'room-wall-demo',
+                kind: 'wall',
+                featureType: 'knee-wall',
+                name: 'Knee Wall',
+                x: 145,
+                y: 92,
+                length: 58,
+                depth: 4,
+                rotation: 12,
+                visible: true,
+                wallType: 'knee',
+                wallHeight: 42,
+              },
+            ],
             plan: null,
             overlays: [
               {
