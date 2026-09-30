@@ -4,6 +4,7 @@ import {
   type SlabSurfacePatch,
 } from '../../domain/slabs';
 import type { Layout } from '../../domain/project';
+import type { ReadonlyApplicationState } from '../state';
 import type { AppCommand } from './types';
 
 function replaceLayout(
@@ -17,7 +18,7 @@ function replaceLayout(
 }
 
 function slabWorkspaceActive(
-  state: Parameters<AppCommand['reduce']>[0],
+  state: ReadonlyApplicationState,
   layoutId: string,
 ): boolean {
   return (
