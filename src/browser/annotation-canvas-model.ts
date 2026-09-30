@@ -9,8 +9,10 @@ import type { Point } from '../geometry';
 
 export interface CanvasDimensionProjection extends DimensionAnnotation {
   selected: boolean;
-  displayStart: Point;
-  displayEnd: Point;
+  displayX1: number;
+  displayY1: number;
+  displayX2: number;
+  displayY2: number;
   length: number;
 }
 
@@ -68,14 +70,10 @@ export function createAnnotationCanvasProjection(
         ...dimension,
         selected:
           selection.kind === 'dimension' && selection.id === dimension.id,
-        displayStart: {
-          x: dimension.x1 + nx * offset,
-          y: dimension.y1 + ny * offset,
-        },
-        displayEnd: {
-          x: dimension.x2 + nx * offset,
-          y: dimension.y2 + ny * offset,
-        },
+        displayX1: dimension.x1 + nx * offset,
+        displayY1: dimension.y1 + ny * offset,
+        displayX2: dimension.x2 + nx * offset,
+        displayY2: dimension.y2 + ny * offset,
         length: annotationSegmentLength(dimension),
       };
     }),
@@ -134,8 +132,8 @@ export function hitTestAnnotations(
       dimension &&
       distanceToSegment(
         point,
-        dimension.displayStart,
-        dimension.displayEnd,
+{ x: dimension.displayX1, y: dimension.displayY1 },
+        { x: dimension.displayX2, y: dimension.displayY2 },
       ) <= lineTolerance
     ) {
       return { kind: 'dimension', id: dimension.id };
