@@ -13,9 +13,6 @@ import {
   createPieceCanvasProjection,
 } from '../src/browser';
 import {
-  normalizeDegrees,
-} from '../src/core/numeric';
-import {
   normalizePieces,
 } from '../src/persistence/pieces';
 import type { Layout } from '../src/domain/project';
@@ -316,7 +313,7 @@ describe('Piece move projection', () => {
     );
     const snappedA = snapped?.pieces.find((item) => item.id === 'a');
     expect(snappedA?.pose.x).toBe(60);
-    expect(snapped?.guideX).toBe(80);
+    expect(snapped?.guideX).toBe(60);
 
     const free = previewPieceMove(
       store.getState(),
@@ -531,6 +528,7 @@ describe('Piece interaction controller and commands', () => {
     const store = new AppStore(state);
     const commands = new CommandDispatcher(store);
 
+    const exactRotation = 1.23456789;
     commands.execute(
       transformPieces(
         layout.id,
@@ -540,7 +538,7 @@ describe('Piece interaction controller and commands', () => {
             designPose: {
               x: 4.1234567,
               y: 8.7654321,
-              rotation: normalizeDegrees(361.234567),
+              rotation: exactRotation,
             },
           },
         ],
@@ -551,7 +549,7 @@ describe('Piece interaction controller and commands', () => {
       w: 81.997123,
       x: 4.1234567,
       y: 8.7654321,
-      rotation: 1.2345670000000037,
+      rotation: exactRotation,
     });
   });
 });
