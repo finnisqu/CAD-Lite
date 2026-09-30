@@ -45,6 +45,35 @@ function distanceToSegment(point: Point, a: Point, b: Point): number {
   );
 }
 
+function annotationEditPreview(
+  state: ReadonlyApplicationState,
+): {
+  entityKind: 'dimension' | 'line' | 'note';
+  id: string;
+  patch: Record<string, unknown>;
+} | null {
+  const raw = state.session.interaction.preview;
+  if (!raw || Array.isArray(raw) || typeof raw !== 'object') return null;
+  const record = raw as Record<string, unknown>;
+  if (
+    record.kind !== 'annotation-edit' ||
+    (record.entityKind !== 'dimension' &&
+      record.entityKind !== 'line' &&
+      record.entityKind !== 'note') ||
+    typeof record.id !== 'string' ||
+    !record.patch ||
+    Array.isArray(record.patch) ||
+    typeof record.patch !== 'object'
+  ) {
+    return null;
+  }
+  return {
+    entityKind: record.entityKind,
+    id: record.id,
+    patch: record.patch as Record<string, unknown>,
+  };
+}
+
 export function createAnnotationCanvasProjection(
   state: ReadonlyApplicationState,
 ): AnnotationCanvasProjection {
@@ -57,9 +86,16 @@ export function createAnnotationCanvasProjection(
 
   const scale = Math.max(0.001, Math.abs(layout.scale || 1));
   const selection = state.session.selection;
+  const edit = annotationEditPreview(state);
 
   return {
-    dimensions: layout.dims.map((dimension) => {
+    dimensions: layout.dims
+      .filter((dimension) => dimension.visible && state.preferences.showManualDims)
+      .map((source) => {
+      const dimension =
+        edit?.entityKind === 'dimension' && edit.id === source.id
+          ? ({ ...source, ...edit.patch } as DimensionAnnotation)
+          : source;
       const dx = dimension.x2 - dimension.x1;
       const dy = dimension.y2 - dimension.y1;
       const length = Math.hypot(dx, dy);
@@ -77,14 +113,41 @@ export function createAnnotationCanvasProjection(
         length: annotationSegmentLength(dimension),
       };
     }),
-    lines: layout.lines.map((line) => ({
-      ...line,
-      selected: selection.kind === 'line' && selection.id === line.id,
-    })),
-    notes: layout.notes.map((note) => ({
-      ...note,
-      selected: selection.kind === 'note' && selection.id === note.id,
-    })),
+    lines: layout.lines
+      .filter((line) => line.visible && state.preferences.showLines)
+      .map((source) => {
+        let line =
+          edit?.entityKind === 'line' && edit.id === source.id
+            ? ({ ...source, ...edit.patch } as DrawingLine)
+            : source;
+        if (edit?.entityKind === 'note') {
+          const note = layout.notes.find((item) => item.id === edit.id);
+          if (note && line.attachedNoteId === note.id) {
+            const x = typeof edit.patch.x === 'number' ? edit.patch.x : note.x;
+            const y = typeof edit.patch.y === 'number' ? edit.patch.y : note.y;
+            line =
+              line.attachedEnd === 'end'
+                ? { ...line, x2: x, y2: y }
+                : { ...line, x1: x, y1: y };
+          }
+        }
+        return {
+          ...line,
+          selected: selection.kind === 'line' && selection.id === line.id,
+        };
+      }),
+    notes: layout.notes
+      .filter((note) => note.visible && state.preferences.showNotes)
+      .map((source) => {
+        const note =
+          edit?.entityKind === 'note' && edit.id === source.id
+            ? ({ ...source, ...edit.patch } as CanvasNote)
+            : source;
+        return {
+          ...note,
+          selected: selection.kind === 'note' && selection.id === note.id,
+        };
+      }),
   };
 }
 
