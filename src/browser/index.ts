@@ -61,3 +61,13 @@ export type {
   CanvasLineProjection,
   CanvasNoteProjection,
 } from './annotation-canvas-model';
+
+export {
+  createRoomFeatureCanvasProjection,
+  hitTestRoomFeatures,
+  projectRoomFeatureForCanvas,
+} from './room-feature-canvas-model';
+export type {
+  RoomFeatureCanvasItem,
+  RoomFeatureCanvasProjection,
+} from './room-feature-canvas-model';
