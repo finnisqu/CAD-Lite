@@ -60,6 +60,8 @@
           <div class="cad-lite-architecture-harness__workspace-bar">
             <button id="lc-workspace-design" type="button">DESIGN</button>
             <button id="lc-workspace-slab" type="button">SLAB</button>
+            <button id="lc-add-slab" type="button">+ Blank Slab</button>
+            <button id="lc-show-slab-material" type="button">Slab Material</button>
             <button id="lc-piece-snap" type="button">Object Snap</button>
             <button id="lc-grid-snap" type="button">Grid Snap</button>
             <button id="lc-show-seams" type="button">Seams</button>
@@ -75,10 +77,10 @@
             ></svg>
           </div>
           <p class="lc-small">
-            Batch 17 fabrication harness: in SLAB, planning seams can become real
-            fabrication pieces; in DESIGN, selecting the resulting Assembly exposes
-            Merge for its known mating seam. Split/merge remap seams, sinks, cutouts,
-            linked splashes, both workspace poses, and assembly links as one undo step.
+            Batch 19 SLAB harness: slab surfaces are typed Layout entities with
+            independent selection and Inspector editing. Piece placement stays
+            workspace-specific, snaps to slab usable edges after edge allowance, and
+            still uses fabrication clearance between nested Pieces.
           </p>
           <pre id="build-info"></pre>
         </section>
@@ -175,7 +177,20 @@
             lines: [],
             roomFeatures: [],
             plan: null,
-            overlays: [],
+            overlays: [
+              {
+                id: 'slab-demo-1',
+                name: 'Blank Slab 1',
+                slabW: 126,
+                slabH: 63,
+                x: 2,
+                y: 2,
+                opacity: 0.78,
+                visible: true,
+              },
+            ],
+            slabCW: 180,
+            slabCH: 100,
           },
           {
             id: 'layout-bath',
@@ -202,6 +217,11 @@
           workspace: 'layout',
           gridSnap: true,
           pieceSnap: true,
+          slabCutClearance: 0.25,
+          slabEdgeAllowance: 1.5,
+          defaultSlabW: 126,
+          defaultSlabH: 63,
+          showSlabMaterial: true,
           showGrid: true,
           showDims: true,
           dimPrecision: 16,
