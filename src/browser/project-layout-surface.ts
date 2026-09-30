@@ -1,14 +1,18 @@
 import {
   addPiece,
+  addPieceCutout,
   addPieceSeam,
   addPieceSink,
   assignPiecesToArea,
+  copyPieceCutout,
   copyPieceSink,
   deletePieces,
   duplicatePieces,
+  editPieceCutout,
   editPieceSeam,
   editPieceSink,
   mirrorPieces,
+  removePieceCutout,
   removePieceSeam,
   removePieceSink,
   renamePiece,
@@ -18,7 +22,10 @@ import {
 } from '../app/commands';
 import {
   clampPiecePoseToWorkspace,
+  cutoutEffectivePerimeterInches,
+  cutoutPerimeterInches,
   getPieceDeletionPlan,
+  isBacksplashPiece,
   MAX_SINKS_PER_PIECE,
   pieceGeometry,
   piecePose,
@@ -1529,6 +1536,324 @@ export class ProjectLayoutSurface {
 
       sinkSection.append(sinkRows);
       mount.append(sinkSection);
+
+      if (!isBacksplashPiece(first)) {
+        const cutoutSection = document.createElement('div');
+        cutoutSection.className = 'lc-piece-cutouts-inspector';
+
+        const cutoutHeader = document.createElement('div');
+        cutoutHeader.className = 'lc-piece-cutouts-inspector__header';
+        const cutoutTitle = document.createElement('strong');
+        cutoutTitle.textContent = `Cutouts (${first.cutouts.length})`;
+
+        const cutoutVisibility = document.createElement('button');
+        cutoutVisibility.type = 'button';
+        cutoutVisibility.className = 'lc-btn ghost sm';
+        cutoutVisibility.textContent =
+          state.preferences.showCutoutLabels
+            ? 'Hide Labels'
+            : 'Show Labels';
+        cutoutVisibility.setAttribute(
+          'aria-pressed',
+          String(state.preferences.showCutoutLabels),
+        );
+        cutoutVisibility.addEventListener('click', () => {
+          const current =
+            this.store.getState().preferences.showCutoutLabels;
+          this.commands.execute(
+            updatePreferences({ showCutoutLabels: !current }),
+          );
+        });
+
+        cutoutHeader.append(cutoutTitle, cutoutVisibility);
+        cutoutSection.append(cutoutHeader);
+
+        const addCutouts = document.createElement('div');
+        addCutouts.className = 'lc-piece-cutout-add-actions';
+        ([
+          ['rectangle', 'Rectangle'],
+          ['circle', 'Circle'],
+          ['oval', 'Oval'],
+        ] as const).forEach(([kind, labelText]) => {
+          const button = document.createElement('button');
+          button.type = 'button';
+          button.className = 'lc-btn ghost sm';
+          button.textContent = '+ ' + labelText;
+          button.addEventListener('click', () => {
+            this.commands.execute(
+              addPieceCutout(
+                layout.id,
+                first.id,
+                kind,
+                this.createId('cutout'),
+              ),
+            );
+          });
+          addCutouts.append(button);
+        });
+        cutoutSection.append(addCutouts);
+
+        const cutoutRows = document.createElement('div');
+        cutoutRows.className = 'lc-piece-cutout-list';
+
+        first.cutouts.forEach((cutout, cutoutIndex) => {
+          const row = document.createElement('div');
+          row.className = 'lc-piece-cutout-row';
+
+          const rowHeader = document.createElement('div');
+          rowHeader.className = 'lc-piece-cutout-row__header';
+          const rowTitle = document.createElement('span');
+          rowTitle.textContent =
+            cutout.name.trim() || `Cutout ${cutoutIndex + 1}`;
+
+          const rowActions = document.createElement('div');
+          rowActions.className = 'lc-piece-cutout-row__actions';
+
+          const copy = document.createElement('button');
+          copy.type = 'button';
+          copy.className = 'lc-btn ghost sm';
+          copy.textContent = 'Duplicate';
+          copy.addEventListener('click', () => {
+            this.commands.execute(
+              copyPieceCutout(
+                layout.id,
+                first.id,
+                cutout.id,
+                this.createId('cutout'),
+              ),
+            );
+          });
+
+          const remove = document.createElement('button');
+          remove.type = 'button';
+          remove.className = 'lc-btn red sm';
+          remove.textContent = 'Delete';
+          remove.addEventListener('click', () => {
+            this.commands.execute(
+              removePieceCutout(layout.id, first.id, cutout.id),
+            );
+          });
+
+          rowActions.append(copy, remove);
+          rowHeader.append(rowTitle, rowActions);
+          row.append(rowHeader);
+
+          const fields = document.createElement('div');
+          fields.className = 'lc-piece-cutout-fields';
+
+          const textField = document.createElement('label');
+          textField.textContent = 'Name';
+          const name = document.createElement('input');
+          name.type = 'text';
+          name.value = cutout.name;
+          name.addEventListener('change', () => {
+            this.commands.execute(
+              editPieceCutout(layout.id, first.id, cutout.id, {
+                name: name.value,
+              }),
+            );
+          });
+          textField.append(name);
+          fields.append(textField);
+
+          const kindLabel = document.createElement('label');
+          kindLabel.textContent = 'Type';
+          const kind = document.createElement('select');
+          ([
+            ['rectangle', 'Rectangle'],
+            ['circle', 'Circle'],
+            ['oval', 'Oval'],
+          ] as const).forEach(([value, labelText]) => {
+            const option = document.createElement('option');
+            option.value = value;
+            option.textContent = labelText;
+            kind.append(option);
+          });
+          kind.value = cutout.kind;
+          kind.addEventListener('change', () => {
+            const value =
+              kind.value === 'circle'
+                ? 'circle'
+                : kind.value === 'oval'
+                  ? 'oval'
+                  : 'rectangle';
+            this.commands.execute(
+              editPieceCutout(layout.id, first.id, cutout.id, {
+                kind: value,
+              }),
+            );
+          });
+          kindLabel.append(kind);
+          fields.append(kindLabel);
+
+          const finishLabel = document.createElement('label');
+          finishLabel.textContent = 'Inside Edge';
+          const finish = document.createElement('select');
+          ([
+            ['unpolished', 'Unpolished'],
+            ['polished', 'Polished'],
+          ] as const).forEach(([value, labelText]) => {
+            const option = document.createElement('option');
+            option.value = value;
+            option.textContent = labelText;
+            finish.append(option);
+          });
+          finish.value = cutout.insideFinish;
+          finish.addEventListener('change', () => {
+            this.commands.execute(
+              editPieceCutout(layout.id, first.id, cutout.id, {
+                insideFinish:
+                  finish.value === 'polished'
+                    ? 'polished'
+                    : 'unpolished',
+              }),
+            );
+          });
+          finishLabel.append(finish);
+          fields.append(finishLabel);
+
+          const makeNumber = (
+            labelText: string,
+            value: number,
+            step: number,
+            min: number,
+            onChange: (value: number) => void,
+          ): HTMLLabelElement => {
+            const field = document.createElement('label');
+            field.textContent = labelText;
+            const control = document.createElement('input');
+            control.type = 'number';
+            control.value = String(value);
+            control.step = String(step);
+            control.min = String(min);
+            control.addEventListener('change', () => {
+              const next = Number(control.value);
+              if (Number.isFinite(next)) onChange(next);
+            });
+            field.append(control);
+            return field;
+          };
+
+          if (cutout.kind === 'circle') {
+            fields.append(
+              makeNumber(
+                'Diameter (in)',
+                cutout.diameter ?? cutout.w,
+                0.125,
+                0.125,
+                (value) => {
+                  this.commands.execute(
+                    editPieceCutout(layout.id, first.id, cutout.id, {
+                      diameter: value,
+                    }),
+                  );
+                },
+              ),
+            );
+          } else {
+            fields.append(
+              makeNumber('Width (in)', cutout.w, 0.125, 0.125, (value) => {
+                this.commands.execute(
+                  editPieceCutout(layout.id, first.id, cutout.id, {
+                    w: value,
+                  }),
+                );
+              }),
+              makeNumber('Height (in)', cutout.h, 0.125, 0.125, (value) => {
+                this.commands.execute(
+                  editPieceCutout(layout.id, first.id, cutout.id, {
+                    h: value,
+                  }),
+                );
+              }),
+            );
+          }
+
+          fields.append(
+            makeNumber('CL from Left', cutout.cx, 0.125, 0, (value) => {
+              this.commands.execute(
+                editPieceCutout(layout.id, first.id, cutout.id, {
+                  cx: value,
+                }),
+              );
+            }),
+            makeNumber('CL from Back', cutout.cy, 0.125, 0, (value) => {
+              this.commands.execute(
+                editPieceCutout(layout.id, first.id, cutout.id, {
+                  cy: value,
+                }),
+              );
+            }),
+          );
+
+          if (cutout.kind !== 'circle') {
+            fields.append(
+              makeNumber(
+                'Rotation (°)',
+                cutout.rotation,
+                1,
+                -3600,
+                (value) => {
+                  this.commands.execute(
+                    editPieceCutout(layout.id, first.id, cutout.id, {
+                      rotation: value,
+                    }),
+                  );
+                },
+              ),
+            );
+            if (cutout.kind === 'rectangle') {
+              fields.append(
+                makeNumber(
+                  'Corner R (in)',
+                  cutout.cornerR,
+                  0.125,
+                  0,
+                  (value) => {
+                    this.commands.execute(
+                      editPieceCutout(layout.id, first.id, cutout.id, {
+                        cornerR: value,
+                      }),
+                    );
+                  },
+                ),
+              );
+            }
+          }
+
+          const perimeter = document.createElement('div');
+          perimeter.className = 'lc-small lc-piece-cutout-perimeter';
+          const actual =
+            cutoutEffectivePerimeterInches(cutout, first);
+          const full = cutoutPerimeterInches(cutout);
+          perimeter.textContent =
+            (cutout.insideFinish === 'polished'
+              ? 'Polished'
+              : 'Unpolished') +
+            ' cut edge · ' +
+            (actual / 12).toFixed(2) +
+            ' LF' +
+            (actual < full - 0.03 ? ' · clipped by piece edge' : '');
+
+          row.append(fields, perimeter);
+          cutoutRows.append(row);
+        });
+
+        if (!first.cutouts.length) {
+          const empty = document.createElement('div');
+          empty.className = 'lc-small lc-inspector-empty';
+          empty.textContent = 'This piece has no general cutouts.';
+          cutoutRows.append(empty);
+        }
+
+        const note = document.createElement('div');
+        note.className = 'lc-small lc-piece-cutout-note';
+        note.textContent =
+          'General cutouts default to unpolished. LF counts only the cut edge that actually passes through stone.';
+
+        cutoutSection.append(cutoutRows, note);
+        mount.append(cutoutSection);
+      }
 
       const seamSection = document.createElement('div');
       seamSection.className = 'lc-piece-seams-inspector';

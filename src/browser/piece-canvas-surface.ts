@@ -83,6 +83,7 @@ export class PieceCanvasSurface {
   private gridSnapButton: HTMLButtonElement | null = null;
   private showSeamsButton: HTMLButtonElement | null = null;
   private sinkCenterlineButton: HTMLButtonElement | null = null;
+  private cutoutLabelButton: HTMLButtonElement | null = null;
 
   constructor(options: PieceCanvasSurfaceOptions) {
     this.root = options.root;
@@ -112,6 +113,10 @@ export class PieceCanvasSurface {
     this.sinkCenterlineButton =
       this.root.querySelector<HTMLButtonElement>(
         '#lc-show-sink-centerlines',
+      );
+    this.cutoutLabelButton =
+      this.root.querySelector<HTMLButtonElement>(
+        '#lc-show-cutout-labels',
       );
 
     this.designButton?.addEventListener(
@@ -155,6 +160,17 @@ export class PieceCanvasSurface {
           this.store.getState().preferences.showSinkCenterlines;
         this.commands.execute(
           updatePreferences({ showSinkCenterlines: !current }),
+        );
+      },
+      { signal },
+    );
+    this.cutoutLabelButton?.addEventListener(
+      'click',
+      () => {
+        const current =
+          this.store.getState().preferences.showCutoutLabels;
+        this.commands.execute(
+          updatePreferences({ showCutoutLabels: !current }),
         );
       },
       { signal },
@@ -446,6 +462,14 @@ export class PieceCanvasSurface {
       'aria-pressed',
       String(state.preferences.showSinkCenterlines),
     );
+    this.cutoutLabelButton?.classList.toggle(
+      'is-active',
+      state.preferences.showCutoutLabels,
+    );
+    this.cutoutLabelButton?.setAttribute(
+      'aria-pressed',
+      String(state.preferences.showCutoutLabels),
+    );
 
     if (!this.meta) return;
     if (!projection.layoutId) {
@@ -536,6 +560,7 @@ export class PieceCanvasSurface {
       group.appendChild(path);
 
       this.renderPieceSinks(document, group, piece, projection);
+      this.renderPieceCutouts(document, group, piece, projection);
 
       if (piece.selected) {
         const outline = document.createElementNS(SVG_NS, 'path');
@@ -589,6 +614,126 @@ export class PieceCanvasSurface {
     this.renderSnapGuides(document, svg, projection);
     this.renderResizeHandles(document, svg, projection);
     this.renderRotateHandle(document, svg, projection);
+  }
+
+  private renderPieceCutouts(
+    document: Document,
+    group: SVGGElement,
+    piece: PieceCanvasProjection['pieces'][number],
+    projection: PieceCanvasProjection,
+  ): void {
+    if (!piece.cutouts.length) return;
+
+    const scale = Math.max(0.001, projection.scale);
+    const unit = 1 / scale;
+    const safePieceId = piece.id.replace(/[^a-z0-9_-]/gi, '_');
+    const clipId = 'lc-cutout-clip-' + safePieceId;
+
+    const defs = document.createElementNS(SVG_NS, 'defs');
+    const clip = document.createElementNS(SVG_NS, 'clipPath');
+    clip.setAttribute('id', clipId);
+    clip.setAttribute('clipPathUnits', 'userSpaceOnUse');
+    const clipPath = document.createElementNS(SVG_NS, 'path');
+    clipPath.setAttribute('d', piece.path);
+    clip.appendChild(clipPath);
+    defs.appendChild(clip);
+    group.appendChild(defs);
+
+    const layer = document.createElementNS(SVG_NS, 'g');
+    layer.setAttribute('class', 'lc-piece-cutouts');
+    layer.setAttribute('pointer-events', 'none');
+    layer.setAttribute('clip-path', 'url(#' + clipId + ')');
+
+    piece.cutouts.forEach((cutout) => {
+      const cutoutGroup = document.createElementNS(SVG_NS, 'g');
+      cutoutGroup.setAttribute('class', 'lc-piece-cutout');
+      cutoutGroup.setAttribute('data-cutout-id', cutout.id);
+      cutoutGroup.setAttribute(
+        'transform',
+        'translate(' +
+          String(cutout.center.x) +
+          ' ' +
+          String(cutout.center.y) +
+          ') rotate(' +
+          String(cutout.localRotation) +
+          ')',
+      );
+
+      const strokeWidth = cutout.polished ? 2 : 1;
+
+      if (cutout.kind === 'circle') {
+        const circle = document.createElementNS(SVG_NS, 'circle');
+        circle.setAttribute('cx', '0');
+        circle.setAttribute('cy', '0');
+        circle.setAttribute(
+          'r',
+          String((cutout.diameter ?? cutout.width) / 2),
+        );
+        circle.setAttribute('fill', 'none');
+        circle.setAttribute('stroke', '#333333');
+        circle.setAttribute('stroke-width', String(strokeWidth));
+        circle.setAttribute('vector-effect', 'non-scaling-stroke');
+        cutoutGroup.appendChild(circle);
+      } else if (cutout.kind === 'oval') {
+        const ellipse = document.createElementNS(SVG_NS, 'ellipse');
+        ellipse.setAttribute('cx', '0');
+        ellipse.setAttribute('cy', '0');
+        ellipse.setAttribute('rx', String(cutout.width / 2));
+        ellipse.setAttribute('ry', String(cutout.height / 2));
+        ellipse.setAttribute('fill', 'none');
+        ellipse.setAttribute('stroke', '#333333');
+        ellipse.setAttribute('stroke-width', String(strokeWidth));
+        ellipse.setAttribute('vector-effect', 'non-scaling-stroke');
+        cutoutGroup.appendChild(ellipse);
+      } else if (cutout.path) {
+        const path = document.createElementNS(SVG_NS, 'path');
+        path.setAttribute('d', cutout.path);
+        path.setAttribute('fill', 'none');
+        path.setAttribute('stroke', '#333333');
+        path.setAttribute('stroke-width', String(strokeWidth));
+        path.setAttribute('vector-effect', 'non-scaling-stroke');
+        cutoutGroup.appendChild(path);
+      }
+
+      if (cutout.showLabel) {
+        const label = document.createElementNS(SVG_NS, 'text');
+        label.setAttribute('x', String(cutout.labelOffset.x));
+        label.setAttribute(
+          'y',
+          String(
+            cutout.labelOffset.y +
+              (cutout.polished ? -2 * unit : 0),
+          ),
+        );
+        label.setAttribute('text-anchor', 'middle');
+        label.setAttribute('dominant-baseline', 'middle');
+        label.setAttribute('font-size', String(9 * unit));
+        label.setAttribute('font-weight', '650');
+        label.setAttribute('fill', '#111111');
+        label.textContent = cutout.name;
+        cutoutGroup.appendChild(label);
+
+        if (cutout.polished) {
+          const polished = document.createElementNS(SVG_NS, 'text');
+          polished.setAttribute('x', String(cutout.labelOffset.x));
+          polished.setAttribute(
+            'y',
+            String(cutout.labelOffset.y + 9 * unit),
+          );
+          polished.setAttribute('text-anchor', 'middle');
+          polished.setAttribute('dominant-baseline', 'middle');
+          polished.setAttribute('font-size', String(7.5 * unit));
+          polished.setAttribute('font-weight', '700');
+          polished.setAttribute('fill', '#111111');
+          polished.textContent = 'POLISHED';
+          cutoutGroup.appendChild(polished);
+        }
+      }
+
+      layer.appendChild(cutoutGroup);
+    });
+
+    group.appendChild(layer);
   }
 
   private renderPieceSinks(

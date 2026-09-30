@@ -1,11 +1,14 @@
 import type { Layout } from '../../domain/project';
 import {
-  createDefaultSink, createPiece, createPieceSeam, deletePieceFamily,
-  deletePieceSeam, deletePieceSink, duplicatePieceSink, getPieceDeletionPlan,
+  createDefaultCutout, createDefaultSink, createPiece, createPieceSeam,
+  deletePieceCutout, deletePieceFamily,
+  deletePieceSeam, deletePieceSink, duplicatePieceCutout,
+  duplicatePieceSink, getPieceDeletionPlan,
   MAX_SINKS_PER_PIECE,
   mirrorPiecesInLayout, resizePieceDimensionInLayout, updatePieceSeam,
-  updatePieceSink,
-  type Piece, type PieceDimension, type PieceDuplicationPlan,
+  updatePieceCutout, updatePieceSink,
+  type Piece, type PieceCutoutKind, type PieceCutoutPatch,
+  type PieceDimension, type PieceDuplicationPlan,
   type PieceGeometry, type PieceMirrorAxis, type PiecePose,
   type PieceSeamPatch, type PieceSinkPatch,
 } from '../../domain/pieces';
@@ -385,5 +388,76 @@ export function copyPieceSink(
     'piece.sink.duplicate',
     'Duplicate sink',
     (piece) => duplicatePieceSink(piece, sinkId, copyId) ?? piece,
+  );
+}
+
+
+export function addPieceCutout(
+  layoutId: string,
+  pieceId: string,
+  kind: PieceCutoutKind,
+  cutoutId: string,
+): AppCommand {
+  return editPiece(
+    layoutId,
+    pieceId,
+    'piece.cutout.add',
+    'Add cutout',
+    (piece) => {
+      if (piece.cutouts.some((item) => item.id === cutoutId)) {
+        return piece;
+      }
+      const cutout = createDefaultCutout(kind, piece, cutoutId);
+      return cutout
+        ? { ...piece, cutouts: [...piece.cutouts, cutout] }
+        : piece;
+    },
+  );
+}
+
+export function editPieceCutout(
+  layoutId: string,
+  pieceId: string,
+  cutoutId: string,
+  patch: PieceCutoutPatch,
+): AppCommand {
+  const input: PieceCutoutPatch = { ...patch };
+  return editPiece(
+    layoutId,
+    pieceId,
+    'piece.cutout.update',
+    'Update cutout',
+    (piece) =>
+      updatePieceCutout(piece, cutoutId, input) ?? piece,
+  );
+}
+
+export function removePieceCutout(
+  layoutId: string,
+  pieceId: string,
+  cutoutId: string,
+): AppCommand {
+  return editPiece(
+    layoutId,
+    pieceId,
+    'piece.cutout.delete',
+    'Delete cutout',
+    (piece) => deletePieceCutout(piece, cutoutId) ?? piece,
+  );
+}
+
+export function copyPieceCutout(
+  layoutId: string,
+  pieceId: string,
+  cutoutId: string,
+  copyId: string,
+): AppCommand {
+  return editPiece(
+    layoutId,
+    pieceId,
+    'piece.cutout.duplicate',
+    'Duplicate cutout',
+    (piece) =>
+      duplicatePieceCutout(piece, cutoutId, copyId) ?? piece,
   );
 }

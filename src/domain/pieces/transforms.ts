@@ -17,8 +17,8 @@ import {
   isBacksplashPiece,
 } from './relationships';
 import type {
-  FabricationChild,
   Piece,
+  PieceCutout,
   PiecePose,
   PieceSeam,
   PieceSeamReference,
@@ -287,15 +287,6 @@ function swapLeftRight(value: JsonValue | undefined): JsonValue {
   return value ?? null;
 }
 
-function childNumber(
-  child: FabricationChild,
-  key: string,
-  fallback = 0,
-): number {
-  const value = Number(child[key]);
-  return Number.isFinite(value) ? value : fallback;
-}
-
 function mirrorSeamReferenceH(
   reference: PieceSeamReference,
 ): PieceSeamReference {
@@ -558,12 +549,13 @@ function shiftedFabricationChildren(
     };
   });
 
-  const cutouts = piece.cutouts.map((source) => {
-    if (typeof source.fabricationSplitCutoutId !== 'string') return source;
-    const cutout = cloneJson(source);
-    cutout.cx = round3(childNumber(cutout, 'cx') + x);
-    cutout.cy = round3(childNumber(cutout, 'cy') + y);
-    return cutout;
+  const cutouts: PieceCutout[] = piece.cutouts.map((source) => {
+    if (!source.fabricationSplitCutoutId) return source;
+    return {
+      ...source,
+      cx: round3(source.cx + x),
+      cy: round3(source.cy + y),
+    };
   });
 
   return { sinks, cutouts };

@@ -8,6 +8,8 @@ import type {
   PieceSink,
   PieceSinkSide,
   PieceSinkType,
+  PieceCutout,
+  PieceCutoutKind,
 } from '../domain/pieces/types';
 import {
   DEFAULT_FAUCET_HOLE_DIAMETER,
@@ -156,6 +158,114 @@ function sinks(raw: unknown, prefix: string): PieceSink[] {
   });
 }
 
+function cutoutKind(value: unknown): PieceCutoutKind {
+  if (value === 'circle' || value === 'oval') return value;
+  return 'rectangle';
+}
+
+function normalizedRotation(value: unknown): number {
+  const n = Number(value);
+  const finite = Number.isFinite(n) ? n : 0;
+  return round3(((finite % 360) + 360) % 360);
+}
+
+function legacyNumeric(value: unknown, fallback: number): number {
+  const n = Number(value);
+  return Number.isFinite(n) ? n : fallback;
+}
+
+function cutouts(
+  raw: unknown,
+  prefix: string,
+  pieceWidth: number,
+  pieceHeight: number,
+): PieceCutout[] {
+  return children(raw, prefix).map((source) => {
+    const kind = cutoutKind(
+      source.kind === 'cooktop' ? 'rectangle' : source.kind,
+    );
+    const name = text(source.name).trim() || (
+      kind === 'circle'
+        ? 'Circular Cutout'
+        : kind === 'oval'
+          ? 'Oval Cutout'
+          : 'Rectangular Cutout'
+    );
+    const splitId =
+      text(source.fabricationSplitCutoutId).trim() || null;
+    const pw = Math.max(0.25, pieceWidth);
+    const ph = Math.max(0.25, pieceHeight);
+    const rawCx = legacyNumeric(source.cx, pw / 2);
+    const rawCy = legacyNumeric(source.cy, ph / 2);
+    const cx = splitId
+      ? round3(rawCx)
+      : round3(clamp(rawCx, 0, pw));
+    const cy = splitId
+      ? round3(rawCy)
+      : round3(clamp(rawCy, 0, ph));
+
+    if (kind === 'circle') {
+      const rawDiameter = legacyNumeric(source.diameter, 0);
+      const rawWidth = legacyNumeric(source.w, 0);
+      const diameter = round3(
+        Math.max(0.125, rawDiameter || rawWidth || 2),
+      );
+      return {
+        ...source,
+        id: text(source.id),
+        name,
+        kind,
+        cx,
+        cy,
+        w: diameter,
+        h: diameter,
+        diameter,
+        cornerR: diameter / 2,
+        rotation: 0,
+        insideFinish:
+          source.insideFinish === 'polished'
+            ? 'polished'
+            : 'unpolished',
+        fabricationSplitCutoutId: splitId,
+      };
+    }
+
+    const rawWidth = legacyNumeric(source.w, 0);
+    const rawHeight = legacyNumeric(source.h, 0);
+    const w = round3(Math.max(0.125, rawWidth || 6));
+    const h = round3(Math.max(0.125, rawHeight || 4));
+    const cornerR =
+      kind === 'oval'
+        ? 0
+        : round3(
+            clamp(
+              legacyNumeric(source.cornerR, 0),
+              0,
+              Math.min(w, h) / 2,
+            ),
+          );
+
+    return {
+      ...source,
+      id: text(source.id),
+      name,
+      kind,
+      cx,
+      cy,
+      w,
+      h,
+      diameter: null,
+      cornerR,
+      rotation: normalizedRotation(source.rotation),
+      insideFinish:
+        source.insideFinish === 'polished'
+          ? 'polished'
+          : 'unpolished',
+      fabricationSplitCutoutId: splitId,
+    };
+  });
+}
+
 const known = new Set([
   'id','name','x','y','w','h','rotation','layer','areaId','pieceGroupId','pieceGroupName',
   'pieceType','tags','attachment','assemblyLinks','slabPlacement','cornerRadii',
@@ -215,7 +325,7 @@ export function normalizePieces(raw: unknown, areaIds: readonly string[], prefix
         bottom: text(edges.bottom, 'none'), left: text(edges.left, 'none'),
       },
       sinks: sinks(source.sinks, id + '-sink'),
-      cutouts: children(source.cutouts, id + '-cutout'),
+      cutouts: cutouts(source.cutouts, id + '-cutout', w, h),
       pieceSeams: seams(source.pieceSeams, id + '-seam', w, h),
       color: text(source.color, '#ffffff'), noFill: source.noFill === true,
       fillOpacity: typeof source.fillOpacity === 'number' ? Math.max(0, Math.min(1, number(source.fillOpacity, 1))) : null,

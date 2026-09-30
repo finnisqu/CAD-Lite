@@ -43,14 +43,18 @@ export { summarizeCommand } from './types';
 
 export {
   addPiece,
+  addPieceCutout,
   addPieceSeam,
   addPieceSink,
   deletePieces,
+  copyPieceCutout,
   copyPieceSink,
   duplicatePieces,
+  editPieceCutout,
   editPieceSeam,
   editPieceSink,
   mirrorPieces,
+  removePieceCutout,
   removePieceSeam,
   removePieceSink,
   renamePiece,

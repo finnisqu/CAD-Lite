@@ -3,6 +3,8 @@ import {
   DEFAULT_SLAB_CANVAS_HEIGHT,
   DEFAULT_SLAB_CANVAS_WIDTH,
   SLAB_CONTENT_GUTTER,
+  cutoutLabelOffset,
+  normalizePieceCutout,
   pieceBoundsFromGeometryPose,
   pieceCenterFromGeometryPose,
   pieceGeometry,
@@ -40,6 +42,23 @@ export interface PieceCanvasOverride {
   id: string;
   pose?: PiecePose;
   geometry?: PieceGeometry;
+}
+
+export interface PieceCanvasCutout {
+  id: string;
+  name: string;
+  kind: 'rectangle' | 'circle' | 'oval';
+  center: Point;
+  localRotation: number;
+  width: number;
+  height: number;
+  diameter: number | null;
+  cornerRadius: number;
+  path: string | null;
+  polished: boolean;
+  split: boolean;
+  showLabel: boolean;
+  labelOffset: Point;
 }
 
 export interface PieceCanvasFaucetHole {
@@ -90,6 +109,7 @@ export interface PieceCanvasItem {
   path: string;
   appearance: PieceCanvasAppearance;
   sinks: PieceCanvasSink[];
+  cutouts: PieceCanvasCutout[];
   seams: PieceCanvasSeam[];
 }
 
@@ -109,6 +129,7 @@ export interface PieceCanvasRenderOptions {
   pieceFillOpacity: number;
   showSeams: boolean;
   showSinkCenterlines: boolean;
+  showCutoutLabels: boolean;
 }
 
 function clamp01(value: number): number {
@@ -122,6 +143,69 @@ function normalizedRotation(rotation: number): number {
 
 function finiteNumber(value: unknown): number | null {
   return typeof value === 'number' && Number.isFinite(value) ? value : null;
+}
+
+function projectCutouts(
+  piece: Piece,
+  geometry: PieceGeometry,
+  localRect: XYWHRect,
+  showLabels: boolean,
+): PieceCanvasCutout[] {
+  return piece.cutouts.map((source) => {
+    const cutout = normalizePieceCutout(
+      source,
+      { w: geometry.width, h: geometry.height },
+    );
+    const width = cutout.w;
+    const height = cutout.h;
+    const cornerRadius = Math.min(
+      Math.max(0, cutout.cornerR),
+      width / 2,
+      height / 2,
+    );
+    const rect = {
+      x: -width / 2,
+      y: -height / 2,
+      w: width,
+      h: height,
+    };
+    const minimumSize =
+      cutout.kind === 'circle'
+        ? cutout.diameter ?? cutout.w
+        : Math.min(width, height);
+
+    return {
+      id: cutout.id,
+      name: cutout.name,
+      kind: cutout.kind,
+      center: {
+        x: localRect.x + cutout.cx,
+        y: localRect.y + cutout.cy,
+      },
+      localRotation:
+        cutout.kind === 'circle' ? 0 : cutout.rotation,
+      width,
+      height,
+      diameter: cutout.diameter,
+      cornerRadius,
+      path:
+        cutout.kind === 'rectangle'
+          ? roundedRectPathCorners(rect, {
+              tl: cornerRadius,
+              tr: cornerRadius,
+              br: cornerRadius,
+              bl: cornerRadius,
+            })
+          : null,
+      polished: cutout.insideFinish === 'polished',
+      split: Boolean(cutout.fabricationSplitCutoutId),
+      showLabel: showLabels && minimumSize >= 4,
+      labelOffset: cutoutLabelOffset(
+        cutout,
+        { w: geometry.width, h: geometry.height },
+      ),
+    };
+  });
 }
 
 function projectSinks(
@@ -333,6 +417,12 @@ export function projectPieceForCanvas(
       localRect,
       options.showSinkCenterlines,
     ),
+    cutouts: projectCutouts(
+      piece,
+      geometry,
+      localRect,
+      options.showCutoutLabels,
+    ),
     seams: options.showSeams
       ? [
           ...projectPlanningSeams(piece, geometry, localRect),
@@ -389,6 +479,7 @@ export function createPieceCanvasProjection(
     pieceFillOpacity: layout.pieceFillOpacity,
     showSeams: state.preferences.showSeams,
     showSinkCenterlines: state.preferences.showSinkCenterlines,
+    showCutoutLabels: state.preferences.showCutoutLabels,
   };
   const overrideById = new Map(overrides.map((override) => [override.id, override]));
   const selectedIds = new Set(

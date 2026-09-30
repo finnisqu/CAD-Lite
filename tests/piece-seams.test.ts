@@ -417,6 +417,7 @@ describe('Piece seam canvas projection', () => {
         pieceFillOpacity: 1,
         showSeams: true,
         showSinkCenterlines: true,
+        showCutoutLabels: true,
       },
       0,
       {

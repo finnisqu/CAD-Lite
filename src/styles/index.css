@@ -404,3 +404,56 @@
   gap: 2px;
   font-size: 10px;
 }
+
+
+/* Batch 16: typed Cutout validation UI. */
+.cad-lite-architecture-harness .lc-piece-cutouts-inspector {
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border, #d1d5db);
+}
+
+.cad-lite-architecture-harness .lc-piece-cutouts-inspector__header,
+.cad-lite-architecture-harness .lc-piece-cutout-row__header,
+.cad-lite-architecture-harness .lc-piece-cutout-row__actions,
+.cad-lite-architecture-harness .lc-piece-cutout-add-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.cad-lite-architecture-harness .lc-piece-cutout-add-actions {
+  justify-content: flex-start;
+  margin-top: 6px;
+}
+
+.cad-lite-architecture-harness .lc-piece-cutout-list {
+  display: grid;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.cad-lite-architecture-harness .lc-piece-cutout-row {
+  border: 1px solid var(--border, #d1d5db);
+  border-radius: 4px;
+  padding: 7px;
+}
+
+.cad-lite-architecture-harness .lc-piece-cutout-fields {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+  margin-top: 7px;
+}
+
+.cad-lite-architecture-harness .lc-piece-cutout-fields label {
+  display: grid;
+  gap: 3px;
+  font-size: 12px;
+}
+
+.cad-lite-architecture-harness .lc-piece-cutout-perimeter,
+.cad-lite-architecture-harness .lc-piece-cutout-note {
+  margin-top: 7px;
+}

@@ -61,6 +61,38 @@ export type PieceSinkPatch = Partial<
     | 'insideFinish'
   >
 >;
+
+export type PieceCutoutKind = 'rectangle' | 'circle' | 'oval';
+export type PieceCutoutInsideFinish = 'polished' | 'unpolished';
+export type PieceCutout = JsonObject & {
+  id: string;
+  name: string;
+  kind: PieceCutoutKind;
+  cx: number;
+  cy: number;
+  w: number;
+  h: number;
+  diameter: number | null;
+  cornerR: number;
+  rotation: number;
+  insideFinish: PieceCutoutInsideFinish;
+  fabricationSplitCutoutId: string | null;
+};
+export type PieceCutoutPatch = Partial<
+  Pick<
+    PieceCutout,
+    | 'name'
+    | 'kind'
+    | 'cx'
+    | 'cy'
+    | 'w'
+    | 'h'
+    | 'diameter'
+    | 'cornerR'
+    | 'rotation'
+    | 'insideFinish'
+  >
+>;
 export type CornerRadii = { tl: number; tr: number; br: number; bl: number };
 export type PieceGeometry = {
   kind: 'rectangle';
@@ -106,7 +138,7 @@ export type Piece = {
   overhangs: { front: number; back: number; left: number; right: number };
   edgeProfiles: Record<PieceSide, string>;
   sinks: PieceSink[];
-  cutouts: FabricationChild[];
+  cutouts: PieceCutout[];
   pieceSeams: PieceSeam[];
   color: string;
   noFill: boolean;
