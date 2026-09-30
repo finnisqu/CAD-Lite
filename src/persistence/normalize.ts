@@ -1,4 +1,5 @@
 import { normalizePieces } from './pieces';
+import { normalizeSlabSurfaces } from '../domain/slabs';
 import { clamp } from '../core/numeric';
 import type { JsonObject, JsonValue } from '../domain/types';
 import { cloneJson, isJsonObject } from '../domain/types';
@@ -182,7 +183,10 @@ export function normalizeLayout(raw: unknown, index: number): Layout {
       `layout-${index + 1}-room-feature`,
     ),
     plan: toJsonValue(source.plan),
-    overlays: normalizeEntityList(source.overlays, `layout-${index + 1}-overlay`),
+    overlays: normalizeSlabSurfaces(
+      source.overlays,
+      `layout-${index + 1}-slab`,
+    ),
     extra: layoutExtra(source),
   };
 }
