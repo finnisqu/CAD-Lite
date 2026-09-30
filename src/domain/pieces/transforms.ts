@@ -327,14 +327,14 @@ function mirrorSink(
         Math.max(0, piece.w - childNumber(next, 'centerline')),
       );
     } else {
-      next.side = swapLeftRight(side) as string;
+      next.side = swapLeftRight(side);
     }
   } else if (side === 'left' || side === 'right') {
     next.centerline = round3(
       Math.max(0, piece.h - childNumber(next, 'centerline')),
     );
   } else {
-    next.side = swapFrontBack(side) as string;
+    next.side = swapFrontBack(side);
   }
 
   next.rotation = normalizeDegrees(-childNumber(next, 'rotation'));

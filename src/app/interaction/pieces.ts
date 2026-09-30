@@ -1617,7 +1617,7 @@ export class PieceInteractionController {
       return false;
     }
 
-    let direction = { x: 0, y: 0 };
+    let direction: { x: number; y: number };
     if (key === 'ArrowLeft') direction = { x: -1, y: 0 };
     else if (key === 'ArrowRight') direction = { x: 1, y: 0 };
     else if (key === 'ArrowUp') direction = { x: 0, y: -1 };
