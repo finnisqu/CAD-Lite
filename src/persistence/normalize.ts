@@ -4,6 +4,7 @@ import {
   normalizeDimensions,
   normalizeDrawingLines,
 } from '../domain/annotations';
+import { normalizeRoomFeatures } from '../domain/room-features';
 import { normalizeSlabSurfaces } from '../domain/slabs';
 import { clamp } from '../core/numeric';
 import type { JsonObject, JsonValue } from '../domain/types';
@@ -183,7 +184,7 @@ export function normalizeLayout(raw: unknown, index: number): Layout {
     dims: normalizeDimensions(source.dims, `layout-${index + 1}-dimension`),
     notes: normalizeCanvasNotes(source.notes, `layout-${index + 1}-note`),
     lines: normalizeDrawingLines(source.lines, `layout-${index + 1}-line`),
-    roomFeatures: normalizeEntityList(
+    roomFeatures: normalizeRoomFeatures(
       source.roomFeatures,
       `layout-${index + 1}-room-feature`,
     ),
