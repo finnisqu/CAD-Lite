@@ -271,12 +271,11 @@ export function updatePieceSink(
   if (Number.isFinite(patch.setback)) {
     next.setback = clamp(round3(patch.setback), 0, 999);
   }
-  if (Number.isFinite(patch.rotation)) {
-    next.rotation = clamp(
-      Math.round(patch.rotation),
-      0,
-      360,
-    );
+  if (
+    typeof patch.rotation === 'number' &&
+    Number.isFinite(patch.rotation)
+  ) {
+    next.rotation = clamp(Math.round(patch.rotation), 0, 360);
   }
   if (Array.isArray(patch.faucets)) {
     next.faucets = normalizedFaucets(patch.faucets);
