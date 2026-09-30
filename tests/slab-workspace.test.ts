@@ -11,6 +11,15 @@ import {
   slabSurfaceImageSource,
   slabUsableBounds,
 } from '../src/domain/slabs';
+import {
+  createPieceCanvasProjection,
+  hitTestSlabCanvas,
+} from '../src/browser';
+import {
+  createPieceMoveSession,
+  previewPieceMove,
+} from '../src/app/interaction/pieces';
+import type { ToolPointerInput } from '../src/app';
 import { migrateCadLiteFile } from '../src/persistence';
 import { v159ProjectFixture } from './fixtures/v159-project';
 
@@ -32,7 +41,21 @@ function slabPayload(workspace: 'design' | 'slab' = 'slab') {
         pieceFillOpacity: 1,
         areas: [{ id: 'a', name: 'A' }],
         activeAreaId: 'a',
-        pieces: [],
+        pieces: [
+          {
+            id: 'piece',
+            name: 'Nested Piece',
+            areaId: 'a',
+            x: 10,
+            y: 20,
+            w: 20,
+            h: 10,
+            rotation: 0,
+            layer: 1,
+            color: '#ffffff',
+            slabPlacement: { x: 10, y: 20, rotation: 0 },
+          },
+        ],
         dims: [],
         notes: [],
         lines: [],
@@ -57,7 +80,7 @@ function slabPayload(workspace: 'design' | 'slab' = 'slab') {
     ],
     ui: {
       workspace: workspace === 'slab' ? 'slab' : 'layout',
-      gridSnap: true,
+      gridSnap: false,
       pieceSnap: true,
       slabEdgeAllowance: 1.5,
       defaultSlabW: 126,
@@ -190,5 +213,70 @@ describe('SLAB surface commands', () => {
     expect(
       deleteSlabSurface('layout', 'existing').reduce(design),
     ).toBe(design);
+  });
+});
+
+
+function pointer(x: number, y: number): ToolPointerInput {
+  return {
+    pointerId: 1,
+    x,
+    y,
+    button: 0,
+    buttons: 1,
+    modifiers: {
+      shift: false,
+      alt: false,
+      ctrl: false,
+      meta: false,
+    },
+  };
+}
+
+describe('SLAB workspace projection and nesting', () => {
+  it('projects visible slab surfaces and hit-tests them below Pieces', () => {
+    const state = applicationStateFromLegacyPayload(slabPayload());
+    state.session.selection = { kind: 'slab', id: 'existing' };
+
+    const projection = createPieceCanvasProjection(state);
+    expect(projection.workspace).toBe('slab');
+    expect(projection.slabs).toHaveLength(1);
+    expect(projection.slabs[0]).toMatchObject({
+      id: 'existing',
+      selected: true,
+      imageSource: 'data:image/png;base64,abc',
+      usableBounds: {
+        x: 3.5,
+        y: 4.5,
+        w: 123,
+        h: 60,
+      },
+    });
+    expect(
+      hitTestSlabCanvas(projection, { x: 5, y: 5 })?.id,
+    ).toBe('existing');
+    expect(
+      hitTestSlabCanvas(projection, { x: 150, y: 5 }),
+    ).toBeNull();
+  });
+
+  it('snaps a nested Piece to the usable slab edge before grid/object fallbacks', () => {
+    const state = applicationStateFromLegacyPayload(slabPayload());
+    const session = createPieceMoveSession(
+      state,
+      ['piece'],
+      'piece',
+      null,
+      pointer(10, 20),
+    );
+    if (!session) throw new Error('Missing Piece move session');
+
+    const preview = previewPieceMove(
+      state,
+      session,
+      pointer(3.8, 20),
+    );
+    expect(preview?.pieces[0]?.pose.x).toBe(3.5);
+    expect(preview?.guideX).toBe(3.5);
   });
 });
