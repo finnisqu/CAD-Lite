@@ -71,6 +71,7 @@ describe('Batch 20 annotation canvas projection', () => {
       endCap: 'none',
       attachedNoteId: null,
       attachedEnd: null,
+      visible: true,
     });
     layout.notes.push({
       id: 'note-hit',
@@ -84,6 +85,7 @@ describe('Batch 20 annotation canvas projection', () => {
       color: '#111111',
       halo: false,
       rotation: 0,
+      visible: true,
     });
 
     const projected = createAnnotationCanvasProjection(initial);
