@@ -12,6 +12,7 @@ export * from './app';
 export * from './browser';
 export * from './core/numeric';
 export * from './domain/project';
+export * from './domain/slabs';
 export type {
   EntityId,
   JsonObject,
