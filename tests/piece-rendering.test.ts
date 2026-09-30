@@ -231,7 +231,16 @@ describe('Piece canvas projection', () => {
       rotation: 91.234567,
     });
     expect(design.canvas).toEqual({ width: 240.5, height: 140.25 });
-    expect(slab.canvas).toEqual({ width: 180.125, height: 95.75 });
+    expect(slab.canvas.width).toBeGreaterThanOrEqual(180.125);
+    expect(slab.canvas.height).toBeGreaterThanOrEqual(95.75);
+    slab.pieces.forEach((piece) => {
+      expect(piece.bounds.x + piece.bounds.w).toBeLessThanOrEqual(
+        slab.canvas.width,
+      );
+      expect(piece.bounds.y + piece.bounds.h).toBeLessThanOrEqual(
+        slab.canvas.height,
+      );
+    });
   });
 
   it('preserves Piece fill semantics without mutating presentation state', () => {

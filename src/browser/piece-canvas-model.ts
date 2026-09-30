@@ -61,6 +61,7 @@ function clamp01(value: number): number {
 }
 
 function normalizedRotation(rotation: number): number {
+  if (rotation >= 0 && rotation < 360) return rotation;
   return ((rotation % 360) + 360) % 360;
 }
 
