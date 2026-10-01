@@ -21,3 +21,5 @@ export * from './cutouts';
 export * from './fabrication';
 
 export * from './groups';
+
+export * from './splashes';
