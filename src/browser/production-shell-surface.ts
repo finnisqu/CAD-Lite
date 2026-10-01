@@ -38,12 +38,25 @@ export class ProductionShellSurface {
       shell.querySelectorAll<HTMLElement>('[data-cad-lite-menu]'),
     );
 
+    const syncProxyStates = (menu: HTMLElement): void => {
+      menu
+        .querySelectorAll<HTMLButtonElement>('[data-cad-lite-proxy]')
+        .forEach((proxy) => {
+          const selector = proxy.dataset.cadLiteProxy;
+          const target = selector
+            ? this.root.querySelector<HTMLButtonElement>(selector)
+            : null;
+          proxy.disabled = !target || target === proxy || target.disabled;
+        });
+    };
+
     const setOpen = (menu: HTMLElement, open: boolean): void => {
       const button = menu.querySelector<HTMLButtonElement>(
         '[data-cad-lite-menu-button]',
       );
       const panel = menu.querySelector<HTMLElement>('[data-cad-lite-menu-panel]');
       if (!button || !panel) return;
+      if (open) syncProxyStates(menu);
       panel.hidden = !open;
       button.setAttribute('aria-expanded', String(open));
       menu.classList.toggle('is-open', open);
@@ -78,7 +91,9 @@ export class ProductionShellSurface {
         'click',
         (event) => {
           const target = event.target;
-          if (target instanceof Element && target.closest('button')) {
+          if (!(target instanceof Element)) return;
+          const control = target.closest<HTMLButtonElement>('button');
+          if (control && !control.hasAttribute('data-cad-lite-menu-keep-open')) {
             setOpen(menu, false);
           }
         },
