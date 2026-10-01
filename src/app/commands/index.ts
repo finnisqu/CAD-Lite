@@ -30,7 +30,10 @@ export {
   MAX_CANVAS_SCALE,
   MIN_GRID_SIZE,
 } from './layout-viewport';
-export type { LayoutViewportPatch } from './layout-viewport';
+export type {
+  LayoutViewportCommandOptions,
+  LayoutViewportPatch,
+} from './layout-viewport';
 
 export {
   renameMaterial,
