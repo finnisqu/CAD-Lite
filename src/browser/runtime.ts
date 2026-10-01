@@ -32,6 +32,7 @@ import { MaterialSurface } from './material-surface';
 import { PieceCanvasSurface } from './piece-canvas-surface';
 import { RoomFeatureCanvasInteractions } from './room-feature-canvas-interactions';
 import { ScratchpadSurface } from './scratchpad-surface';
+import { ViewPreferencesSurface } from './view-preferences-surface';
 
 export interface CadLiteBrowserRuntimeOptions {
   root?: ParentNode;
@@ -57,6 +58,7 @@ export interface CadLiteBrowserRuntime {
   surface: ProjectLayoutSurface;
   materialSurface: MaterialSurface;
   scratchpadSurface: ScratchpadSurface;
+  viewPreferencesSurface: ViewPreferencesSurface;
   pieceCanvas: PieceCanvasSurface;
   canvasKeyboard: CanvasKeyboardSurface;
   floorPlanCanvas: FloorPlanCanvasSurface;
@@ -172,6 +174,11 @@ export function mountCadLiteBrowserRuntime(
     commands,
     effects,
   });
+  const viewPreferencesSurface = new ViewPreferencesSurface({
+    root,
+    store,
+    commands,
+  });
 
   const pieceCanvas = new PieceCanvasSurface({
     root,
@@ -229,6 +236,7 @@ export function mountCadLiteBrowserRuntime(
   surface.mount();
   materialSurface.mount();
   scratchpadSurface.mount();
+  viewPreferencesSurface.mount();
   pieceCanvas.mount();
   canvasKeyboard.mount();
   floorPlanCanvas.mount();
@@ -260,6 +268,7 @@ export function mountCadLiteBrowserRuntime(
     surface,
     materialSurface,
     scratchpadSurface,
+    viewPreferencesSurface,
     pieceCanvas,
     canvasKeyboard,
     floorPlanCanvas,
@@ -274,12 +283,6 @@ export function mountCadLiteBrowserRuntime(
       if (typeof window !== 'undefined') {
         window.removeEventListener('beforeunload', beforeUnload);
       }
-      pieceInteractions.cancel();
-      annotationInteractions.cancel();
-      roomFeatureInteractions.cancel();
-      roomFeatureNudge.cancel();
-      unregisterAnnotationTools.forEach((unregister) => unregister());
-      unregisterRoomFeatureTools.forEach((unregister) => unregister());
       startupRecoverySurface.unmount();
       roomFeatureCanvasInteractions.unmount();
       floorPlanNavigator.unmount();
@@ -287,11 +290,14 @@ export function mountCadLiteBrowserRuntime(
       floorPlanCanvas.unmount();
       canvasKeyboard.unmount();
       pieceCanvas.unmount();
+      viewPreferencesSurface.unmount();
       scratchpadSurface.unmount();
       materialSurface.unmount();
       surface.unmount();
       projectFileSurface.unmount();
-      effects.stop(false);
+      unregisterRoomFeatureTools();
+      unregisterAnnotationTools();
+      effects.stop();
     },
   };
 }
