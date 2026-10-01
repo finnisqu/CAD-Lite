@@ -13,7 +13,10 @@ describe('production Inspector accordion state', () => {
     expect(nextProductionInspectorSection('appearance', 'overhangs')).toBe(
       'overhangs',
     );
-    expect(nextProductionInspectorSection('overhangs', 'edgeOptions')).toBe(
+    expect(nextProductionInspectorSection('overhangs', 'splashes')).toBe(
+      'splashes',
+    );
+    expect(nextProductionInspectorSection('splashes', 'edgeOptions')).toBe(
       'edgeOptions',
     );
     expect(nextProductionInspectorSection('edgeOptions', 'sinks')).toBe('sinks');
