@@ -129,11 +129,15 @@ describe('Batch 27 Stone Materials foundation', () => {
     expect(
       normalizeSelection(store.getState(), { kind: 'materialCollection' }),
     ).toEqual({ kind: 'materialCollection' });
+  });
+
+  it('falls back from a stale material id to the first configured material', () => {
+    const { store } = setup();
     expect(
       normalizeSelection(store.getState(), {
         kind: 'material',
         id: 'missing',
       }),
-    ).toEqual({ kind: 'materialCollection' });
+    ).toEqual({ kind: 'material', id: 'mat-quartz' });
   });
 });

@@ -105,7 +105,9 @@ export class MaterialSurface {
     if (existing) return existing;
 
     const document =
-      this.root instanceof Document ? this.root : this.root.ownerDocument;
+      this.root instanceof Document
+        ? this.root
+        : (this.root as Node).ownerDocument;
     if (!document) return null;
     const aside = this.root.querySelector<HTMLElement>('aside');
     if (!aside) return null;
@@ -141,12 +143,14 @@ export class MaterialSurface {
 
   private openMaterialsSelection(): void {
     const state = this.store.getState();
-    const current =
-      state.session.selection.kind === 'material'
-        ? state.project.materials.find(
-            (item) => item.id === state.session.selection.id,
-          ) ?? null
-        : null;
+    const selection = state.session.selection;
+    const selectedMaterialId =
+      selection.kind === 'material' ? selection.id : null;
+    const current = selectedMaterialId
+      ? state.project.materials.find(
+          (item) => item.id === selectedMaterialId,
+        ) ?? null
+      : null;
     const material = current ?? state.project.materials[0] ?? null;
     this.commands.execute(
       setSelection(
@@ -195,11 +199,11 @@ export class MaterialSurface {
 
   private activeMaterial(): Material | null {
     const state = this.store.getState();
-    if (state.session.selection.kind !== 'material') return null;
+    const selection = state.session.selection;
+    if (selection.kind !== 'material') return null;
+    const materialId = selection.id;
     return (
-      state.project.materials.find(
-        (item) => item.id === state.session.selection.id,
-      ) ?? null
+      state.project.materials.find((item) => item.id === materialId) ?? null
     );
   }
 

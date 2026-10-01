@@ -37,8 +37,12 @@ export function normalizeSelection(
   }
 
   if (selection.kind === 'material') {
-    return state.project.materials.some((item) => item.id === selection.id)
-      ? selection
+    if (state.project.materials.some((item) => item.id === selection.id)) {
+      return selection;
+    }
+    const firstMaterial = state.project.materials[0];
+    return firstMaterial
+      ? { kind: 'material', id: firstMaterial.id }
       : { kind: 'materialCollection' };
   }
 
