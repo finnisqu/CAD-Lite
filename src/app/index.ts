@@ -12,6 +12,12 @@ export * from './history';
 export * from './interaction';
 export * from './selection';
 export {
+  CanvasSelectionActions,
+} from './canvas-selection-actions';
+export type {
+  CanvasEntityIdFactory,
+} from './canvas-selection-actions';
+export {
   ProjectLifecycle,
 } from './project-lifecycle';
 export type {
