@@ -33,6 +33,14 @@ export { MaterialSurface } from './material-surface';
 export type { MaterialSurfaceOptions } from './material-surface';
 export { ScratchpadSurface } from './scratchpad-surface';
 export type { ScratchpadSurfaceOptions } from './scratchpad-surface';
+export {
+  ProductionInspectorSurface,
+  nextProductionInspectorSection,
+} from './production-inspector-surface';
+export type {
+  ProductionInspectorSurfaceOptions,
+  ProductionPieceInspectorSection,
+} from './production-inspector-surface';
 export { ProductionShellSurface } from './production-shell-surface';
 export type { ProductionShellSurfaceOptions } from './production-shell-surface';
 export {
