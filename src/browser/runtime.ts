@@ -34,6 +34,7 @@ import { PieceCanvasSurface } from './piece-canvas-surface';
 import { ProductionShellSurface } from './production-shell-surface';
 import { RoomFeatureCanvasInteractions } from './room-feature-canvas-interactions';
 import { ScratchpadSurface } from './scratchpad-surface';
+import { SlabNavigatorSurface } from './slab-navigator-surface';
 import { ViewPreferencesSurface } from './view-preferences-surface';
 
 export interface CadLiteBrowserRuntimeOptions {
@@ -62,6 +63,7 @@ export interface CadLiteBrowserRuntime {
   scratchpadSurface: ScratchpadSurface;
   viewPreferencesSurface: ViewPreferencesSurface;
   productionShellSurface: ProductionShellSurface;
+  slabNavigatorSurface: SlabNavigatorSurface;
   pieceCanvas: PieceCanvasSurface;
   canvasKeyboard: CanvasKeyboardSurface;
   floorPlanCanvas: FloorPlanCanvasSurface;
@@ -188,6 +190,13 @@ export function mountCadLiteBrowserRuntime(
     selection,
     deleteSelection: () => deleteCanvasSelection(store, commands),
   });
+  const slabNavigatorSurface = new SlabNavigatorSurface({
+    root,
+    store,
+    commands,
+    effects,
+    ...(options.confirm ? { confirm: options.confirm } : {}),
+  });
 
   const pieceCanvas = new PieceCanvasSurface({
     root,
@@ -252,6 +261,7 @@ export function mountCadLiteBrowserRuntime(
   floorPlanPreparation.mount();
   floorPlanNavigator.mount();
   roomFeatureCanvasInteractions.mount();
+  slabNavigatorSurface.mount();
   productionShellSurface.mount();
   startupRecoverySurface.mount();
   effects.start();
@@ -280,6 +290,7 @@ export function mountCadLiteBrowserRuntime(
     scratchpadSurface,
     viewPreferencesSurface,
     productionShellSurface,
+    slabNavigatorSurface,
     pieceCanvas,
     canvasKeyboard,
     floorPlanCanvas,
@@ -302,6 +313,7 @@ export function mountCadLiteBrowserRuntime(
       unregisterRoomFeatureTools.forEach((unregister) => unregister());
       startupRecoverySurface.unmount();
       productionShellSurface.unmount();
+      slabNavigatorSurface.unmount();
       roomFeatureCanvasInteractions.unmount();
       floorPlanNavigator.unmount();
       floorPlanPreparation.unmount();
