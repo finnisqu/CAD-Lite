@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  booleanViewPreferenceFromControlId,
   dimensionFormatFromControl,
   dimensionPrecisionFromControl,
 } from '../src/browser/view-preferences-surface';
@@ -21,5 +22,21 @@ describe('number format preference controls', () => {
     expect(dimensionPrecisionFromControl('3')).toBeNull();
     expect(dimensionPrecisionFromControl('0')).toBeNull();
     expect(dimensionPrecisionFromControl('abc')).toBeNull();
+  });
+});
+
+describe('annotation view preference controls', () => {
+  it('maps the supported browser controls to typed preferences', () => {
+    expect(booleanViewPreferenceFromControlId('lc-show-manual-dims')).toBe(
+      'showManualDims',
+    );
+    expect(booleanViewPreferenceFromControlId('lc-show-notes')).toBe('showNotes');
+    expect(booleanViewPreferenceFromControlId('lc-show-lines')).toBe('showLines');
+  });
+
+  it('does not claim unrelated controls', () => {
+    expect(booleanViewPreferenceFromControlId('lc-show-seams')).toBeNull();
+    expect(booleanViewPreferenceFromControlId('lc-piece-snap')).toBeNull();
+    expect(booleanViewPreferenceFromControlId('unknown')).toBeNull();
   });
 });
