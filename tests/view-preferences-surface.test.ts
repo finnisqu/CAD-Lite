@@ -37,6 +37,24 @@ describe('view preference controls', () => {
     expect(booleanViewPreferenceFromControlId('lc-show-piece-fills')).toBe(
       'showPieceFills',
     );
+    expect(booleanViewPreferenceFromControlId('lc-show-room-features')).toBe(
+      'showRoomFeatures',
+    );
+    expect(booleanViewPreferenceFromControlId('lc-show-room-feature-labels')).toBe(
+      'showRoomFeatureLabels',
+    );
+    expect(booleanViewPreferenceFromControlId('lc-show-room-cabinets')).toBe(
+      'showRoomCabinets',
+    );
+    expect(booleanViewPreferenceFromControlId('lc-show-room-fillers-panels')).toBe(
+      'showRoomFillersPanels',
+    );
+    expect(booleanViewPreferenceFromControlId('lc-show-room-appliances')).toBe(
+      'showRoomAppliances',
+    );
+    expect(booleanViewPreferenceFromControlId('lc-show-room-walls')).toBe(
+      'showRoomWalls',
+    );
   });
 
   it('does not claim controls owned by other browser surfaces', () => {
