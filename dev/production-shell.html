@@ -12,12 +12,23 @@
           <span>CAD Lite</span><small>v1.6</small>
         </div>
         <nav class="cad-lite-production-shell__toolbar" aria-label="Primary tools">
-          <button id="lc-undo" type="button">Undo</button>
-          <button id="lc-redo" type="button">Redo</button>
-          <button id="lc-piece-snap" type="button">Object Snap</button>
-          <button id="lc-grid-snap" type="button">Grid Snap</button>
+          <div class="cad-lite-production-shell__toolbar-group" aria-label="File">
+            <button id="lc-new-project" type="button">New</button>
+            <button id="lc-import-project" type="button">Import</button>
+            <button id="lc-export-project" type="button">Export</button>
+            <input id="lc-project-file-input" type="file" accept=".json,.cadlite,application/json" hidden />
+          </div>
+          <div class="cad-lite-production-shell__toolbar-group" aria-label="History">
+            <button id="lc-undo" type="button">Undo</button>
+            <button id="lc-redo" type="button">Redo</button>
+          </div>
+          <div class="cad-lite-production-shell__toolbar-group" aria-label="Snapping">
+            <button id="lc-piece-snap" type="button">Object Snap</button>
+            <button id="lc-grid-snap" type="button">Grid Snap</button>
+          </div>
         </nav>
         <div class="cad-lite-production-shell__status">
+          <span id="lc-file-status" aria-live="polite"></span>
           <span id="lc-save-status" aria-live="polite"></span>
         </div>
       </header>
@@ -45,30 +56,38 @@
 
         <section class="cad-lite-production-shell__workspace" aria-label="CAD workspace">
           <div class="cad-lite-production-shell__workspace-bar">
-            <button id="lc-workspace-design" type="button">DESIGN</button>
-            <button id="lc-workspace-slab" type="button">SLAB</button>
-            <button id="lc-add-slab" type="button">+ Slab</button>
-            <button id="lc-tool-dimension" type="button">Dimension</button>
-            <button id="lc-tool-line" type="button">Line</button>
-            <button id="lc-tool-note" type="button">Note</button>
-            <button id="lc-show-grid" type="button">Grid</button>
-            <button id="lc-show-dims" type="button">Piece Dims</button>
-            <button id="lc-show-piece-fills" type="button">Fills</button>
-            <button id="lc-show-seams" type="button">Seams</button>
-            <button id="lc-show-sink-centerlines" type="button">Sink CL</button>
-            <button id="lc-show-cutout-labels" type="button">Cutouts</button>
-            <button id="lc-show-manual-dims" type="button">Manual Dims</button>
-            <button id="lc-show-notes" type="button">Notes</button>
-            <button id="lc-show-lines" type="button">Lines</button>
-            <button id="lc-show-slab-material" type="button">Slab Material</button>
-            <button id="lc-show-room-features" type="button">Room Features</button>
-            <button id="lc-show-room-feature-labels" type="button">Room Labels</button>
-            <button id="lc-show-room-cabinets" type="button">Cabinets</button>
-            <button id="lc-show-room-fillers-panels" type="button">Panels</button>
-            <button id="lc-show-room-appliances" type="button">Appliances</button>
-            <button id="lc-show-room-walls" type="button">Walls</button>
-            <label><span>Format</span><select id="lc-dim-format"><option value="fraction">Fraction</option><option value="decimal">Decimal</option></select></label>
-            <label><span>Precision</span><select id="lc-dim-precision"><option value="1">1</option><option value="2">1/2</option><option value="4">1/4</option><option value="8">1/8</option><option value="16">1/16</option></select></label>
+            <div class="cad-lite-production-shell__toolbar-group" aria-label="Workspace">
+              <button id="lc-workspace-design" type="button">DESIGN</button>
+              <button id="lc-workspace-slab" type="button">SLAB</button>
+            </div>
+            <div class="cad-lite-production-shell__toolbar-group" aria-label="Insert">
+              <button id="lc-add-slab" type="button">+ Slab</button>
+              <button id="lc-tool-dimension" type="button">Dimension</button>
+              <button id="lc-tool-line" type="button">Line</button>
+              <button id="lc-tool-note" type="button">Note</button>
+            </div>
+            <div class="cad-lite-production-shell__toolbar-group" aria-label="View">
+              <button id="lc-show-grid" type="button">Grid</button>
+              <button id="lc-show-dims" type="button">Piece Dims</button>
+              <button id="lc-show-piece-fills" type="button">Fills</button>
+              <button id="lc-show-seams" type="button">Seams</button>
+              <button id="lc-show-sink-centerlines" type="button">Sink CL</button>
+              <button id="lc-show-cutout-labels" type="button">Cutouts</button>
+              <button id="lc-show-manual-dims" type="button">Manual Dims</button>
+              <button id="lc-show-notes" type="button">Notes</button>
+              <button id="lc-show-lines" type="button">Lines</button>
+              <button id="lc-show-slab-material" type="button">Slab Material</button>
+              <button id="lc-show-room-features" type="button">Room Features</button>
+              <button id="lc-show-room-feature-labels" type="button">Room Labels</button>
+              <button id="lc-show-room-cabinets" type="button">Cabinets</button>
+              <button id="lc-show-room-fillers-panels" type="button">Panels</button>
+              <button id="lc-show-room-appliances" type="button">Appliances</button>
+              <button id="lc-show-room-walls" type="button">Walls</button>
+            </div>
+            <div class="cad-lite-production-shell__toolbar-group" aria-label="Number format">
+              <label><span>Format</span><select id="lc-dim-format"><option value="fraction">Fraction</option><option value="decimal">Decimal</option></select></label>
+              <label><span>Precision</span><select id="lc-dim-precision"><option value="1">1</option><option value="2">1/2</option><option value="4">1/4</option><option value="8">1/8</option><option value="16">1/16</option></select></label>
+            </div>
             <span id="lc-canvas-meta" class="cad-lite-production-shell__workspace-meta" aria-live="polite"></span>
           </div>
           <div class="cad-lite-production-shell__canvas-wrap"><svg id="lc-svg" role="img" aria-label="CAD Lite drawing canvas"></svg></div>
