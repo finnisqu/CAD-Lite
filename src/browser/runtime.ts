@@ -21,6 +21,7 @@ import {
   type BrowserConfirm,
   type BrowserEntityIdFactory,
 } from './project-layout-surface';
+import { CanvasKeyboardSurface } from './canvas-keyboard-surface';
 import { ProjectFileSurface } from './project-file-surface';
 import { StartupRecoverySurface } from './startup-recovery-surface';
 import { FloorPlanCanvasSurface } from './floor-plan-canvas-surface';
@@ -56,6 +57,7 @@ export interface CadLiteBrowserRuntime {
   materialSurface: MaterialSurface;
   scratchpadSurface: ScratchpadSurface;
   pieceCanvas: PieceCanvasSurface;
+  canvasKeyboard: CanvasKeyboardSurface;
   floorPlanCanvas: FloorPlanCanvasSurface;
   floorPlanPreparation: FloorPlanPreparationSurface;
   floorPlanNavigator: FloorPlanNavigatorSurface;
@@ -174,7 +176,13 @@ export function mountCadLiteBrowserRuntime(
     effects,
     interaction: pieceInteractions,
     annotationInteraction: annotationInteractions,
-    selectionActions,
+    tools,
+  });
+  const canvasKeyboard = new CanvasKeyboardSurface({
+    root,
+    store,
+    commands,
+    actions: selectionActions,
     tools,
   });
   const floorPlanCanvas = new FloorPlanCanvasSurface({
@@ -215,6 +223,7 @@ export function mountCadLiteBrowserRuntime(
   materialSurface.mount();
   scratchpadSurface.mount();
   pieceCanvas.mount();
+  canvasKeyboard.mount();
   floorPlanCanvas.mount();
   floorPlanPreparation.mount();
   floorPlanNavigator.mount();
@@ -245,6 +254,7 @@ export function mountCadLiteBrowserRuntime(
     materialSurface,
     scratchpadSurface,
     pieceCanvas,
+    canvasKeyboard,
     floorPlanCanvas,
     floorPlanPreparation,
     floorPlanNavigator,
@@ -266,6 +276,7 @@ export function mountCadLiteBrowserRuntime(
       floorPlanNavigator.unmount();
       floorPlanPreparation.unmount();
       floorPlanCanvas.unmount();
+      canvasKeyboard.unmount();
       pieceCanvas.unmount();
       scratchpadSurface.unmount();
       materialSurface.unmount();
