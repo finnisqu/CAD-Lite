@@ -17,6 +17,7 @@ export {
 export type {
   CanvasEntityIdFactory,
 } from './canvas-selection-actions';
+export { deleteCanvasSelection } from './delete-selection';
 export {
   ProjectLifecycle,
 } from './project-lifecycle';
