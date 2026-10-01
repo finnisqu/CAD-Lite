@@ -1,5 +1,8 @@
 export type ProductionPieceInspectorSection =
   | 'pieceInfo'
+  | 'appearance'
+  | 'overhangs'
+  | 'edgeOptions'
   | 'sinks'
   | 'cutouts'
   | 'seams'
@@ -16,6 +19,21 @@ interface PieceSectionConfig {
 }
 
 const PIECE_SECTION_CONFIGS: readonly PieceSectionConfig[] = [
+  {
+    key: 'appearance',
+    sectionSelector: '.lc-production-piece-appearance',
+    headerSelector: ':scope > .lc-production-piece-properties__header',
+  },
+  {
+    key: 'overhangs',
+    sectionSelector: '.lc-production-piece-overhangs',
+    headerSelector: ':scope > .lc-production-piece-properties__header',
+  },
+  {
+    key: 'edgeOptions',
+    sectionSelector: '.lc-production-piece-edge-options',
+    headerSelector: ':scope > .lc-production-piece-properties__header',
+  },
   {
     key: 'sinks',
     sectionSelector: '.lc-piece-sinks-inspector',
@@ -71,9 +89,9 @@ function directChildrenAfter(
  * Adds production-only Inspector accordion presentation around the existing
  * typed Inspector DOM. It deliberately does not own CAD data or commands.
  *
- * v1.5.99 used an exclusive Piece Inspector accordion. The typed v1.6
- * Inspector currently exposes Piece Info, Sinks, Cutouts, and Seams; those
- * real sections are restored here without inventing empty legacy sections.
+ * v1.5.99 used an exclusive Piece Inspector accordion. Typed v1.6 sections
+ * are restored here only when real controls exist behind them; no empty legacy
+ * sections are created for capabilities that have not been migrated yet.
  * Other typed Inspector contexts receive a simple collapsible heading.
  */
 export class ProductionInspectorSurface {
@@ -223,6 +241,9 @@ export class ProductionInspectorSurface {
       if (!heading) return;
 
       const stopSelector = [
+        '.lc-production-piece-appearance',
+        '.lc-production-piece-overhangs',
+        '.lc-production-piece-edge-options',
         '.lc-piece-sinks-inspector',
         '.lc-piece-cutouts-inspector',
         '.lc-piece-seams-inspector',
