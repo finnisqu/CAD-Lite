@@ -10,17 +10,49 @@ export interface ProductionShellSurfaceOptions {
   deleteSelection: () => boolean;
 }
 
+const NAV_SECTION_STORAGE_KEY = 'cadlite:v1.6-production-shell:nav-sections';
+
 function ownerDocument(root: ParentNode): Document | null {
   if (typeof Document !== 'undefined' && root instanceof Document) return root;
   return (root as Node).ownerDocument ?? null;
+}
+
+function loadCollapsedSections(document: Document | null): Set<string> {
+  try {
+    const raw = document?.defaultView?.localStorage.getItem(NAV_SECTION_STORAGE_KEY);
+    if (!raw) return new Set();
+    const parsed = JSON.parse(raw);
+    return new Set(
+      Array.isArray(parsed)
+        ? parsed.filter((value): value is string => typeof value === 'string')
+        : [],
+    );
+  } catch {
+    return new Set();
+  }
+}
+
+function saveCollapsedSections(
+  document: Document | null,
+  collapsed: ReadonlySet<string>,
+): void {
+  try {
+    document?.defaultView?.localStorage.setItem(
+      NAV_SECTION_STORAGE_KEY,
+      JSON.stringify([...collapsed]),
+    );
+  } catch {
+    // Shell collapse state is a convenience preference; storage failure should
+    // never block CAD interaction.
+  }
 }
 
 /**
  * Owns production-shell-only chrome behavior.
  *
  * CAD mutations remain owned by typed controllers/actions. This surface only
- * coordinates toolbar menus, proxy controls, and explicit delegation into
- * those existing command paths.
+ * coordinates toolbar menus, Navigator section chrome, proxy controls, and
+ * explicit delegation into those existing command paths.
  */
 export class ProductionShellSurface {
   private readonly root: ParentNode;
@@ -156,6 +188,46 @@ export class ProductionShellSurface {
     bindEdit('#lc-edit-delete', () => this.deleteSelection());
     bindEdit('#lc-edit-select-all', () => this.actions.selectAllPieces());
     bindEdit('#lc-edit-deselect', () => this.selection.clear());
+
+    const collapsedSections = loadCollapsedSections(document);
+    const navSections = Array.from(
+      shell.querySelectorAll<HTMLElement>('[data-cad-lite-nav-section]'),
+    );
+    const setSectionCollapsed = (
+      section: HTMLElement,
+      collapsed: boolean,
+    ): void => {
+      const toggle = section.querySelector<HTMLButtonElement>(
+        '[data-cad-lite-section-toggle]',
+      );
+      const body = section.querySelector<HTMLElement>(
+        '[data-cad-lite-section-body]',
+      );
+      if (!toggle || !body) return;
+      body.hidden = collapsed;
+      toggle.setAttribute('aria-expanded', String(!collapsed));
+      section.classList.toggle('is-collapsed', collapsed);
+    };
+
+    navSections.forEach((section) => {
+      const key = section.dataset.cadLiteNavSection;
+      const toggle = section.querySelector<HTMLButtonElement>(
+        '[data-cad-lite-section-toggle]',
+      );
+      if (!key || !toggle) return;
+      setSectionCollapsed(section, collapsedSections.has(key));
+      toggle.addEventListener(
+        'click',
+        () => {
+          const collapsed = !section.classList.contains('is-collapsed');
+          if (collapsed) collapsedSections.add(key);
+          else collapsedSections.delete(key);
+          setSectionCollapsed(section, collapsed);
+          saveCollapsedSections(document, collapsedSections);
+        },
+        { signal },
+      );
+    });
 
     document?.addEventListener(
       'pointerdown',
