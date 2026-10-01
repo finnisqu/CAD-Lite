@@ -110,21 +110,47 @@
       <div class="cad-lite-production-shell__body">
         <aside class="cad-lite-production-shell__navigator" aria-label="Navigator">
           <h1 class="cad-lite-production-shell__panel-title">Navigator</h1>
-          <section class="cad-lite-production-shell__section">
-            <div class="cad-lite-production-shell__section-head"><h2>Project</h2></div>
-            <label><span>Name</span><input id="lc-project" type="text" /></label>
-            <label><span>Date</span><input id="lc-date" type="date" /></label>
-            <label><span>Notes</span><textarea id="lc-notes" rows="3"></textarea></label>
+
+          <section class="cad-lite-production-shell__section cad-lite-production-shell__nav-section" data-cad-lite-nav-section="project">
+            <div class="cad-lite-production-shell__section-head">
+              <button class="cad-lite-production-shell__section-toggle" data-cad-lite-section-toggle type="button" aria-expanded="true"><span class="cad-lite-production-shell__section-chevron" aria-hidden="true">▾</span><span class="cad-lite-production-shell__section-title">Project</span></button>
+            </div>
+            <div class="cad-lite-production-shell__section-body" data-cad-lite-section-body>
+              <label><span>Name</span><input id="lc-project" type="text" /></label>
+              <label><span>Date</span><input id="lc-date" type="date" /></label>
+              <label><span>Notes</span><textarea id="lc-notes" rows="3"></textarea></label>
+            </div>
           </section>
-          <section class="cad-lite-production-shell__section">
-            <div class="cad-lite-production-shell__section-head"><h2>Layouts</h2><button id="lc-add-layout" type="button">+ Layout</button></div>
-            <div id="lc-layouts"></div>
+
+          <section class="cad-lite-production-shell__section cad-lite-production-shell__nav-section" data-cad-lite-nav-section="layouts">
+            <div class="cad-lite-production-shell__section-head">
+              <button class="cad-lite-production-shell__section-toggle" data-cad-lite-section-toggle type="button" aria-expanded="true"><span class="cad-lite-production-shell__section-chevron" aria-hidden="true">▾</span><span class="cad-lite-production-shell__section-title">Layouts</span></button>
+              <button id="lc-add-layout" type="button">+ Layout</button>
+            </div>
+            <div class="cad-lite-production-shell__section-body" data-cad-lite-section-body><div id="lc-layouts"></div></div>
           </section>
-          <section class="cad-lite-production-shell__section">
-            <div class="cad-lite-production-shell__section-head"><h2>Areas / Pieces</h2><button id="lc-add-area" class="lc-add-area-btn" type="button">+ Area</button></div>
-            <div id="lc-list"></div>
-            <button id="lc-add" type="button">+ Add Piece</button>
-            <div id="lc-pieces"></div>
+
+          <section id="lc-selections-card" class="cad-lite-production-shell__section cad-lite-production-shell__nav-section" data-cad-lite-nav-section="selections">
+            <div class="cad-lite-production-shell__section-head">
+              <button class="cad-lite-production-shell__section-toggle" data-cad-lite-section-toggle type="button" aria-expanded="true"><span class="cad-lite-production-shell__section-chevron" aria-hidden="true">▾</span><span class="cad-lite-production-shell__section-title">Selections</span></button>
+            </div>
+            <div class="cad-lite-production-shell__section-body" data-cad-lite-section-body><div data-cad-materials-nav></div></div>
+          </section>
+
+          <section class="cad-lite-production-shell__section cad-lite-production-shell__nav-section" data-cad-lite-nav-section="areas">
+            <div class="cad-lite-production-shell__section-head">
+              <button class="cad-lite-production-shell__section-toggle" data-cad-lite-section-toggle type="button" aria-expanded="true"><span class="cad-lite-production-shell__section-chevron" aria-hidden="true">▾</span><span class="cad-lite-production-shell__section-title">Areas</span></button>
+              <button id="lc-add-area" class="lc-add-area-btn" type="button">+ Area</button>
+            </div>
+            <div class="cad-lite-production-shell__section-body" data-cad-lite-section-body><div id="lc-list"></div></div>
+          </section>
+
+          <section class="cad-lite-production-shell__section cad-lite-production-shell__nav-section" data-cad-lite-nav-section="pieces">
+            <div class="cad-lite-production-shell__section-head">
+              <button class="cad-lite-production-shell__section-toggle" data-cad-lite-section-toggle type="button" aria-expanded="true"><span class="cad-lite-production-shell__section-chevron" aria-hidden="true">▾</span><span class="cad-lite-production-shell__section-title">Pieces</span></button>
+              <button id="lc-add" type="button">+ Piece</button>
+            </div>
+            <div class="cad-lite-production-shell__section-body" data-cad-lite-section-body><div id="lc-pieces"></div></div>
           </section>
         </aside>
 
