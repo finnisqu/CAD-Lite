@@ -41,6 +41,14 @@ export type {
   ProductionInspectorSurfaceOptions,
   ProductionPieceInspectorSection,
 } from './production-inspector-surface';
+export {
+  ProductionPiecePropertiesSurface,
+  createProductionPiecePropertiesProjection,
+} from './production-piece-properties-surface';
+export type {
+  ProductionPiecePropertiesProjection,
+  ProductionPiecePropertiesSurfaceOptions,
+} from './production-piece-properties-surface';
 export { ProductionShellSurface } from './production-shell-surface';
 export type { ProductionShellSurfaceOptions } from './production-shell-surface';
 export {
