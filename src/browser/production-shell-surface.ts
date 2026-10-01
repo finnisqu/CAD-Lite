@@ -3,7 +3,7 @@ export interface ProductionShellSurfaceOptions {
 }
 
 function ownerDocument(root: ParentNode): Document | null {
-  if (root instanceof Document) return root;
+  if (typeof Document !== 'undefined' && root instanceof Document) return root;
   return (root as Node).ownerDocument ?? null;
 }
 
@@ -18,7 +18,6 @@ function ownerDocument(root: ParentNode): Document | null {
 export class ProductionShellSurface {
   private readonly root: ParentNode;
   private abort: AbortController | null = null;
-  private shell: HTMLElement | null = null;
 
   constructor(options: ProductionShellSurfaceOptions) {
     this.root = options.root;
@@ -32,7 +31,6 @@ export class ProductionShellSurface {
     );
     if (!shell) return;
 
-    this.shell = shell;
     this.abort = new AbortController();
     const signal = this.abort.signal;
     const document = ownerDocument(this.root);
@@ -79,8 +77,10 @@ export class ProductionShellSurface {
       panel.addEventListener(
         'click',
         (event) => {
-          const target = event.target as Element | null;
-          if (target?.closest('button')) setOpen(menu, false);
+          const target = event.target;
+          if (target instanceof Element && target.closest('button')) {
+            setOpen(menu, false);
+          }
         },
         { signal },
       );
@@ -123,6 +123,5 @@ export class ProductionShellSurface {
   unmount(): void {
     this.abort?.abort();
     this.abort = null;
-    this.shell = null;
   }
 }
