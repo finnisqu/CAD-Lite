@@ -190,6 +190,7 @@ export function mountCadLiteBrowserRuntime(
     history: effects.history,
     roomFeatureNudge,
     tools,
+    createPieceId: () => createId('piece'),
   });
   const floorPlanCanvas = new FloorPlanCanvasSurface({
     root,
