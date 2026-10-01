@@ -1,0 +1,79 @@
+html.cad-lite-page-lock,
+body.cad-lite-page-lock {
+  overflow: hidden !important;
+  overscroll-behavior: none;
+}
+
+.cad-lite-production-shell__tool-divider {
+  align-self: stretch;
+  width: 1px;
+  min-height: 24px;
+  margin: 2px 1px;
+  background: var(--lc-border);
+}
+
+.cad-lite-production-shell__theme-row {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 5px;
+  padding: 4px 2px 2px;
+}
+
+.cad-lite-production-shell__theme-row > button {
+  min-width: 0;
+  min-height: 28px;
+  padding: 4px 5px;
+  font-size: 10px;
+}
+
+.cad-lite-production-shell.is-theater {
+  position: fixed !important;
+  top: var(--site-header-h, 0px) !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  left: 0 !important;
+  z-index: 2147483000 !important;
+  width: 100vw !important;
+  max-width: none !important;
+  min-height: 0 !important;
+  height: auto !important;
+  overflow: hidden !important;
+}
+
+.cad-lite-production-shell.is-theater .cad-lite-production-shell__body,
+.cad-lite-production-shell:fullscreen .cad-lite-production-shell__body {
+  min-height: 0;
+}
+
+.cad-lite-production-shell:fullscreen {
+  width: 100vw;
+  height: 100vh;
+  max-width: none;
+  background: var(--lc-shell-bg);
+}
+
+.cad-lite-production-shell #lc-svg .lc-canvas-background {
+  fill: var(--lc-canvas);
+}
+
+@media (min-width: 981px) {
+  /* v1.5.99 Theater keeps the three-column CAD workspace visible. */
+  .cad-lite-production-shell.is-theater .cad-lite-production-shell__navigator,
+  .cad-lite-production-shell.is-theater .cad-lite-production-shell__inspector {
+    display: block;
+  }
+
+  .cad-lite-production-shell.is-theater .cad-lite-production-shell__body {
+    grid-template-columns: minmax(240px, 285px) minmax(0, 1fr) minmax(250px, 310px);
+  }
+}
+
+@media (min-width: 761px) and (max-width: 980px) {
+  .cad-lite-production-shell.is-theater .cad-lite-production-shell__navigator {
+    display: block;
+  }
+
+  .cad-lite-production-shell.is-theater .cad-lite-production-shell__body {
+    grid-template-columns: minmax(210px, 250px) minmax(0, 1fr);
+  }
+}
