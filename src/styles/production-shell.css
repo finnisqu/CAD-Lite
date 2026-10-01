@@ -36,7 +36,8 @@
 .cad-lite-production-shell__toolbar,
 .cad-lite-production-shell__status,
 .cad-lite-production-shell__workspace-bar,
-.cad-lite-production-shell__section-head {
+.cad-lite-production-shell__section-head,
+.cad-lite-production-shell__toolbar-group {
   display: flex;
   align-items: center;
   gap: 6px;
@@ -45,7 +46,13 @@
 .cad-lite-production-shell__brand { min-width: 0; font-weight: 700; }
 .cad-lite-production-shell__brand small { color: var(--lc-muted); font-weight: 500; }
 .cad-lite-production-shell__toolbar { justify-content: center; }
+.cad-lite-production-shell__toolbar-group + .cad-lite-production-shell__toolbar-group {
+  margin-left: 2px;
+  padding-left: 8px;
+  border-left: 1px solid var(--lc-border);
+}
 .cad-lite-production-shell__status { justify-content: flex-end; color: var(--lc-muted); font-size: 11px; }
+.cad-lite-production-shell__status [data-state="error"] { color: #b42318; }
 
 .cad-lite-production-shell button,
 .cad-lite-production-shell input,
