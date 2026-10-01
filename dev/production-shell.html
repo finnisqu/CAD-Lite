@@ -17,8 +17,15 @@
             <button id="lc-undo" class="cad-lite-production-shell__icon-button" type="button" title="Undo" aria-label="Undo">↶</button>
             <button id="lc-redo" class="cad-lite-production-shell__icon-button" type="button" title="Redo" aria-label="Redo">↷</button>
             <button class="cad-lite-production-shell__icon-button" data-cad-lite-proxy="#lc-add" type="button" title="Add Piece" aria-label="Add Piece">＋</button>
+            <span class="cad-lite-production-shell__tool-divider" aria-hidden="true"></span>
+            <button id="lc-zoom-out" class="cad-lite-production-shell__icon-button" type="button" title="Zoom Out" aria-label="Zoom Out">−</button>
+            <button id="lc-zoom-in" class="cad-lite-production-shell__icon-button" type="button" title="Zoom In" aria-label="Zoom In">＋</button>
+            <span class="cad-lite-production-shell__tool-divider" aria-hidden="true"></span>
             <button id="lc-piece-snap" class="cad-lite-production-shell__compact-button" type="button">Piece Snap</button>
             <button id="lc-grid-snap" class="cad-lite-production-shell__compact-button" type="button">Grid Snap</button>
+            <span class="cad-lite-production-shell__tool-divider" aria-hidden="true"></span>
+            <button id="lc-theater-mode" class="cad-lite-production-shell__icon-button" type="button" title="Theater Mode" aria-label="Theater Mode" aria-pressed="false">▣</button>
+            <button id="lc-fullscreen-mode" class="cad-lite-production-shell__icon-button" type="button" title="Fullscreen" aria-label="Fullscreen" aria-pressed="false">⛶</button>
           </div>
 
           <div class="cad-lite-production-shell__menus" aria-label="Application menus">
@@ -42,6 +49,10 @@
               <button class="cad-lite-production-shell__menu-trigger" data-cad-lite-menu-button type="button" aria-haspopup="menu" aria-expanded="false">VIEW</button>
               <div class="cad-lite-production-shell__menu-panel cad-lite-production-shell__view-menu" data-cad-lite-menu-panel role="menu" hidden>
                 <div class="cad-lite-production-shell__menu-heading">Canvas</div>
+                <label class="cad-lite-production-shell__menu-field"><span>Width</span><input id="lc-view-canvas-width" type="number" min="12" step="1" /></label>
+                <label class="cad-lite-production-shell__menu-field"><span>Height</span><input id="lc-view-canvas-height" type="number" min="12" step="1" /></label>
+                <label class="cad-lite-production-shell__menu-field"><span>Grid Size</span><input id="lc-view-canvas-grid" type="number" min="0.25" step="0.25" /></label>
+                <label class="cad-lite-production-shell__menu-field"><span>Zoom</span><input id="lc-view-canvas-zoom" type="number" min="1" max="24" step="0.5" /></label>
                 <button id="lc-show-grid" data-cad-lite-menu-keep-open type="button" role="menuitem">Grid</button>
                 <div class="cad-lite-production-shell__menu-heading">Pieces</div>
                 <button id="lc-show-piece-fills" data-cad-lite-menu-keep-open type="button" role="menuitem">Piece Fill</button>
@@ -64,6 +75,12 @@
                 <div class="cad-lite-production-shell__menu-heading">Number Format</div>
                 <label class="cad-lite-production-shell__menu-field"><span>Format</span><select id="lc-dim-format"><option value="fraction">Fraction</option><option value="decimal">Decimal</option></select></label>
                 <label class="cad-lite-production-shell__menu-field"><span>Precision</span><select id="lc-dim-precision"><option value="1">1</option><option value="2">1/2</option><option value="4">1/4</option><option value="8">1/8</option><option value="16">1/16</option></select></label>
+                <div class="cad-lite-production-shell__menu-heading">Appearance</div>
+                <div class="cad-lite-production-shell__theme-row" role="group" aria-label="Appearance">
+                  <button data-cad-lite-theme="light" data-cad-lite-menu-keep-open type="button" aria-pressed="false">Light</button>
+                  <button data-cad-lite-theme="dark" data-cad-lite-menu-keep-open type="button" aria-pressed="false">Dark</button>
+                  <button data-cad-lite-theme="system" data-cad-lite-menu-keep-open type="button" aria-pressed="false">System</button>
+                </div>
               </div>
             </div>
 
