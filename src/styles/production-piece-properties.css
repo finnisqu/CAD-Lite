@@ -1,0 +1,146 @@
+.cad-lite-production-shell #lc-inspector .lc-production-piece-properties {
+  margin: 0 -12px;
+  border-top: 1px solid var(--lc-border);
+  background: var(--lc-panel);
+}
+
+.cad-lite-production-shell #lc-inspector .lc-production-piece-properties__header {
+  display: flex;
+  min-height: 34px;
+  align-items: center;
+  justify-content: space-between;
+  padding: 7px 12px;
+  color: var(--lc-text);
+  background: var(--lc-toolbar);
+  font-size: 11px;
+}
+
+.cad-lite-production-shell #lc-inspector .lc-production-piece-properties__body {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  padding: 10px 12px 12px;
+}
+
+.cad-lite-production-shell #lc-inspector .lc-production-piece-properties__field {
+  display: grid;
+  min-width: 0;
+  gap: 4px;
+  margin: 0;
+}
+
+.cad-lite-production-shell #lc-inspector .lc-production-piece-properties__check {
+  display: inline-flex;
+  grid-column: 1 / -1;
+  align-items: center;
+  gap: 6px;
+  min-height: 30px;
+  margin: 0;
+  padding: 5px 7px;
+  border: 1px solid var(--lc-border);
+  border-radius: 5px;
+  background: var(--lc-toolbar);
+  color: var(--lc-text);
+}
+
+.cad-lite-production-shell #lc-inspector .lc-production-piece-properties__check input {
+  width: auto;
+  min-height: 0;
+  margin: 0;
+}
+
+.cad-lite-production-shell #lc-inspector .lc-production-piece-appearance__body > :first-child input[type="color"] {
+  width: 100%;
+  min-height: 30px;
+  padding: 3px;
+}
+
+.cad-lite-production-shell #lc-inspector .lc-production-piece-overhangs__grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.cad-lite-production-shell #lc-inspector .lc-production-piece-edge-options .lc-production-piece-properties__body {
+  display: block;
+}
+
+.cad-lite-production-shell #lc-inspector .lc-production-piece-edge-profiles {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 92px minmax(0, 1fr);
+  grid-template-rows: auto 72px auto;
+  gap: 6px;
+  align-items: center;
+}
+
+.cad-lite-production-shell #lc-inspector .lc-production-piece-edge-profile {
+  display: grid;
+  gap: 3px;
+  margin: 0;
+}
+
+.cad-lite-production-shell #lc-inspector .lc-production-piece-edge-profile--top {
+  grid-column: 2;
+  grid-row: 1;
+}
+
+.cad-lite-production-shell #lc-inspector .lc-production-piece-edge-profile--right {
+  grid-column: 3;
+  grid-row: 2;
+}
+
+.cad-lite-production-shell #lc-inspector .lc-production-piece-edge-profile--bottom {
+  grid-column: 2;
+  grid-row: 3;
+}
+
+.cad-lite-production-shell #lc-inspector .lc-production-piece-edge-profile--left {
+  grid-column: 1;
+  grid-row: 2;
+}
+
+.cad-lite-production-shell #lc-inspector .lc-production-piece-edge-diagram {
+  display: grid;
+  grid-column: 2;
+  grid-row: 2;
+  place-items: center;
+  min-width: 0;
+  min-height: 58px;
+  padding: 5px;
+  border: 2px solid var(--lc-selected-border);
+  border-radius: 5px;
+  background: var(--lc-panel);
+  color: var(--lc-muted);
+  font-size: 9px;
+  text-align: center;
+}
+
+.cad-lite-production-shell #lc-inspector .lc-production-piece-edge-diagram span {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cad-lite-production-shell #lc-inspector .lc-production-piece-corners {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid var(--lc-border);
+}
+
+@media (max-width: 1180px) {
+  .cad-lite-production-shell #lc-inspector .lc-production-piece-properties__body,
+  .cad-lite-production-shell #lc-inspector .lc-production-piece-overhangs__grid,
+  .cad-lite-production-shell #lc-inspector .lc-production-piece-corners {
+    grid-template-columns: 1fr;
+  }
+
+  .cad-lite-production-shell #lc-inspector .lc-production-piece-properties__check {
+    grid-column: 1;
+  }
+
+  .cad-lite-production-shell #lc-inspector .lc-production-piece-edge-profiles {
+    grid-template-columns: minmax(0, 1fr) 80px minmax(0, 1fr);
+  }
+}
