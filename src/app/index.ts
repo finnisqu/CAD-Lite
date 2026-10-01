@@ -11,6 +11,13 @@ export * from './effects';
 export * from './history';
 export * from './interaction';
 export * from './selection';
+export {
+  ProjectLifecycle,
+} from './project-lifecycle';
+export type {
+  ProjectLifecycleOptions,
+  ProjectReplacementResult,
+} from './project-lifecycle';
 
 export {
   emptySelection,
