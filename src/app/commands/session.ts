@@ -1,3 +1,4 @@
+import { loadWorkspaceView, saveWorkspaceView } from '../../persistence';
 import { resetActiveInteraction } from '../interaction/state';
 import type { InteractionState } from '../interaction/types';
 import type { Selection } from '../state';
@@ -111,6 +112,11 @@ export function setWorkspace(workspace: 'design' | 'slab'): AppCommand {
         state.session.selection.kind === 'pieces'
           ? state.session.selection
           : { kind: 'none' as const };
+      const savedCurrent = saveWorkspaceView(
+        state.preferences,
+        state.session.workspace,
+      );
+      const preferences = loadWorkspaceView(savedCurrent, workspace);
 
       return {
         ...state,
@@ -121,6 +127,7 @@ export function setWorkspace(workspace: 'design' | 'slab'): AppCommand {
           interaction: resetActiveInteraction(state.session.interaction),
           transient: {},
         },
+        preferences,
       };
     },
   };
