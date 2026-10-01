@@ -11,6 +11,7 @@ import {
   type DrawingLine,
   type DrawingLinePatch,
 } from '../../domain/annotations';
+import { normalizeRadiusReference } from '../../domain/annotations/radius';
 import type {
   ReadonlyApplicationState,
   Selection,
@@ -307,8 +308,20 @@ export function updateCanvasNote(
       const index = target.layout.notes.findIndex((item) => item.id === id);
       const current = target.layout.notes[index];
       if (index < 0 || !current) return state;
+      const radiusRef = normalizeRadiusReference(current.radiusRef);
+      const editedRadiusText =
+        radiusRef &&
+        patch.text !== undefined &&
+        patch.text !== current.text;
       const next = normalizeCanvasNote(
-        { ...current, ...patch, id: current.id },
+        {
+          ...current,
+          ...patch,
+          id: current.id,
+          ...(editedRadiusText
+            ? { radiusRef: { ...radiusRef, autoText: false } }
+            : {}),
+        },
         index,
         `${layoutId}-note`,
       );
