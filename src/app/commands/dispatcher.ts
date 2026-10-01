@@ -1,3 +1,4 @@
+import { synchronizeCommandInvariants } from '../command-invariants';
 import type { ReadonlyApplicationState } from '../state';
 import type {
   AppStore,
@@ -36,9 +37,10 @@ export class CommandDispatcher {
 
   execute(command: AppCommand): StoreChangeEvent | null {
     const previous = this.store.getState();
-    const next = command.reduce(previous);
+    const reduced = command.reduce(previous);
 
-    if (!stateChanged(previous, next)) return null;
+    if (!stateChanged(previous, reduced)) return null;
+    const next = synchronizeCommandInvariants(reduced);
 
     return this.store.commit(next, {
       kind: 'command',
@@ -59,9 +61,9 @@ export class CommandDispatcher {
     const applied: AppCommand[] = [];
 
     commands.forEach((command) => {
-      const next = command.reduce(working);
-      if (!stateChanged(working, next)) return;
-      working = next;
+      const reduced = command.reduce(working);
+      if (!stateChanged(working, reduced)) return;
+      working = synchronizeCommandInvariants(reduced);
       applied.push(command);
     });
 
