@@ -22,7 +22,8 @@ function setup() {
 
 describe('slab navigator projection', () => {
   it('stays out of the DESIGN navigator', () => {
-    const { store } = setup();
+    const { store, commands } = setup();
+    commands.execute(setWorkspace('design'));
 
     expect(createSlabNavigatorProjection(store.getState())).toEqual({
       visible: false,
