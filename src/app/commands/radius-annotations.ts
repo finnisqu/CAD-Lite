@@ -91,7 +91,7 @@ export function addRadiusAnnotation(
   ids: RadiusAnnotationIds,
   placement: RadiusLabelPlacement = 'outside',
 ): AppCommand {
-  const input = { ...seed } as RadiusReferenceSeed;
+  const input = { ...seed };
   const preparedIds = {
     noteId: ids.noteId.trim(),
     lineId: ids.lineId.trim(),
@@ -176,7 +176,7 @@ export function removeRadiusAnnotation(
   layoutId: string,
   seed: RadiusReferenceSeed,
 ): AppCommand {
-  const input = { ...seed } as RadiusReferenceSeed;
+  const input = { ...seed };
   return {
     type: 'annotation.radius.delete',
     label: 'Delete radius label',
