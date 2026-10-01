@@ -26,6 +26,8 @@ export type {
 
 export { StartupRecoverySurface } from './startup-recovery-surface';
 export type { StartupRecoverySurfaceOptions } from './startup-recovery-surface';
+export { CanvasKeyboardSurface } from './canvas-keyboard-surface';
+export type { CanvasKeyboardSurfaceOptions } from './canvas-keyboard-surface';
 
 export { MaterialSurface } from './material-surface';
 export type { MaterialSurfaceOptions } from './material-surface';
