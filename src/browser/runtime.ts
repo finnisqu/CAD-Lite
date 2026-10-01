@@ -11,6 +11,7 @@ import {
   SelectionController,
   StartupRecovery,
   ToolController,
+  deleteCanvasSelection,
   registerAnnotationToolHandlers,
   registerRoomFeatureToolHandlers,
   applicationStateFromLegacyPayload,
@@ -181,7 +182,12 @@ export function mountCadLiteBrowserRuntime(
     store,
     commands,
   });
-  const productionShellSurface = new ProductionShellSurface({ root });
+  const productionShellSurface = new ProductionShellSurface({
+    root,
+    actions: selectionActions,
+    selection,
+    deleteSelection: () => deleteCanvasSelection(store, commands),
+  });
 
   const pieceCanvas = new PieceCanvasSurface({
     root,
