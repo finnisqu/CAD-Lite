@@ -81,7 +81,7 @@ export class ProductionShellSurface {
         (event) => {
           event.preventDefault();
           event.stopPropagation();
-          const open = panel.hidden;
+          const open = panel.hidden !== false;
           closeAll(menu);
           setOpen(menu, open);
         },
