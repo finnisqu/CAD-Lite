@@ -1,8 +1,6 @@
 import {
   addPiece,
-  deletePieces,
-  deleteRoomFeature,
-  deleteSlabSurface,
+  deleteCanvasSelection,
   setSelection,
   type AppStore,
   type CanvasSelectionActions,
@@ -101,7 +99,7 @@ export class CanvasKeyboardSurface {
 
   private onKeyDown(event: KeyboardEvent): void {
     // Tool and Piece interaction listeners are mounted first. When they own a
-    // key (active tool, annotation delete, Piece nudge), honor that decision.
+    // key (active tool or Piece nudge), honor that decision.
     if (event.defaultPrevented || this.editableTarget(event.target)) return;
 
     const key = event.key.toLowerCase();
@@ -174,22 +172,9 @@ export class CanvasKeyboardSurface {
     }
 
     if (event.key !== 'Delete' && event.key !== 'Backspace') return;
-
-    const state = this.store.getState();
-    const layoutId = state.session.activeLayoutId;
-    if (!layoutId) return;
-    const selection = state.session.selection;
-
-    const changed =
-      selection.kind === 'pieces'
-        ? this.commands.execute(deletePieces(layoutId, selection.ids))
-        : selection.kind === 'roomFeature'
-          ? this.commands.execute(deleteRoomFeature(layoutId, selection.id))
-          : selection.kind === 'slab'
-            ? this.commands.execute(deleteSlabSurface(layoutId, selection.id))
-            : null;
-
-    if (changed) event.preventDefault();
+    if (deleteCanvasSelection(this.store, this.commands)) {
+      event.preventDefault();
+    }
   }
 
   private onKeyUp(event: KeyboardEvent): void {
