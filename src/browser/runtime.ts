@@ -33,6 +33,7 @@ import { MaterialSurface } from './material-surface';
 import { PieceCanvasSurface } from './piece-canvas-surface';
 import { ProductionInspectorSurface } from './production-inspector-surface';
 import { ProductionShellSurface } from './production-shell-surface';
+import { ProductionViewportSurface } from './production-viewport-surface';
 import { RoomFeatureCanvasInteractions } from './room-feature-canvas-interactions';
 import { ScratchpadSurface } from './scratchpad-surface';
 import { SlabNavigatorSurface } from './slab-navigator-surface';
@@ -65,6 +66,7 @@ export interface CadLiteBrowserRuntime {
   viewPreferencesSurface: ViewPreferencesSurface;
   productionInspectorSurface: ProductionInspectorSurface;
   productionShellSurface: ProductionShellSurface;
+  productionViewportSurface: ProductionViewportSurface;
   slabNavigatorSurface: SlabNavigatorSurface;
   pieceCanvas: PieceCanvasSurface;
   canvasKeyboard: CanvasKeyboardSurface;
@@ -193,6 +195,11 @@ export function mountCadLiteBrowserRuntime(
     selection,
     deleteSelection: () => deleteCanvasSelection(store, commands),
   });
+  const productionViewportSurface = new ProductionViewportSurface({
+    root,
+    store,
+    commands,
+  });
   const slabNavigatorSurface = new SlabNavigatorSurface({
     root,
     store,
@@ -267,6 +274,7 @@ export function mountCadLiteBrowserRuntime(
   slabNavigatorSurface.mount();
   productionInspectorSurface.mount();
   productionShellSurface.mount();
+  productionViewportSurface.mount();
   startupRecoverySurface.mount();
   effects.start();
 
@@ -295,6 +303,7 @@ export function mountCadLiteBrowserRuntime(
     viewPreferencesSurface,
     productionInspectorSurface,
     productionShellSurface,
+    productionViewportSurface,
     slabNavigatorSurface,
     pieceCanvas,
     canvasKeyboard,
@@ -317,6 +326,7 @@ export function mountCadLiteBrowserRuntime(
       unregisterAnnotationTools.forEach((unregister) => unregister());
       unregisterRoomFeatureTools.forEach((unregister) => unregister());
       startupRecoverySurface.unmount();
+      productionViewportSurface.unmount();
       productionShellSurface.unmount();
       productionInspectorSurface.unmount();
       slabNavigatorSurface.unmount();
