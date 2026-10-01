@@ -1,0 +1,248 @@
+.cad-lite-production-shell .lc-production-piece-splashes {
+  margin: 0 -12px;
+  border-top: 1px solid var(--lc-border);
+  border-bottom: 1px solid var(--lc-border);
+  background: var(--lc-panel);
+}
+
+.cad-lite-production-shell .lc-production-piece-splashes__header {
+  display: flex;
+  min-height: 33px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 12px;
+  color: var(--lc-text);
+  font-size: 10px;
+  letter-spacing: .03em;
+  text-transform: uppercase;
+}
+
+.cad-lite-production-shell .lc-production-piece-splashes__count {
+  display: inline-flex;
+  min-width: 28px;
+  justify-content: center;
+  padding: 2px 6px;
+  border: 1px solid var(--lc-border);
+  border-radius: 999px;
+  color: var(--lc-muted);
+  background: var(--lc-toolbar);
+  font-size: 9px;
+}
+
+.cad-lite-production-shell .lc-production-piece-splashes__body {
+  display: grid;
+  gap: 9px;
+  padding: 10px 12px 12px;
+  border-top: 1px solid var(--lc-border);
+}
+
+.cad-lite-production-shell .lc-production-piece-splashes__status {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 4px;
+}
+
+.cad-lite-production-shell .lc-production-piece-splashes__status span {
+  overflow: hidden;
+  padding: 4px 3px;
+  border: 1px solid var(--lc-border);
+  border-radius: 4px;
+  color: var(--lc-muted);
+  background: var(--lc-toolbar);
+  font-size: 8px;
+  text-align: center;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cad-lite-production-shell .lc-production-piece-splashes__status span.is-present {
+  border-color: var(--lc-selected-border);
+  color: var(--lc-text);
+  background: color-mix(in srgb, var(--lc-selected-border) 12%, var(--lc-panel));
+}
+
+.cad-lite-production-shell .lc-production-piece-splashes__launch {
+  width: 100%;
+}
+
+.cad-lite-production-shell #lc-hud-root {
+  position: absolute;
+  inset: 0;
+  z-index: 30;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.cad-lite-production-shell .lc-production-splash-hud {
+  position: absolute;
+  top: 12px;
+  left: 50%;
+  display: grid;
+  width: min(390px, calc(100% - 24px));
+  gap: 8px;
+  padding: 9px;
+  border: 1px solid var(--lc-border);
+  border-radius: 8px;
+  color: var(--lc-text);
+  background: color-mix(in srgb, var(--lc-panel) 96%, transparent);
+  box-shadow: 0 8px 28px rgb(0 0 0 / 18%);
+  transform: translateX(-50%);
+  backdrop-filter: blur(8px);
+  pointer-events: auto;
+  user-select: none;
+}
+
+.cad-lite-production-shell .lc-production-splash-hud.is-user-moved {
+  transform: none;
+}
+
+.cad-lite-production-shell .lc-production-splash-hud.is-dragging {
+  cursor: grabbing;
+}
+
+.cad-lite-production-shell .lc-production-splash-hud__header {
+  display: flex;
+  min-height: 24px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  cursor: grab;
+}
+
+.cad-lite-production-shell .lc-production-splash-hud__header strong {
+  font-size: 11px;
+  letter-spacing: .08em;
+}
+
+.cad-lite-production-shell .lc-production-splash-hud__header-actions {
+  display: flex;
+  gap: 4px;
+}
+
+.cad-lite-production-shell .lc-production-splash-hud__icon-btn,
+.cad-lite-production-shell .lc-production-splash-hud__segmented button {
+  min-height: 26px;
+  border: 1px solid var(--lc-border);
+  border-radius: 5px;
+  color: var(--lc-text);
+  background: var(--lc-toolbar);
+  font: inherit;
+  font-size: 9px;
+  cursor: pointer;
+}
+
+.cad-lite-production-shell .lc-production-splash-hud__icon-btn {
+  min-width: 30px;
+  padding: 3px 7px;
+}
+
+.cad-lite-production-shell .lc-production-splash-hud__row {
+  display: grid;
+  grid-template-columns: 54px minmax(0, 1fr);
+  align-items: center;
+  gap: 8px;
+  color: var(--lc-muted);
+  font-size: 9px;
+}
+
+.cad-lite-production-shell .lc-production-splash-hud__segmented {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 4px;
+}
+
+.cad-lite-production-shell .lc-production-splash-hud__segmented button {
+  padding: 4px 7px;
+}
+
+.cad-lite-production-shell .lc-production-splash-hud__segmented button.is-active {
+  border-color: var(--lc-selected-border);
+  background: color-mix(in srgb, var(--lc-selected-border) 15%, var(--lc-panel));
+}
+
+.cad-lite-production-shell .lc-production-splash-hud__segmented button.is-danger.is-active {
+  border-color: color-mix(in srgb, var(--lc-danger) 50%, var(--lc-border));
+  color: var(--lc-danger);
+  background: var(--lc-danger-bg);
+}
+
+.cad-lite-production-shell .lc-production-splash-hud__measurements {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 7px;
+}
+
+.cad-lite-production-shell .lc-production-splash-hud__field {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 6px;
+  color: var(--lc-muted);
+  font-size: 9px;
+}
+
+.cad-lite-production-shell .lc-production-splash-hud__field input {
+  min-width: 0;
+  min-height: 27px;
+  padding: 3px 6px;
+  border: 1px solid var(--lc-border);
+  border-radius: 5px;
+  color: var(--lc-text);
+  background: var(--lc-panel);
+  font-size: 10px;
+}
+
+.cad-lite-production-shell .lc-production-splash-hud__warning {
+  padding: 6px 7px;
+  border: 1px solid color-mix(in srgb, var(--lc-danger) 25%, var(--lc-border));
+  border-radius: 5px;
+  color: var(--lc-danger);
+  background: var(--lc-danger-bg);
+  font-size: 9px;
+  line-height: 1.35;
+}
+
+.cad-lite-production-shell .lc-production-splash-hud__help {
+  overflow: hidden;
+  color: var(--lc-muted);
+  font-size: 8px;
+  line-height: 1.4;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cad-lite-production-shell .lc-production-splash-target__preview {
+  fill: color-mix(in srgb, var(--lc-selected-border) 18%, transparent);
+  stroke: color-mix(in srgb, var(--lc-selected-border) 60%, transparent);
+  stroke-width: 1;
+  vector-effect: non-scaling-stroke;
+}
+
+.cad-lite-production-shell .lc-production-splash-target__edge {
+  stroke: var(--lc-selected-border);
+  stroke-width: 3;
+  stroke-linecap: round;
+  opacity: .9;
+}
+
+.cad-lite-production-shell .lc-production-splash-target.is-occupied .lc-production-splash-target__edge {
+  stroke: var(--lc-muted);
+  opacity: .55;
+}
+
+.cad-lite-production-shell .lc-production-splash-targets.is-erase .lc-production-splash-target.is-occupied .lc-production-splash-target__edge {
+  stroke: var(--lc-danger);
+  opacity: .95;
+}
+
+@media (max-width: 720px) {
+  .cad-lite-production-shell .lc-production-splash-hud {
+    width: calc(100% - 16px);
+    top: 8px;
+  }
+
+  .cad-lite-production-shell .lc-production-splash-hud__row {
+    grid-template-columns: 46px minmax(0, 1fr);
+  }
+}
