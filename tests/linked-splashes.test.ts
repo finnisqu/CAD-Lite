@@ -7,6 +7,7 @@ import {
   applicationStateFromLegacyPayload,
   removeLinkedSplash,
   setWorkspace,
+  transformPieces,
 } from '../src/app';
 import {
   linkedSplashForEdge,
@@ -160,23 +161,12 @@ describe('linked splash production parity', () => {
 
   it('normalizes add options and detaches a clamped edge from snap state', () => {
     const { store, commands } = setup();
-    const current = store.getState();
-    const layout = current.project.layouts[0];
-    const parent = layout?.pieces[0];
-    if (!layout || !parent) return;
-
-    store.replaceForProjectLifecycle({
-      ...current,
-      project: {
-        ...current.project,
-        layouts: [
-          {
-            ...layout,
-            pieces: [{ ...parent, x: 0, y: 0 }],
-          },
-        ],
+    commands.execute(transformPieces('layout', [
+      {
+        id: 'parent',
+        designPose: { x: 0, y: 0, rotation: 0 },
       },
-    });
+    ]));
 
     commands.execute(
       addLinkedSplash('layout', 'parent', 'splash-top', 'top', {
