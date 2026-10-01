@@ -4,9 +4,11 @@ import {
   ApplicationEffects,
   CommandDispatcher,
   PieceInteractionController,
+  RoomFeatureInteractionController,
   SelectionController,
   ToolController,
   registerAnnotationToolHandlers,
+  registerRoomFeatureToolHandlers,
   applicationStateFromLegacyPayload,
   type AutosaveManagerOptions,
   type AutosaveStorage,
@@ -17,6 +19,7 @@ import {
   type BrowserEntityIdFactory,
 } from './project-layout-surface';
 import { PieceCanvasSurface } from './piece-canvas-surface';
+import { RoomFeatureCanvasInteractions } from './room-feature-canvas-interactions';
 
 export interface CadLiteBrowserRuntimeOptions {
   root?: ParentNode;
@@ -38,6 +41,8 @@ export interface CadLiteBrowserRuntime {
   pieceCanvas: PieceCanvasSurface;
   pieceInteractions: PieceInteractionController;
   annotationInteractions: AnnotationInteractionController;
+  roomFeatureInteractions: RoomFeatureInteractionController;
+  roomFeatureCanvasInteractions: RoomFeatureCanvasInteractions;
   destroy(): void;
 }
 
@@ -81,8 +86,16 @@ export function mountCadLiteBrowserRuntime(
     (toolId, handler) => tools.register(toolId, handler),
     createId,
   );
+  const unregisterRoomFeatureTools = registerRoomFeatureToolHandlers(
+    (toolId, handler) => tools.register(toolId, handler),
+    createId,
+  );
   const pieceInteractions = new PieceInteractionController(store, commands);
   const annotationInteractions = new AnnotationInteractionController(store, commands);
+  const roomFeatureInteractions = new RoomFeatureInteractionController(
+    store,
+    commands,
+  );
   const effects = new ApplicationEffects(store, {
     autosaveStorage: options.storage ?? browserStorage(),
     autosave: options.autosave ?? {},
@@ -106,9 +119,17 @@ export function mountCadLiteBrowserRuntime(
     annotationInteraction: annotationInteractions,
     tools,
   });
+  const roomFeatureCanvasInteractions = new RoomFeatureCanvasInteractions({
+    root,
+    store,
+    effects,
+    tools,
+    interaction: roomFeatureInteractions,
+  });
 
   surface.mount();
   pieceCanvas.mount();
+  roomFeatureCanvasInteractions.mount();
   effects.start();
 
   const beforeUnload = (): void => {
@@ -129,13 +150,18 @@ export function mountCadLiteBrowserRuntime(
     pieceCanvas,
     pieceInteractions,
     annotationInteractions,
+    roomFeatureInteractions,
+    roomFeatureCanvasInteractions,
     destroy() {
       if (typeof window !== 'undefined') {
         window.removeEventListener('beforeunload', beforeUnload);
       }
       pieceInteractions.cancel();
       annotationInteractions.cancel();
+      roomFeatureInteractions.cancel();
       unregisterAnnotationTools.forEach((unregister) => unregister());
+      unregisterRoomFeatureTools.forEach((unregister) => unregister());
+      roomFeatureCanvasInteractions.unmount();
       pieceCanvas.unmount();
       surface.unmount();
       effects.stop(false);
