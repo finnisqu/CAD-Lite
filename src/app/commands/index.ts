@@ -89,6 +89,14 @@ export type {
 export { summarizeCommand } from './types';
 
 export {
+  updatePieceEdgeProperties,
+} from './piece-edge-properties';
+export type {
+  PieceEdgePropertiesPatch,
+  PieceOverhangSide,
+} from './piece-edge-properties';
+
+export {
   addPiece,
   applyFabricationTransaction,
   addPieceCutout,
