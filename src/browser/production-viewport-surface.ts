@@ -1,8 +1,6 @@
 import {
   MAX_CANVAS_SCALE,
-  MIN_CANVAS_DIMENSION,
   MIN_CANVAS_SCALE,
-  MIN_GRID_SIZE,
   updateLayoutViewport,
   type AppStore,
   type CommandDispatcher,
@@ -71,49 +69,12 @@ function themeMode(value: string | null): ProductionThemeMode {
   return value === 'dark' || value === 'system' ? value : 'light';
 }
 
-function viewportButton(
-  document: Document,
-  id: string,
-  text: string,
-  title: string,
-): HTMLButtonElement {
-  const button = document.createElement('button');
-  button.id = id;
-  button.type = 'button';
-  button.className = 'cad-lite-production-shell__icon-button';
-  button.textContent = text;
-  button.title = title;
-  button.setAttribute('aria-label', title);
-  return button;
-}
-
-function viewportNumberField(
-  document: Document,
-  id: string,
-  labelText: string,
-  min: number,
-  step: number,
-  max?: number,
-): HTMLLabelElement {
-  const label = document.createElement('label');
-  label.className =
-    'cad-lite-production-shell__menu-field cad-lite-production-shell__viewport-field';
-  const text = document.createElement('span');
-  text.textContent = labelText;
-  const input = document.createElement('input');
-  input.id = id;
-  input.type = 'number';
-  input.min = String(min);
-  input.step = String(step);
-  if (max !== undefined) input.max = String(max);
-  label.append(text, input);
-  return label;
-}
-
 /**
- * Owns production-shell viewport chrome: persisted Layout zoom/canvas/grid
- * controls, native Fullscreen, Theater mode, and shell-local appearance.
- * CAD mutations still flow through typed commands.
+ * Owns production-shell viewport behavior.
+ *
+ * The production shell owns the actual controls/markup. This surface binds
+ * those controls to typed Layout viewport commands and shell-local browser
+ * presentation state (theme, Theater, Fullscreen).
  */
 export class ProductionViewportSurface {
   private readonly root: ParentNode;
@@ -146,7 +107,6 @@ export class ProductionViewportSurface {
 
     this.shell = shell;
     this.document = document;
-    this.ensureControls(shell, document);
     this.abort = new AbortController();
     const signal = this.abort.signal;
 
@@ -185,29 +145,10 @@ export class ProductionViewportSurface {
       { signal },
     );
 
-    const bindNumber = (
-      selector: string,
-      key: 'width' | 'height' | 'scale' | 'grid',
-    ): void => {
-      shell.querySelector<HTMLInputElement>(selector)?.addEventListener(
-        'change',
-        (event) => {
-          this.finishWheelZoom();
-          const input = event.currentTarget as HTMLInputElement;
-          const layoutId = this.store.getState().session.activeLayoutId;
-          if (!layoutId) return;
-          this.commands.execute(
-            updateLayoutViewport(layoutId, { [key]: Number(input.value) }),
-          );
-          this.render();
-        },
-        { signal },
-      );
-    };
-    bindNumber('#lc-view-canvas-width', 'width');
-    bindNumber('#lc-view-canvas-height', 'height');
-    bindNumber('#lc-view-canvas-grid', 'grid');
-    bindNumber('#lc-view-canvas-zoom', 'scale');
+    this.bindViewportNumber('#lc-view-canvas-width', 'width', signal);
+    this.bindViewportNumber('#lc-view-canvas-height', 'height', signal);
+    this.bindViewportNumber('#lc-view-canvas-grid', 'grid', signal);
+    this.bindViewportNumber('#lc-view-canvas-zoom', 'scale', signal);
 
     shell
       .querySelectorAll<HTMLButtonElement>('[data-cad-lite-theme]')
@@ -270,105 +211,25 @@ export class ProductionViewportSurface {
     this.document = null;
   }
 
-  private ensureControls(shell: HTMLElement, document: Document): void {
-    const primary = shell.querySelector<HTMLElement>(
-      '.cad-lite-production-shell__primary-tools',
+  private bindViewportNumber(
+    selector: string,
+    key: 'width' | 'height' | 'scale' | 'grid',
+    signal: AbortSignal,
+  ): void {
+    this.shell?.querySelector<HTMLInputElement>(selector)?.addEventListener(
+      'change',
+      (event) => {
+        this.finishWheelZoom();
+        const input = event.currentTarget as HTMLInputElement;
+        const layoutId = this.store.getState().session.activeLayoutId;
+        if (!layoutId) return;
+        this.commands.execute(
+          updateLayoutViewport(layoutId, { [key]: Number(input.value) }),
+        );
+        this.render();
+      },
+      { signal },
     );
-    if (primary && !shell.querySelector('#lc-zoom-out')) {
-      const group = document.createElement('div');
-      group.className = 'cad-lite-production-shell__zoom-tools';
-      group.dataset.cadLiteViewportToolbar = 'zoom';
-      group.append(
-        viewportButton(document, 'lc-zoom-out', '−', 'Zoom Out'),
-        viewportButton(document, 'lc-zoom-in', '+', 'Zoom In'),
-      );
-      const redo = primary.querySelector('#lc-redo');
-      if (redo) redo.after(group);
-      else primary.prepend(group);
-    }
-
-    if (primary && !shell.querySelector('#lc-theater-mode')) {
-      const group = document.createElement('div');
-      group.className = 'cad-lite-production-shell__focus-tools';
-      group.dataset.cadLiteViewportToolbar = 'focus';
-      group.append(
-        viewportButton(document, 'lc-theater-mode', '▯', 'Theater Mode'),
-        viewportButton(document, 'lc-fullscreen-mode', '⛶', 'Fullscreen'),
-      );
-      primary.append(group);
-    }
-
-    const viewMenu = shell.querySelector<HTMLElement>(
-      '.cad-lite-production-shell__view-menu',
-    );
-    if (viewMenu && !viewMenu.querySelector('[data-cad-lite-viewport-menu]')) {
-      const controls = document.createElement('div');
-      controls.className = 'cad-lite-production-shell__viewport-menu';
-      controls.dataset.cadLiteViewportMenu = '';
-      controls.append(
-        viewportNumberField(
-          document,
-          'lc-view-canvas-width',
-          'Width (in)',
-          MIN_CANVAS_DIMENSION,
-          1,
-        ),
-        viewportNumberField(
-          document,
-          'lc-view-canvas-height',
-          'Height (in)',
-          MIN_CANVAS_DIMENSION,
-          1,
-        ),
-        viewportNumberField(
-          document,
-          'lc-view-canvas-grid',
-          'Grid Size (in)',
-          MIN_GRID_SIZE,
-          0.25,
-        ),
-        viewportNumberField(
-          document,
-          'lc-view-canvas-zoom',
-          'Zoom (px/in)',
-          MIN_CANVAS_SCALE,
-          PRODUCTION_ZOOM_STEP,
-          MAX_CANVAS_SCALE,
-        ),
-      );
-      const canvasHeading = Array.from(
-        viewMenu.querySelectorAll<HTMLElement>(
-          '.cad-lite-production-shell__menu-heading',
-        ),
-      ).find((heading) => heading.textContent?.trim() === 'Canvas');
-      if (canvasHeading) canvasHeading.after(controls);
-      else viewMenu.prepend(controls);
-    }
-
-    if (viewMenu && !viewMenu.querySelector('[data-cad-lite-theme-group]')) {
-      const heading = document.createElement('div');
-      heading.className = 'cad-lite-production-shell__menu-heading';
-      heading.textContent = 'Theme';
-      const row = document.createElement('div');
-      row.className = 'cad-lite-production-shell__theme-row';
-      row.dataset.cadLiteThemeGroup = '';
-      (
-        [
-          ['light', 'Light'],
-          ['dark', 'Dark'],
-          ['system', 'System'],
-        ] as const
-      ).forEach(([mode, label]) => {
-        const button = document.createElement('button');
-        button.type = 'button';
-        button.textContent = label;
-        button.dataset.cadLiteTheme = mode;
-        button.setAttribute('data-cad-lite-menu-keep-open', '');
-        button.setAttribute('aria-pressed', 'false');
-        row.append(button);
-      });
-      viewMenu.append(heading, row);
-    }
   }
 
   private activeLayout() {
@@ -479,6 +340,10 @@ export class ProductionViewportSurface {
     );
     if (!current || current.scale !== session.finalScale) return;
 
+    // Preview ticks intentionally skip both history and persistence. Restore the
+    // pre-gesture scale synchronously, then commit the final scale normally so
+    // History sees exactly one durable zoom change. Both commits happen before
+    // the browser paints, avoiding a visible snap-back.
     this.commands.execute(
       updateLayoutViewport(
         session.layoutId,
