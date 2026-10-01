@@ -7,6 +7,7 @@ import {
   PieceInteractionController,
   ProjectLifecycle,
   RoomFeatureInteractionController,
+  RoomFeatureNudgeController,
   SelectionController,
   StartupRecovery,
   ToolController,
@@ -64,6 +65,7 @@ export interface CadLiteBrowserRuntime {
   pieceInteractions: PieceInteractionController;
   annotationInteractions: AnnotationInteractionController;
   roomFeatureInteractions: RoomFeatureInteractionController;
+  roomFeatureNudge: RoomFeatureNudgeController;
   roomFeatureCanvasInteractions: RoomFeatureCanvasInteractions;
   destroy(): void;
 }
@@ -123,6 +125,7 @@ export function mountCadLiteBrowserRuntime(
     store,
     commands,
   );
+  const roomFeatureNudge = new RoomFeatureNudgeController(store, commands);
   const effects = new ApplicationEffects(store, {
     autosaveStorage: options.storage ?? browserStorage(),
     autosave: options.autosave ?? {},
@@ -132,6 +135,7 @@ export function mountCadLiteBrowserRuntime(
       pieceInteractions.cancel();
       annotationInteractions.cancel();
       roomFeatureInteractions.cancel();
+      roomFeatureNudge.cancel();
       tools.cancel();
     },
   });
@@ -183,6 +187,7 @@ export function mountCadLiteBrowserRuntime(
     store,
     commands,
     actions: selectionActions,
+    roomFeatureNudge,
     tools,
   });
   const floorPlanCanvas = new FloorPlanCanvasSurface({
@@ -261,6 +266,7 @@ export function mountCadLiteBrowserRuntime(
     pieceInteractions,
     annotationInteractions,
     roomFeatureInteractions,
+    roomFeatureNudge,
     roomFeatureCanvasInteractions,
     destroy() {
       if (typeof window !== 'undefined') {
@@ -269,6 +275,7 @@ export function mountCadLiteBrowserRuntime(
       pieceInteractions.cancel();
       annotationInteractions.cancel();
       roomFeatureInteractions.cancel();
+      roomFeatureNudge.cancel();
       unregisterAnnotationTools.forEach((unregister) => unregister());
       unregisterRoomFeatureTools.forEach((unregister) => unregister());
       startupRecoverySurface.unmount();
