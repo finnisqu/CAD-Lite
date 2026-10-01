@@ -6,6 +6,11 @@ import {
   type CommandDispatcher,
 } from '../app';
 import {
+  isFloorPlanCalibrationArrowKey,
+  nudgeFloorPlanCalibrationSquare,
+  type FloorPlanCalibrationSquare,
+} from './floor-plan-calibration-model';
+import {
   createFloorPlanButton,
   createFloorPlanModal,
   type FloorPlanModal,
@@ -14,7 +19,7 @@ import {
 const SVG_NS = 'http://www.w3.org/2000/svg';
 
 type Point = { x: number; y: number };
-type Square = { x: number; y: number; size: number };
+type Square = FloorPlanCalibrationSquare;
 
 interface DistanceCalibration {
   mode: 'distance';
@@ -113,6 +118,11 @@ export class FloorPlanCalibrationSurface {
       (event) => this.onPointerUp(event),
       { signal, capture: true },
     );
+    this.document.defaultView?.addEventListener(
+      'keydown',
+      (event) => this.onKeyDown(event),
+      { signal, capture: true },
+    );
 
     this.unsubscribe = this.effects.invalidation.subscribe((batch) => {
       if (
@@ -196,6 +206,64 @@ export class FloorPlanCalibrationSurface {
     event.preventDefault();
     event.stopPropagation();
     event.stopImmediatePropagation();
+  }
+
+  private editableTarget(target: EventTarget | null): boolean {
+    if (!(target instanceof Element)) return false;
+    return Boolean(
+      target.closest('input,textarea,select,[contenteditable="true"]'),
+    );
+  }
+
+  private ownKey(event: KeyboardEvent): void {
+    event.preventDefault();
+    event.stopPropagation();
+    event.stopImmediatePropagation();
+  }
+
+  private onKeyDown(event: KeyboardEvent): void {
+    const calibration = this.calibration;
+    if (!calibration) return;
+
+    if (event.key === 'Escape') {
+      this.ownKey(event);
+      this.cancel();
+      return;
+    }
+
+    if (
+      calibration.mode !== 'square24' ||
+      !calibration.square ||
+      !isFloorPlanCalibrationArrowKey(event.key) ||
+      this.editableTarget(event.target)
+    ) {
+      return;
+    }
+
+    const state = this.store.getState();
+    const layout = state.project.layouts.find(
+      (item) => item.id === calibration.layoutId,
+    );
+    if (
+      !layout ||
+      state.session.workspace !== 'design' ||
+      state.session.activeLayoutId !== calibration.layoutId
+    ) {
+      return;
+    }
+
+    this.ownKey(event);
+    calibration.square = nudgeFloorPlanCalibrationSquare(
+      calibration.square,
+      event.key,
+      event.shiftKey,
+      {
+        width: layout.cw,
+        height: layout.ch,
+        scale: layout.scale,
+      },
+    );
+    this.decorate();
   }
 
   private onPointerDown(event: PointerEvent): void {
