@@ -112,8 +112,7 @@ export async function openFloorPlanPdfImport(
     data: new Uint8Array(await options.file.arrayBuffer()),
   }).promise;
 
-  let modal: FloorPlanModal;
-  modal = createFloorPlanModal(
+  const modal = createFloorPlanModal(
     options.document,
     'Choose PDF Page',
     'lc-plan-pdf-dialog',
