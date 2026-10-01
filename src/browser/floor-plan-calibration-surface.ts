@@ -80,7 +80,7 @@ export class FloorPlanCalibrationSurface {
     this.alert =
       options.alert ??
       ((message) => {
-        if (typeof window !== 'undefined') window.alert(message);
+        if (typeof window !== 'undefined') window.alert.call(window, message);
       });
     this.onModal = options.onModal ?? null;
     this.document = ownerDocument(options.root);
@@ -372,8 +372,7 @@ export class FloorPlanCalibrationSurface {
   }
 
   private requestKnownDistance(layoutId: string, measured: number): void {
-    let modal: FloorPlanModal;
-    modal = createFloorPlanModal(
+    const modal = createFloorPlanModal(
       this.document,
       'Calibrate Floor Plan',
       'lc-plan-calibrate-dialog',
