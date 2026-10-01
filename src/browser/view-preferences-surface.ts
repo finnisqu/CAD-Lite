@@ -15,7 +15,13 @@ export type BooleanViewPreference =
   | 'showManualDims'
   | 'showNotes'
   | 'showLines'
-  | 'showPieceFills';
+  | 'showPieceFills'
+  | 'showRoomFeatures'
+  | 'showRoomFeatureLabels'
+  | 'showRoomCabinets'
+  | 'showRoomFillersPanels'
+  | 'showRoomAppliances'
+  | 'showRoomWalls';
 
 const BOOLEAN_VIEW_CONTROLS: ReadonlyArray<{
   id: string;
@@ -27,6 +33,12 @@ const BOOLEAN_VIEW_CONTROLS: ReadonlyArray<{
   { id: 'lc-show-notes', preference: 'showNotes' },
   { id: 'lc-show-lines', preference: 'showLines' },
   { id: 'lc-show-piece-fills', preference: 'showPieceFills' },
+  { id: 'lc-show-room-features', preference: 'showRoomFeatures' },
+  { id: 'lc-show-room-feature-labels', preference: 'showRoomFeatureLabels' },
+  { id: 'lc-show-room-cabinets', preference: 'showRoomCabinets' },
+  { id: 'lc-show-room-fillers-panels', preference: 'showRoomFillersPanels' },
+  { id: 'lc-show-room-appliances', preference: 'showRoomAppliances' },
+  { id: 'lc-show-room-walls', preference: 'showRoomWalls' },
 ];
 
 export interface ViewPreferencesSurfaceOptions {
