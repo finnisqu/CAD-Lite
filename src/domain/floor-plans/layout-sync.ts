@@ -1,10 +1,25 @@
 import { round3 } from '../../core/numeric';
 import type { Layout } from '../project';
 import type { FloorPlan } from './index';
-import { floorPlanCanvasSize } from './index';
 
 function ceil3(value: number): number {
   return Math.ceil(value * 1000) / 1000;
+}
+
+function planCanvasSize(plan: FloorPlan): { w: number; h: number } {
+  const radians = (plan.rotation * Math.PI) / 180;
+  const cosine = Math.abs(Math.cos(radians));
+  const sine = Math.abs(Math.sin(radians));
+  return {
+    w: Math.max(
+      12,
+      round3(plan.w * cosine + plan.h * sine + plan.margin * 2),
+    ),
+    h: Math.max(
+      12,
+      round3(plan.w * sine + plan.h * cosine + plan.margin * 2),
+    ),
+  };
 }
 
 function rotatedRectCorners(
@@ -46,7 +61,7 @@ export function syncLayoutCanvasToFloorPlan(
   layout: Layout,
   plan: FloorPlan,
 ): Layout {
-  const planSize = floorPlanCanvasSize(plan);
+  const planSize = planCanvasSize(plan);
   const oldW = Math.max(12, Number(layout.cw) || planSize.w);
   const oldH = Math.max(12, Number(layout.ch) || planSize.h);
   const oldCx = oldW / 2;
