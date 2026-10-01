@@ -14,6 +14,7 @@ import {
   deleteCanvasSelection,
   registerAnnotationToolHandlers,
   registerRoomFeatureToolHandlers,
+  registerSplashToolHandler,
   applicationStateFromLegacyPayload,
   type AutosaveManagerOptions,
   type AutosaveStorage,
@@ -33,6 +34,7 @@ import { MaterialSurface } from './material-surface';
 import { PieceCanvasSurface } from './piece-canvas-surface';
 import { ProductionInspectorSurface } from './production-inspector-surface';
 import { ProductionPiecePropertiesSurface } from './production-piece-properties-surface';
+import { ProductionSplashSurface } from './production-splash-surface';
 import { ProductionShellSurface } from './production-shell-surface';
 import { ProductionViewportSurface } from './production-viewport-surface';
 import { RoomFeatureCanvasInteractions } from './room-feature-canvas-interactions';
@@ -66,6 +68,7 @@ export interface CadLiteBrowserRuntime {
   scratchpadSurface: ScratchpadSurface;
   viewPreferencesSurface: ViewPreferencesSurface;
   productionPiecePropertiesSurface: ProductionPiecePropertiesSurface;
+  productionSplashSurface: ProductionSplashSurface;
   productionInspectorSurface: ProductionInspectorSurface;
   productionShellSurface: ProductionShellSurface;
   productionViewportSurface: ProductionViewportSurface;
@@ -132,6 +135,10 @@ export function mountCadLiteBrowserRuntime(
     (toolId, handler) => tools.register(toolId, handler),
     createId,
   );
+  const unregisterSplashTool = registerSplashToolHandler(
+    (toolId, handler) => tools.register(toolId, handler),
+    createId,
+  );
   const pieceInteractions = new PieceInteractionController(store, commands);
   const annotationInteractions = new AnnotationInteractionController(store, commands);
   const roomFeatureInteractions = new RoomFeatureInteractionController(
@@ -192,6 +199,11 @@ export function mountCadLiteBrowserRuntime(
   });
   const productionPiecePropertiesSurface =
     new ProductionPiecePropertiesSurface({ root, store, commands });
+  const productionSplashSurface = new ProductionSplashSurface({
+    root,
+    store,
+    tools,
+  });
   const productionInspectorSurface = new ProductionInspectorSurface({ root });
   const productionShellSurface = new ProductionShellSurface({
     root,
@@ -277,6 +289,7 @@ export function mountCadLiteBrowserRuntime(
   roomFeatureCanvasInteractions.mount();
   slabNavigatorSurface.mount();
   productionPiecePropertiesSurface.mount();
+  productionSplashSurface.mount();
   productionInspectorSurface.mount();
   productionShellSurface.mount();
   productionViewportSurface.mount();
@@ -307,6 +320,7 @@ export function mountCadLiteBrowserRuntime(
     scratchpadSurface,
     viewPreferencesSurface,
     productionPiecePropertiesSurface,
+    productionSplashSurface,
     productionInspectorSurface,
     productionShellSurface,
     productionViewportSurface,
@@ -331,10 +345,12 @@ export function mountCadLiteBrowserRuntime(
       roomFeatureNudge.cancel();
       unregisterAnnotationTools.forEach((unregister) => unregister());
       unregisterRoomFeatureTools.forEach((unregister) => unregister());
+      unregisterSplashTool();
       startupRecoverySurface.unmount();
       productionViewportSurface.unmount();
       productionShellSurface.unmount();
       productionInspectorSurface.unmount();
+      productionSplashSurface.unmount();
       productionPiecePropertiesSurface.unmount();
       slabNavigatorSurface.unmount();
       roomFeatureCanvasInteractions.unmount();
