@@ -1,5 +1,7 @@
 import type { ReadonlyApplicationState } from '../app/state';
 import {
+  createRoomFeature,
+  normalizeRoomFeature,
   roomFeatureCategory,
   roomFeatureOpacity,
   type RoomFeature,
@@ -22,6 +24,7 @@ export interface RoomFeatureCanvasItem {
   wallType: RoomWallType;
   receivesCountertop: boolean;
   selected: boolean;
+  preview: boolean;
   x: number;
   y: number;
   length: number;
@@ -83,6 +86,7 @@ export function projectRoomFeatureForCanvas(
   feature: RoomFeature,
   selected: boolean,
   opacity: number,
+  preview = false,
 ): RoomFeatureCanvasItem {
   const center = {
     x: feature.x + feature.length / 2,
@@ -105,6 +109,7 @@ export function projectRoomFeatureForCanvas(
     wallType: feature.wallType,
     receivesCountertop: feature.receivesCountertop,
     selected,
+    preview,
     x: feature.x,
     y: feature.y,
     length: feature.length,
@@ -123,6 +128,91 @@ export function projectRoomFeatureForCanvas(
   };
 }
 
+function interactionRecord(
+  state: ReadonlyApplicationState,
+): Record<string, unknown> | null {
+  const raw = state.session.interaction.preview;
+  if (!raw || Array.isArray(raw) || typeof raw !== 'object') return null;
+  return raw as Record<string, unknown>;
+}
+
+function previewNumber(
+  record: Record<string, unknown>,
+  key: string,
+  fallback: number,
+): number {
+  const value = Number(record[key]);
+  return Number.isFinite(value) ? value : fallback;
+}
+
+function createInteractionFeature(
+  state: ReadonlyApplicationState,
+): RoomFeature | null {
+  const record = interactionRecord(state);
+  if (!record || record.kind !== 'room-feature-create') return null;
+  const tool = record.tool;
+  if (
+    tool !== 'roomFeatures' &&
+    tool !== 'roomWall' &&
+    tool !== 'linkedWall'
+  ) {
+    return null;
+  }
+
+  const wall = tool !== 'roomFeatures';
+  return createRoomFeature(
+    '__room-feature-preview__',
+    wall
+      ? tool === 'linkedWall'
+        ? 'linked-wall'
+        : 'wall'
+      : 'base',
+    {
+      kind: wall ? 'wall' : 'feature',
+      name: wall
+        ? tool === 'linkedWall'
+          ? 'Linked Wall'
+          : 'Wall'
+        : 'Base Cabinet',
+      x: previewNumber(record, 'x', 0),
+      y: previewNumber(record, 'y', 0),
+      length: previewNumber(record, 'length', wall ? 96 : 36),
+      depth: previewNumber(record, 'depth', wall ? 4 : 24),
+      rotation: previewNumber(record, 'rotation', 0),
+      wallType: tool === 'linkedWall' ? 'linked' : wall ? 'full' : null,
+      receivesCountertop: !wall,
+    },
+  );
+}
+
+function applyEditPreview(
+  state: ReadonlyApplicationState,
+  feature: RoomFeature,
+  index: number,
+): RoomFeature {
+  const record = interactionRecord(state);
+  if (
+    !record ||
+    record.kind !== 'room-feature-edit' ||
+    record.id !== feature.id ||
+    !record.patch ||
+    Array.isArray(record.patch) ||
+    typeof record.patch !== 'object'
+  ) {
+    return feature;
+  }
+
+  return normalizeRoomFeature(
+    {
+      ...feature,
+      ...(record.patch as Record<string, unknown>),
+      id: feature.id,
+    },
+    index,
+    'room-feature-preview',
+  );
+}
+
 export function createRoomFeatureCanvasProjection(
   state: ReadonlyApplicationState,
 ): RoomFeatureCanvasProjection {
@@ -134,22 +224,37 @@ export function createRoomFeatureCanvasProjection(
   }
 
   const selection = state.session.selection;
-  return {
-    items: layout.roomFeatures
-      .filter(
-        (feature) =>
-          feature.visible &&
-          categoryVisible(state, roomFeatureCategory(feature)),
-      )
-      .map((feature) =>
-        projectRoomFeatureForCanvas(
-          feature,
-          selection.kind === 'roomFeature' &&
-            selection.id === feature.id,
-          state.preferences.roomFeatureOpacity,
-        ),
+  const items = layout.roomFeatures
+    .map((feature, index) => applyEditPreview(state, feature, index))
+    .filter(
+      (feature) =>
+        feature.visible &&
+        categoryVisible(state, roomFeatureCategory(feature)),
+    )
+    .map((feature) =>
+      projectRoomFeatureForCanvas(
+        feature,
+        selection.kind === 'roomFeature' && selection.id === feature.id,
+        state.preferences.roomFeatureOpacity,
       ),
-  };
+    );
+
+  const preview = createInteractionFeature(state);
+  if (
+    preview &&
+    categoryVisible(state, roomFeatureCategory(preview))
+  ) {
+    items.push(
+      projectRoomFeatureForCanvas(
+        preview,
+        false,
+        Math.max(0.35, state.preferences.roomFeatureOpacity),
+        true,
+      ),
+    );
+  }
+
+  return { items };
 }
 
 export function hitTestRoomFeatures(
@@ -158,7 +263,7 @@ export function hitTestRoomFeatures(
 ): RoomFeatureCanvasItem | null {
   for (let index = projection.items.length - 1; index >= 0; index -= 1) {
     const item = projection.items[index];
-    if (!item) continue;
+    if (!item || item.preview) continue;
     if (
       point.x < item.bounds.x ||
       point.x > item.bounds.x + item.bounds.w ||
