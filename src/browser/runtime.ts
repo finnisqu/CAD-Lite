@@ -21,6 +21,7 @@ import {
 import { FloorPlanCanvasSurface } from './floor-plan-canvas-surface';
 import { FloorPlanNavigatorSurface } from './floor-plan-navigator-surface';
 import { FloorPlanPreparationSurface } from './floor-plan-preparation-surface';
+import { MaterialSurface } from './material-surface';
 import { PieceCanvasSurface } from './piece-canvas-surface';
 import { RoomFeatureCanvasInteractions } from './room-feature-canvas-interactions';
 
@@ -41,6 +42,7 @@ export interface CadLiteBrowserRuntime {
   tools: ToolController;
   effects: ApplicationEffects;
   surface: ProjectLayoutSurface;
+  materialSurface: MaterialSurface;
   pieceCanvas: PieceCanvasSurface;
   floorPlanCanvas: FloorPlanCanvasSurface;
   floorPlanPreparation: FloorPlanPreparationSurface;
@@ -115,6 +117,14 @@ export function mountCadLiteBrowserRuntime(
     createId,
     ...(options.confirm ? { confirm: options.confirm } : {}),
   });
+  const materialSurface = new MaterialSurface({
+    root,
+    store,
+    commands,
+    effects,
+    createId,
+    ...(options.confirm ? { confirm: options.confirm } : {}),
+  });
 
   const pieceCanvas = new PieceCanvasSurface({
     root,
@@ -159,6 +169,7 @@ export function mountCadLiteBrowserRuntime(
   });
 
   surface.mount();
+  materialSurface.mount();
   pieceCanvas.mount();
   floorPlanCanvas.mount();
   floorPlanPreparation.mount();
@@ -181,6 +192,7 @@ export function mountCadLiteBrowserRuntime(
     tools,
     effects,
     surface,
+    materialSurface,
     pieceCanvas,
     floorPlanCanvas,
     floorPlanPreparation,
@@ -203,6 +215,7 @@ export function mountCadLiteBrowserRuntime(
       floorPlanPreparation.unmount();
       floorPlanCanvas.unmount();
       pieceCanvas.unmount();
+      materialSurface.unmount();
       surface.unmount();
       effects.stop(false);
     },

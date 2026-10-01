@@ -1,5 +1,6 @@
 import './styles/index.css';
 import './styles/floor-plan-preparation.css';
+import './styles/materials.css';
 
 export {
   CAD_LITE_ARCHITECTURE_VERSION,
@@ -13,6 +14,7 @@ export * from './app';
 export * from './browser';
 export * from './core/numeric';
 export * from './domain/project';
+export * from './domain/materials';
 export * from './domain/annotations';
 export * from './domain/floor-plans';
 export * from './domain/room-features';

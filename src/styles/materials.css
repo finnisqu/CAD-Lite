@@ -1,0 +1,98 @@
+/* Batch 27 — project-level Stone Materials selection/editor. */
+
+.lc-selections-card [data-cad-materials-nav] {
+  display: grid;
+  gap: 6px;
+}
+
+.lc-selection-nav-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  width: 100%;
+  padding: 9px 10px;
+  border: 1px solid #dedede;
+  border-radius: 6px;
+  background: #fff;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.lc-selection-nav-item.selected {
+  outline: 2px solid #b8b8b8;
+  border-color: #8b8b8b;
+}
+
+.lc-selection-nav-info {
+  display: grid;
+  min-width: 0;
+  gap: 2px;
+}
+
+.lc-selection-nav-info .lc-nav-title {
+  overflow: hidden;
+  font-size: 12px;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.lc-selection-nav-meta,
+.lc-material-foundation-hint {
+  color: #666;
+  font-size: 11px;
+}
+
+.lc-selection-nav-chevron {
+  flex: 0 0 auto;
+  color: #737373;
+  font-size: 18px;
+  line-height: 1;
+}
+
+.lc-material-inspector {
+  display: grid;
+  gap: 10px;
+}
+
+.lc-selection-inspector-title {
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.lc-selection-material-top-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: end;
+  gap: 8px;
+}
+
+.lc-material-picker-wrap,
+.lc-material-field {
+  display: grid;
+  gap: 4px;
+  margin: 0;
+  font-size: 11px;
+}
+
+.lc-material-inspector .lc-input {
+  width: 100%;
+}
+
+.lc-material-inspector .lc-material-add {
+  min-height: 31px;
+  white-space: nowrap;
+}
+
+.lc-material-inspector .lc-inspector-full-action {
+  width: 100%;
+  margin-top: 2px;
+}
+
+@media (max-width: 420px) {
+  .lc-selection-material-top-row {
+    grid-template-columns: 1fr;
+  }
+}

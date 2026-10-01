@@ -18,6 +18,9 @@ export type {
   ProjectLayoutSurfaceOptions,
 } from './project-layout-surface';
 
+export { MaterialSurface } from './material-surface';
+export type { MaterialSurfaceOptions } from './material-surface';
+
 export {
   mountCadLiteBrowserRuntime,
 } from './runtime';
