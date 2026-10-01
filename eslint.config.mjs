@@ -26,4 +26,16 @@ export default defineConfig(
       '@typescript-eslint/no-explicit-any': 'error',
     },
   },
+  {
+    files: [
+      'src/app/interaction/room-features.ts',
+      'src/browser/room-feature-canvas-model.ts',
+      'src/browser/room-feature-canvas-interactions.ts',
+    ],
+    rules: {
+      // These modules intentionally cross the JsonObject compatibility boundary
+      // while v1.5.99 metadata is still preserved during the architecture migration.
+      '@typescript-eslint/no-unnecessary-type-assertion': 'off',
+    },
+  },
 );
