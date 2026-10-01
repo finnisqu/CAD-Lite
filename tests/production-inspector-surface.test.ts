@@ -7,7 +7,16 @@ import {
 
 describe('production Inspector accordion state', () => {
   it('opens a requested Piece Inspector section exclusively', () => {
-    expect(nextProductionInspectorSection('pieceInfo', 'sinks')).toBe('sinks');
+    expect(nextProductionInspectorSection('pieceInfo', 'appearance')).toBe(
+      'appearance',
+    );
+    expect(nextProductionInspectorSection('appearance', 'overhangs')).toBe(
+      'overhangs',
+    );
+    expect(nextProductionInspectorSection('overhangs', 'edgeOptions')).toBe(
+      'edgeOptions',
+    );
+    expect(nextProductionInspectorSection('edgeOptions', 'sinks')).toBe('sinks');
     expect(nextProductionInspectorSection('sinks', 'cutouts')).toBe('cutouts');
   });
 
