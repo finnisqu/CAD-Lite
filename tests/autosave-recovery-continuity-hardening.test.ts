@@ -105,6 +105,13 @@ describe('autosave recovery continuity hardening', () => {
     expect(second.recovery.inspect().status).toBe('current');
 
     second.commands.execute(setWorkspace('design'));
+    expect(second.effects.history.getStatus()).toMatchObject({
+      size: 2,
+      index: 1,
+      canUndo: true,
+      canRedo: false,
+    });
+
     second.commands.execute(addPiece('layout-kitchen', 'piece-after-recovery', {
       name: 'After Recovery',
     }));
@@ -120,8 +127,8 @@ describe('autosave recovery continuity hardening', () => {
       ids: ['piece-after-recovery'],
     });
     expect(second.effects.history.getStatus()).toMatchObject({
-      size: 2,
-      index: 1,
+      size: 3,
+      index: 2,
       canUndo: true,
       canRedo: false,
     });
@@ -132,6 +139,7 @@ describe('autosave recovery continuity hardening', () => {
         (piece) => piece.id === 'piece-after-recovery',
       ),
     ).toBe(false);
+    expect(second.store.getState().session.workspace).toBe('design');
     expect(second.effects.history.redo()).toBe(true);
     expect(
       second.store.getState().project.layouts[0]?.pieces.some(
