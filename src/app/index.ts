@@ -18,6 +18,13 @@ export type {
   ProjectLifecycleOptions,
   ProjectReplacementResult,
 } from './project-lifecycle';
+export {
+  StartupRecovery,
+} from './startup-recovery';
+export type {
+  StartupRecoveryState,
+  StartupUseCurrentResult,
+} from './startup-recovery';
 
 export {
   emptySelection,
