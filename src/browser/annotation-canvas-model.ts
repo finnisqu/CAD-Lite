@@ -74,6 +74,10 @@ function annotationEditPreview(
   };
 }
 
+function isRadiusAnnotation(annotation: CanvasNote | DrawingLine): boolean {
+  return annotation.annotationType === 'radius';
+}
+
 export function createAnnotationCanvasProjection(
   state: ReadonlyApplicationState,
 ): AnnotationCanvasProjection {
@@ -87,6 +91,9 @@ export function createAnnotationCanvasProjection(
   const scale = Math.max(0.001, Math.abs(layout.scale || 1));
   const selection = state.session.selection;
   const edit = annotationEditPreview(state);
+  const radiusVisible =
+    state.preferences.showRadiusLabels ||
+    state.session.interaction.activeTool?.id === 'radius';
 
   return {
     dimensions: layout.dims
@@ -114,7 +121,12 @@ export function createAnnotationCanvasProjection(
       };
     }),
     lines: layout.lines
-      .filter((line) => line.visible && state.preferences.showLines)
+      .filter((line) =>
+        line.visible &&
+        (isRadiusAnnotation(line)
+          ? radiusVisible
+          : state.preferences.showLines),
+      )
       .map((source) => {
         let line =
           edit?.entityKind === 'line' && edit.id === source.id
@@ -137,7 +149,12 @@ export function createAnnotationCanvasProjection(
         };
       }),
     notes: layout.notes
-      .filter((note) => note.visible && state.preferences.showNotes)
+      .filter((note) =>
+        note.visible &&
+        (isRadiusAnnotation(note)
+          ? radiusVisible
+          : state.preferences.showNotes),
+      )
       .map((source) => {
         const note =
           edit?.entityKind === 'note' && edit.id === source.id
@@ -195,7 +212,7 @@ export function hitTestAnnotations(
       dimension &&
       distanceToSegment(
         point,
-{ x: dimension.displayX1, y: dimension.displayY1 },
+        { x: dimension.displayX1, y: dimension.displayY1 },
         { x: dimension.displayX2, y: dimension.displayY2 },
       ) <= lineTolerance
     ) {
