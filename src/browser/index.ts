@@ -44,6 +44,17 @@ export type {
 export { ProductionShellSurface } from './production-shell-surface';
 export type { ProductionShellSurfaceOptions } from './production-shell-surface';
 export {
+  ProductionViewportSurface,
+  nextProductionCanvasScale,
+  resolveProductionTheme,
+  PRODUCTION_ZOOM_STEP,
+  PRODUCTION_THEME_KEY,
+} from './production-viewport-surface';
+export type {
+  ProductionThemeMode,
+  ProductionViewportSurfaceOptions,
+} from './production-viewport-surface';
+export {
   SlabNavigatorSurface,
   createSlabNavigatorProjection,
 } from './slab-navigator-surface';
