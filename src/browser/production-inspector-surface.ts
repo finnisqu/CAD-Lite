@@ -2,6 +2,7 @@ export type ProductionPieceInspectorSection =
   | 'pieceInfo'
   | 'appearance'
   | 'overhangs'
+  | 'splashes'
   | 'edgeOptions'
   | 'sinks'
   | 'cutouts'
@@ -28,6 +29,11 @@ const PIECE_SECTION_CONFIGS: readonly PieceSectionConfig[] = [
     key: 'overhangs',
     sectionSelector: '.lc-production-piece-overhangs',
     headerSelector: ':scope > .lc-production-piece-properties__header',
+  },
+  {
+    key: 'splashes',
+    sectionSelector: '.lc-production-piece-splashes',
+    headerSelector: ':scope > .lc-production-piece-splashes__header',
   },
   {
     key: 'edgeOptions',
@@ -243,6 +249,7 @@ export class ProductionInspectorSurface {
       const stopSelector = [
         '.lc-production-piece-appearance',
         '.lc-production-piece-overhangs',
+        '.lc-production-piece-splashes',
         '.lc-production-piece-edge-options',
         '.lc-piece-sinks-inspector',
         '.lc-piece-cutouts-inspector',
