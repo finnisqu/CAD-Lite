@@ -49,6 +49,11 @@ export type {
   ProductionPiecePropertiesProjection,
   ProductionPiecePropertiesSurfaceOptions,
 } from './production-piece-properties-surface';
+export {
+  ProductionSplashSurface,
+  createSelectedSplashParentProjection,
+} from './production-splash-surface';
+export type { ProductionSplashSurfaceOptions } from './production-splash-surface';
 export { ProductionShellSurface } from './production-shell-surface';
 export type { ProductionShellSurfaceOptions } from './production-shell-surface';
 export {
