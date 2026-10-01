@@ -23,7 +23,7 @@ function viewRecord(
   if (!value || typeof value !== 'object' || Array.isArray(value)) {
     throw new Error(`Missing ${key} workspace view`);
   }
-  return value as JsonObject;
+  return value;
 }
 
 describe('workspace-specific View parity', () => {
@@ -34,7 +34,7 @@ describe('workspace-specific View parity', () => {
       throw new Error('Fixture UI changed');
     }
 
-    const record = ui as JsonObject;
+    const record = ui;
     record.workspace = 'slab';
     record.showNotes = false;
     record.showGrid = false;
