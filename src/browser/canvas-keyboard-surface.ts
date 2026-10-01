@@ -6,15 +6,29 @@ import {
   type AppStore,
   type CanvasSelectionActions,
   type CommandDispatcher,
+  type HistoryManager,
   type RoomFeatureNudgeController,
   type ToolController,
 } from '../app';
+
+export type CanvasHistoryShortcut = 'undo' | 'redo' | null;
+
+export function canvasHistoryShortcut(
+  key: string,
+  shiftKey: boolean,
+): CanvasHistoryShortcut {
+  const normalized = key.toLowerCase();
+  if (normalized === 'z' && !shiftKey) return 'undo';
+  if (normalized === 'y' || (normalized === 'z' && shiftKey)) return 'redo';
+  return null;
+}
 
 export interface CanvasKeyboardSurfaceOptions {
   root: ParentNode;
   store: AppStore;
   commands: CommandDispatcher;
   actions: CanvasSelectionActions;
+  history: HistoryManager;
   roomFeatureNudge: RoomFeatureNudgeController;
   tools: ToolController;
 }
@@ -22,14 +36,15 @@ export interface CanvasKeyboardSurfaceOptions {
 /**
  * Owns production-level canvas shortcuts that are not tool-specific pointer
  * interactions. Piece arrow nudging remains in PieceCanvasSurface; this adapter
- * owns selection clipboard, Room Feature nudge, duplicate, workspace toggle,
- * Escape, and entity deletion parity.
+ * owns history, selection clipboard, Room Feature nudge, duplicate, workspace
+ * toggle, Escape, and entity deletion parity.
  */
 export class CanvasKeyboardSurface {
   private readonly root: ParentNode;
   private readonly store: AppStore;
   private readonly commands: CommandDispatcher;
   private readonly actions: CanvasSelectionActions;
+  private readonly history: HistoryManager;
   private readonly roomFeatureNudge: RoomFeatureNudgeController;
   private readonly tools: ToolController;
   private abort: AbortController | null = null;
@@ -39,6 +54,7 @@ export class CanvasKeyboardSurface {
     this.store = options.store;
     this.commands = options.commands;
     this.actions = options.actions;
+    this.history = options.history;
     this.roomFeatureNudge = options.roomFeatureNudge;
     this.tools = options.tools;
   }
@@ -84,6 +100,16 @@ export class CanvasKeyboardSurface {
     const command = event.ctrlKey || event.metaKey;
 
     if (command && !event.altKey) {
+      const historyShortcut = canvasHistoryShortcut(key, event.shiftKey);
+      if (historyShortcut) {
+        // v1.5.99 suppresses the browser's own Undo/Redo even at the ends of
+        // CAD Lite history, then conditionally applies the editor history step.
+        event.preventDefault();
+        if (historyShortcut === 'undo') this.history.undo();
+        else this.history.redo();
+        return;
+      }
+
       const handled =
         key === 'a'
           ? this.actions.selectAllPieces()
