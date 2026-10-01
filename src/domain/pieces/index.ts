@@ -23,3 +23,4 @@ export * from './fabrication';
 export * from './groups';
 
 export * from './splashes';
+export * from './splash-miters';
