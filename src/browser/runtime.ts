@@ -19,6 +19,7 @@ import {
   type BrowserEntityIdFactory,
 } from './project-layout-surface';
 import { FloorPlanCanvasSurface } from './floor-plan-canvas-surface';
+import { FloorPlanNavigatorSurface } from './floor-plan-navigator-surface';
 import { PieceCanvasSurface } from './piece-canvas-surface';
 import { RoomFeatureCanvasInteractions } from './room-feature-canvas-interactions';
 
@@ -41,6 +42,7 @@ export interface CadLiteBrowserRuntime {
   surface: ProjectLayoutSurface;
   pieceCanvas: PieceCanvasSurface;
   floorPlanCanvas: FloorPlanCanvasSurface;
+  floorPlanNavigator: FloorPlanNavigatorSurface;
   pieceInteractions: PieceInteractionController;
   annotationInteractions: AnnotationInteractionController;
   roomFeatureInteractions: RoomFeatureInteractionController;
@@ -126,6 +128,13 @@ export function mountCadLiteBrowserRuntime(
     store,
     effects,
   });
+  const floorPlanNavigator = new FloorPlanNavigatorSurface({
+    root,
+    store,
+    commands,
+    effects,
+    ...(options.confirm ? { confirm: options.confirm } : {}),
+  });
   const roomFeatureCanvasInteractions = new RoomFeatureCanvasInteractions({
     root,
     store,
@@ -137,6 +146,7 @@ export function mountCadLiteBrowserRuntime(
   surface.mount();
   pieceCanvas.mount();
   floorPlanCanvas.mount();
+  floorPlanNavigator.mount();
   roomFeatureCanvasInteractions.mount();
   effects.start();
 
@@ -157,6 +167,7 @@ export function mountCadLiteBrowserRuntime(
     surface,
     pieceCanvas,
     floorPlanCanvas,
+    floorPlanNavigator,
     pieceInteractions,
     annotationInteractions,
     roomFeatureInteractions,
@@ -171,6 +182,7 @@ export function mountCadLiteBrowserRuntime(
       unregisterAnnotationTools.forEach((unregister) => unregister());
       unregisterRoomFeatureTools.forEach((unregister) => unregister());
       roomFeatureCanvasInteractions.unmount();
+      floorPlanNavigator.unmount();
       floorPlanCanvas.unmount();
       pieceCanvas.unmount();
       surface.unmount();
