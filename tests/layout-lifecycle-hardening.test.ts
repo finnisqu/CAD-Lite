@@ -82,7 +82,7 @@ describe('cross-layout session lifecycle hardening', () => {
     expect(bath?.pieces.some((piece) => piece.id === 'piece-bath-hardening')).toBe(true);
   });
 
-  it('deleting the active layout falls back cleanly and undo restores the deleted layout', () => {
+  it('deleting the active selected layout falls back cleanly and undo restores its session state', () => {
     const { store, commands, effects } = setup();
 
     commands.execute(setActiveLayout('layout-bath'));
@@ -90,7 +90,10 @@ describe('cross-layout session lifecycle hardening', () => {
 
     expect(store.getState().project.layouts.some((layout) => layout.id === 'layout-bath')).toBe(false);
     expect(store.getState().session.activeLayoutId).toBe('layout-kitchen');
-    expect(store.getState().session.selection).toEqual({ kind: 'none' });
+    expect(store.getState().session.selection).toEqual({
+      kind: 'layout',
+      id: 'layout-kitchen',
+    });
     expect(store.getState().session.interaction.activeTool).toBeNull();
     expect(store.getState().session.transient).toEqual({});
 
