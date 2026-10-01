@@ -62,6 +62,11 @@ export type {
   CanvasNoteProjection,
 } from './annotation-canvas-model';
 
+export { createFloorPlanCanvasProjection } from './floor-plan-canvas-model';
+export type { FloorPlanCanvasProjection } from './floor-plan-canvas-model';
+export { FloorPlanCanvasSurface } from './floor-plan-canvas-surface';
+export type { FloorPlanCanvasSurfaceOptions } from './floor-plan-canvas-surface';
+
 export {
   createRoomFeatureCanvasProjection,
   hitTestRoomFeatures,
