@@ -133,6 +133,11 @@ export class ToolController {
     if (!active || active.activation !== 'momentary') return false;
 
     if (key && active.heldKey !== normalizeKey(key)) return false;
+    const parent = getToolDefinition(active.id).parentTool;
+    if (parent) {
+      const next = this.makeActiveInteraction(parent, 'locked', null);
+      return this.deactivateTo(next.activeTool, false);
+    }
     return this.deactivateTo(null, false);
   }
 
