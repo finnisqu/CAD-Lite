@@ -1,0 +1,544 @@
+.cad-lite-production-shell__inspector > .cad-lite-production-shell__section {
+  padding: 0;
+  border-bottom: 0;
+}
+
+.cad-lite-production-shell #lc-inspector {
+  min-width: 0;
+  padding: 10px 12px 12px;
+}
+
+.cad-lite-production-shell #lc-inspector:empty::before {
+  content: "Select an item to edit its properties.";
+  display: block;
+  padding: 14px 4px;
+  color: var(--lc-muted);
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+.cad-lite-production-shell #lc-inspector > .lc-item,
+.cad-lite-production-shell #lc-inspector .lc-annotation-inspector {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  outline: 0;
+}
+
+.cad-lite-production-shell #lc-inspector .lc-inspector-context-title,
+.cad-lite-production-shell #lc-inspector > h3 {
+  margin: 0 -12px 10px;
+  padding: 9px 12px 10px;
+  border-bottom: 1px solid var(--lc-border);
+  color: var(--lc-text);
+  background: var(--lc-panel);
+  font-size: 12px;
+  font-weight: 750;
+  letter-spacing: .015em;
+}
+
+.cad-lite-production-shell #lc-inspector > h3 {
+  margin-top: -10px;
+}
+
+.cad-lite-production-shell #lc-inspector .lc-selection-inspector-title {
+  margin: -3px 0 9px;
+  color: var(--lc-muted);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: .05em;
+  text-transform: uppercase;
+}
+
+.cad-lite-production-shell #lc-inspector label,
+.cad-lite-production-shell #lc-inspector .lc-field,
+.cad-lite-production-shell #lc-inspector .lc-material-field,
+.cad-lite-production-shell #lc-inspector .lc-piece-geometry-field {
+  min-width: 0;
+  color: var(--lc-muted);
+  font-size: 10px;
+  line-height: 1.25;
+}
+
+.cad-lite-production-shell #lc-inspector label > span:first-child,
+.cad-lite-production-shell #lc-inspector .lc-field > span:first-child,
+.cad-lite-production-shell #lc-inspector .lc-piece-geometry-field > span:first-child {
+  min-width: 0;
+}
+
+.cad-lite-production-shell #lc-inspector input,
+.cad-lite-production-shell #lc-inspector textarea,
+.cad-lite-production-shell #lc-inspector select {
+  min-width: 0;
+  min-height: 30px;
+  padding: 5px 7px;
+  border: 1px solid var(--lc-border);
+  border-radius: 5px;
+  color: var(--lc-text);
+  background: var(--lc-panel);
+  font-size: 11px;
+}
+
+.cad-lite-production-shell #lc-inspector textarea {
+  min-height: 64px;
+  resize: vertical;
+}
+
+.cad-lite-production-shell #lc-inspector input:focus,
+.cad-lite-production-shell #lc-inspector textarea:focus,
+.cad-lite-production-shell #lc-inspector select:focus {
+  border-color: var(--lc-selected-border);
+  outline: 2px solid color-mix(in srgb, var(--lc-selected-border) 25%, transparent);
+  outline-offset: 0;
+}
+
+.cad-lite-production-shell #lc-inspector .lc-subcard-body,
+.cad-lite-production-shell #lc-inspector .lc-annotation-inspector-fields,
+.cad-lite-production-shell #lc-inspector .lc-room-feature-inspector-fields,
+.cad-lite-production-shell #lc-inspector .lc-slab-inspector-fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.cad-lite-production-shell #lc-inspector .lc-subcard-body > .lc-small,
+.cad-lite-production-shell #lc-inspector .lc-annotation-inspector-fields > textarea,
+.cad-lite-production-shell #lc-inspector .lc-annotation-inspector-fields > .lc-annotation-toggle-row,
+.cad-lite-production-shell #lc-inspector .lc-annotation-inspector-fields > button,
+.cad-lite-production-shell #lc-inspector .lc-room-feature-inspector-fields > .lc-room-feature-check,
+.cad-lite-production-shell #lc-inspector .lc-room-feature-category,
+.cad-lite-production-shell #lc-inspector .lc-slab-visible-field,
+.cad-lite-production-shell #lc-inspector .lc-slab-inspector-note {
+  grid-column: 1 / -1;
+}
+
+.cad-lite-production-shell #lc-inspector .lc-piece-geometry-fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin: 9px 0 11px;
+}
+
+.cad-lite-production-shell #lc-inspector .lc-piece-geometry-fields > :last-child:nth-child(odd) {
+  grid-column: 1 / -1;
+}
+
+.cad-lite-production-shell #lc-inspector .lc-btn,
+.cad-lite-production-shell #lc-inspector > button {
+  min-width: 0;
+  min-height: 29px;
+  padding: 4px 8px;
+  border: 1px solid var(--lc-border);
+  border-radius: 5px;
+  color: var(--lc-text);
+  background: var(--lc-panel);
+  font-size: 10px;
+}
+
+.cad-lite-production-shell #lc-inspector .lc-btn.ghost,
+.cad-lite-production-shell #lc-inspector > button:not(.red) {
+  background: transparent;
+}
+
+.cad-lite-production-shell #lc-inspector .lc-btn.red,
+.cad-lite-production-shell #lc-inspector .lc-delete-btn.red,
+.cad-lite-production-shell #lc-inspector > button.red {
+  border-color: color-mix(in srgb, var(--lc-danger) 35%, var(--lc-border));
+  color: var(--lc-danger);
+  background: var(--lc-danger-bg);
+}
+
+.cad-lite-production-shell #lc-inspector .lc-inspector-full-action,
+.cad-lite-production-shell #lc-inspector .lc-annotation-delete,
+.cad-lite-production-shell #lc-inspector .lc-room-feature-inspector > .lc-btn.red {
+  width: 100%;
+  margin-top: 10px;
+}
+
+.cad-lite-production-shell #lc-inspector .lc-small {
+  color: var(--lc-muted);
+  font-size: 9px;
+  line-height: 1.35;
+}
+
+/* Project Material / Selection inspector */
+.cad-lite-production-shell #lc-inspector .lc-selection-material-top-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: end;
+  gap: 7px;
+  margin-bottom: 9px;
+}
+
+.cad-lite-production-shell #lc-inspector .lc-material-picker-wrap,
+.cad-lite-production-shell #lc-inspector .lc-material-field {
+  margin: 0 0 8px;
+}
+
+.cad-lite-production-shell #lc-inspector .lc-material-add {
+  min-height: 30px;
+}
+
+.cad-lite-production-shell #lc-inspector .lc-material-foundation-hint {
+  margin: 3px 0 9px;
+  padding: 7px 8px;
+  border: 1px solid var(--lc-border);
+  border-radius: 5px;
+  background: var(--lc-toolbar);
+}
+
+/* Piece Group / Assembly inspector */
+.cad-lite-production-shell #lc-inspector .lc-piece-group-summary {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 5px;
+  grid-column: 1 / -1;
+  margin-top: 2px;
+}
+
+.cad-lite-production-shell #lc-inspector .lc-piece-group-summary__item {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  padding: 5px 6px;
+  border: 1px solid var(--lc-border);
+  border-radius: 5px;
+  background: var(--lc-toolbar);
+  font-size: 9px;
+}
+
+.cad-lite-production-shell #lc-inspector .lc-piece-group-summary__item span {
+  color: var(--lc-muted);
+}
+
+.cad-lite-production-shell #lc-inspector .lc-piece-group-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+  grid-column: 1 / -1;
+  margin-top: 4px;
+}
+
+.cad-lite-production-shell #lc-inspector .lc-piece-group-hierarchy-hint {
+  grid-column: 1 / -1;
+}
+
+.cad-lite-production-shell #lc-inspector .lc-group-selected-action {
+  width: 100%;
+  margin-bottom: 8px;
+}
+
+/* Reusable fabrication Inspector sections */
+.cad-lite-production-shell #lc-inspector .lc-piece-sinks-inspector,
+.cad-lite-production-shell #lc-inspector .lc-piece-cutouts-inspector,
+.cad-lite-production-shell #lc-inspector .lc-piece-seams-inspector,
+.cad-lite-production-shell #lc-inspector .lc-fabrication-seams-inspector {
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid var(--lc-border);
+}
+
+.cad-lite-production-shell #lc-inspector .lc-piece-sinks-inspector__header,
+.cad-lite-production-shell #lc-inspector .lc-piece-cutouts-inspector__header,
+.cad-lite-production-shell #lc-inspector .lc-piece-seams-inspector__header,
+.cad-lite-production-shell #lc-inspector .lc-piece-sink-row__header,
+.cad-lite-production-shell #lc-inspector .lc-piece-cutout-row__header,
+.cad-lite-production-shell #lc-inspector .lc-piece-seam-row__header,
+.cad-lite-production-shell #lc-inspector .lc-piece-sink-row__actions,
+.cad-lite-production-shell #lc-inspector .lc-piece-cutout-row__actions {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+}
+
+.cad-lite-production-shell #lc-inspector .lc-piece-sinks-inspector__header > strong,
+.cad-lite-production-shell #lc-inspector .lc-piece-cutouts-inspector__header > strong,
+.cad-lite-production-shell #lc-inspector .lc-piece-seams-inspector__header > strong,
+.cad-lite-production-shell #lc-inspector .lc-fabrication-seams-inspector > strong {
+  font-size: 10px;
+  font-weight: 750;
+  letter-spacing: .035em;
+  text-transform: uppercase;
+}
+
+.cad-lite-production-shell #lc-inspector .lc-add-inspector-item,
+.cad-lite-production-shell #lc-inspector .lc-piece-cutout-add-actions {
+  margin-top: 6px;
+}
+
+.cad-lite-production-shell #lc-inspector .lc-piece-cutout-add-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.cad-lite-production-shell #lc-inspector .lc-piece-sink-list,
+.cad-lite-production-shell #lc-inspector .lc-piece-cutout-list,
+.cad-lite-production-shell #lc-inspector .lc-piece-seam-list,
+.cad-lite-production-shell #lc-inspector .lc-fabrication-seams-inspector {
+  display: grid;
+  gap: 7px;
+  margin-top: 7px;
+}
+
+.cad-lite-production-shell #lc-inspector .lc-piece-sink-row,
+.cad-lite-production-shell #lc-inspector .lc-piece-cutout-row,
+.cad-lite-production-shell #lc-inspector .lc-piece-seam-row,
+.cad-lite-production-shell #lc-inspector .lc-fabrication-seam-row {
+  min-width: 0;
+  padding: 7px;
+  border: 1px solid var(--lc-border);
+  border-radius: 6px;
+  background: var(--lc-toolbar);
+}
+
+.cad-lite-production-shell #lc-inspector .lc-piece-sink-row__header > span,
+.cad-lite-production-shell #lc-inspector .lc-piece-cutout-row__header > span,
+.cad-lite-production-shell #lc-inspector .lc-piece-seam-row__header > span,
+.cad-lite-production-shell #lc-inspector .lc-fabrication-seam-row > span {
+  min-width: 0;
+  overflow: hidden;
+  flex: 1 1 auto;
+  font-size: 10px;
+  font-weight: 650;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cad-lite-production-shell #lc-inspector .lc-piece-sink-fields,
+.cad-lite-production-shell #lc-inspector .lc-piece-cutout-fields,
+.cad-lite-production-shell #lc-inspector .lc-piece-seam-fields,
+.cad-lite-production-shell #lc-inspector .lc-piece-sink-faucet-settings {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 7px;
+  margin-top: 7px;
+}
+
+.cad-lite-production-shell #lc-inspector .lc-piece-sink-faucets {
+  margin-top: 8px;
+  padding: 7px;
+  border: 1px solid var(--lc-border);
+  border-radius: 5px;
+  background: var(--lc-panel);
+}
+
+.cad-lite-production-shell #lc-inspector .lc-piece-sink-faucets legend {
+  padding: 0 4px;
+  color: var(--lc-muted);
+  font-size: 9px;
+  font-weight: 700;
+}
+
+.cad-lite-production-shell #lc-inspector .lc-piece-sink-faucet-pattern {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 4px;
+}
+
+.cad-lite-production-shell #lc-inspector .lc-piece-sink-faucet-pattern label {
+  display: grid;
+  justify-items: center;
+  gap: 2px;
+  margin: 0;
+  padding: 3px 1px;
+  border: 1px solid var(--lc-border);
+  border-radius: 4px;
+  background: var(--lc-toolbar);
+  font-size: 8px;
+}
+
+.cad-lite-production-shell #lc-inspector .lc-piece-sink-faucet-pattern input {
+  width: auto;
+  min-height: 0;
+}
+
+.cad-lite-production-shell #lc-inspector .lc-piece-cutout-perimeter,
+.cad-lite-production-shell #lc-inspector .lc-piece-cutout-note,
+.cad-lite-production-shell #lc-inspector .lc-inspector-empty {
+  margin-top: 7px;
+  padding: 6px 7px;
+  border-radius: 5px;
+  background: var(--lc-panel);
+}
+
+.cad-lite-production-shell #lc-inspector .lc-seam-cut-action {
+  width: 100%;
+  margin-top: 6px;
+}
+
+.cad-lite-production-shell #lc-inspector .lc-fabrication-seam-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+}
+
+/* Annotation inspectors */
+.cad-lite-production-shell #lc-inspector .lc-annotation-inspector-fields > label:first-child:has(textarea) {
+  grid-column: 1 / -1;
+}
+
+.cad-lite-production-shell #lc-inspector .lc-annotation-toggle-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.cad-lite-production-shell #lc-inspector .lc-annotation-toggle-row label,
+.cad-lite-production-shell #lc-inspector .lc-room-feature-check,
+.cad-lite-production-shell #lc-inspector .lc-slab-visible-field {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin: 0;
+  padding: 5px 7px;
+  border: 1px solid var(--lc-border);
+  border-radius: 5px;
+  background: var(--lc-toolbar);
+  color: var(--lc-text);
+  font-size: 9px;
+}
+
+.cad-lite-production-shell #lc-inspector .lc-annotation-toggle-row input,
+.cad-lite-production-shell #lc-inspector .lc-room-feature-check input,
+.cad-lite-production-shell #lc-inspector .lc-slab-visible-field input {
+  width: auto;
+  min-height: 0;
+  margin: 0;
+}
+
+/* Room Feature inspector */
+.cad-lite-production-shell #lc-inspector .lc-room-feature-inspector-fields {
+  margin-bottom: 8px;
+}
+
+/* SLAB inspector */
+.cad-lite-production-shell #lc-inspector .lc-slab-inspector-note {
+  padding: 7px;
+  border: 1px solid var(--lc-border);
+  border-radius: 5px;
+  background: var(--lc-toolbar);
+}
+
+/* Piece actions */
+.cad-lite-production-shell #lc-inspector .lc-piece-mirror-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+  margin: 10px 0;
+}
+
+.cad-lite-production-shell #lc-inspector > label {
+  margin-top: 8px;
+}
+
+.cad-lite-production-shell #lc-inspector > button {
+  width: 100%;
+  margin-top: 6px;
+}
+
+/* Scratchpad */
+.cad-lite-production-shell .lc-scratchpad-host {
+  position: relative;
+}
+
+.cad-lite-production-shell .lc-scratchpad {
+  position: relative;
+  margin: 0 12px 12px;
+  border: 1px solid var(--lc-border);
+  border-radius: 7px;
+  background: var(--lc-panel);
+  box-shadow: none;
+  overflow: hidden;
+}
+
+.cad-lite-production-shell .lc-scratchpad.is-floating {
+  position: fixed;
+  z-index: 1200;
+  margin: 0;
+  box-shadow: 0 12px 32px rgba(16, 24, 40, .2);
+}
+
+.cad-lite-production-shell .lc-scratchpad-head {
+  display: flex;
+  min-height: 29px;
+  align-items: center;
+  justify-content: space-between;
+  padding: 4px 6px;
+  border-bottom: 1px solid var(--lc-border);
+  background: var(--lc-toolbar);
+}
+
+.cad-lite-production-shell .lc-scratchpad-grab {
+  display: grid;
+  grid-template-columns: repeat(3, 3px);
+  gap: 3px;
+  padding: 5px;
+  cursor: grab;
+}
+
+.cad-lite-production-shell .lc-scratchpad-grab i {
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: var(--lc-muted);
+}
+
+.cad-lite-production-shell .lc-scratchpad-iconbtn,
+.cad-lite-production-shell .lc-scratchpad-home {
+  min-width: 26px;
+  min-height: 26px;
+  padding: 0;
+}
+
+.cad-lite-production-shell .lc-scratchpad-editor {
+  min-height: 96px;
+  max-height: 280px;
+  overflow: auto;
+  padding: 8px;
+  color: var(--lc-text);
+  background: var(--lc-panel);
+  font-size: 11px;
+  line-height: 1.45;
+  outline: none;
+}
+
+.cad-lite-production-shell .lc-scratchpad-editor:empty::before {
+  content: attr(data-placeholder);
+  color: var(--lc-muted);
+  pointer-events: none;
+}
+
+.cad-lite-production-shell .lc-scratchpad-home {
+  position: absolute;
+  right: 12px;
+  bottom: 12px;
+  z-index: 2;
+}
+
+@media (max-width: 1180px) {
+  .cad-lite-production-shell #lc-inspector .lc-piece-sink-fields,
+  .cad-lite-production-shell #lc-inspector .lc-piece-cutout-fields,
+  .cad-lite-production-shell #lc-inspector .lc-piece-seam-fields,
+  .cad-lite-production-shell #lc-inspector .lc-piece-sink-faucet-settings,
+  .cad-lite-production-shell #lc-inspector .lc-annotation-inspector-fields,
+  .cad-lite-production-shell #lc-inspector .lc-room-feature-inspector-fields,
+  .cad-lite-production-shell #lc-inspector .lc-slab-inspector-fields {
+    grid-template-columns: 1fr;
+  }
+
+  .cad-lite-production-shell #lc-inspector .lc-subcard-body > *,
+  .cad-lite-production-shell #lc-inspector .lc-annotation-inspector-fields > *,
+  .cad-lite-production-shell #lc-inspector .lc-room-feature-inspector-fields > *,
+  .cad-lite-production-shell #lc-inspector .lc-slab-inspector-fields > * {
+    grid-column: 1;
+  }
+}
