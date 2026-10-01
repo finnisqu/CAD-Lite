@@ -1,4 +1,5 @@
 import './styles/index.css';
+import './styles/production-shell.css';
 import './styles/floor-plan-preparation.css';
 import './styles/materials.css';
 import './styles/scratchpad.css';
