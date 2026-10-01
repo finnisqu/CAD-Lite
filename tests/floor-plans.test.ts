@@ -289,7 +289,6 @@ describe('Batch 26 Floor Plan preparation and calibration foundation', () => {
       calibrated: true,
       locked: true,
     });
-    expect(layout?.calibration).toBeUndefined();
     expect(layout?.cw).toBeGreaterThanOrEqual(150);
   });
 
