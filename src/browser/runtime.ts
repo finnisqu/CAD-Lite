@@ -2,6 +2,7 @@ import {
   AnnotationInteractionController,
   AppStore,
   ApplicationEffects,
+  CanvasSelectionActions,
   CommandDispatcher,
   PieceInteractionController,
   ProjectLifecycle,
@@ -44,6 +45,7 @@ export interface CadLiteBrowserRuntime {
   store: AppStore;
   commands: CommandDispatcher;
   selection: SelectionController;
+  selectionActions: CanvasSelectionActions;
   tools: ToolController;
   effects: ApplicationEffects;
   lifecycle: ProjectLifecycle;
@@ -100,6 +102,11 @@ export function mountCadLiteBrowserRuntime(
         ? prefix + '-' + uuid
         : prefix + '-' + Date.now().toString(36) + '-' + runtimeIdCounter.toString(36);
     });
+  const selectionActions = new CanvasSelectionActions(
+    store,
+    commands,
+    createId,
+  );
   const unregisterAnnotationTools = registerAnnotationToolHandlers(
     (toolId, handler) => tools.register(toolId, handler),
     createId,
@@ -167,6 +174,7 @@ export function mountCadLiteBrowserRuntime(
     effects,
     interaction: pieceInteractions,
     annotationInteraction: annotationInteractions,
+    selectionActions,
     tools,
   });
   const floorPlanCanvas = new FloorPlanCanvasSurface({
@@ -226,6 +234,7 @@ export function mountCadLiteBrowserRuntime(
     store,
     commands,
     selection,
+    selectionActions,
     tools,
     effects,
     lifecycle,
