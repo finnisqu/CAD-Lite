@@ -1,5 +1,4 @@
 import type { CadLiteFile } from '../persistence';
-import { serializeCadLiteFile } from '../persistence';
 import type { ApplicationEffects } from './effects';
 import type { ProjectLifecycle, ProjectReplacementResult } from './project-lifecycle';
 
@@ -19,14 +18,20 @@ export interface StartupUseCurrentResult {
   autosaved: boolean;
 }
 
+function samePersistedContent(a: CadLiteFile, b: CadLiteFile): boolean {
+  return JSON.stringify({ project: a.project, editor: a.editor }) ===
+    JSON.stringify({ project: b.project, editor: b.editor });
+}
+
 /**
  * Owns the startup decision between the payload supplied by the host page and
  * the previous local autosave.
  *
  * The coordinator never replaces application state during inspection. A
  * recoverable autosave must be explicitly accepted; a corrupt autosave is
- * isolated until the user explicitly discards it. Identical autosave/current
- * payloads are recognized so normal reloads do not create a recovery prompt.
+ * isolated until the user explicitly discards it. Identical project/editor
+ * payloads are recognized across app builds so normal reloads do not create a
+ * recovery prompt just because build metadata changed.
  */
 export class StartupRecovery {
   private state: StartupRecoveryState = { status: 'none' };
@@ -50,10 +55,7 @@ export class StartupRecovery {
     }
 
     const current = this.lifecycle.exportFile();
-    if (
-      serializeCadLiteFile(result.file) ===
-      serializeCadLiteFile(current)
-    ) {
+    if (samePersistedContent(result.file, current)) {
       this.state = { status: 'current', file: result.file };
       return this.state;
     }
