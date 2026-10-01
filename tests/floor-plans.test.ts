@@ -20,7 +20,11 @@ import { v159ProjectFixture } from './fixtures/v159-project';
 
 function payloadWithPlan() {
   const payload = structuredClone(v159ProjectFixture);
-  const layout = payload.layouts?.[0];
+  const layouts = payload.layouts;
+  if (!Array.isArray(layouts)) {
+    throw new Error('Fixture Layout collection changed');
+  }
+  const layout = layouts[0];
   if (!layout || typeof layout !== 'object' || Array.isArray(layout)) {
     throw new Error('Fixture Layout shape changed');
   }
@@ -115,7 +119,9 @@ describe('Batch 25 typed Floor Plan domain', () => {
       h: 200,
     });
     const rotated = normalizeFloorPlan({ ...plan, rotation: 90, margin: 6 });
-    expect(floorPlanCanvasSize(rotated!)).toEqual({ w: 212, h: 312 });
+    expect(rotated).not.toBeNull();
+    if (!rotated) throw new Error('Floor Plan normalization failed');
+    expect(floorPlanCanvasSize(rotated)).toEqual({ w: 212, h: 312 });
   });
 
   it('calibrates uniformly and locks the result', () => {
