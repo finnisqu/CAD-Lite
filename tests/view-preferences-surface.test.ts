@@ -25,8 +25,10 @@ describe('number format preference controls', () => {
   });
 });
 
-describe('annotation view preference controls', () => {
+describe('view preference controls', () => {
   it('maps the supported browser controls to typed preferences', () => {
+    expect(booleanViewPreferenceFromControlId('lc-show-grid')).toBe('showGrid');
+    expect(booleanViewPreferenceFromControlId('lc-show-dims')).toBe('showDims');
     expect(booleanViewPreferenceFromControlId('lc-show-manual-dims')).toBe(
       'showManualDims',
     );
@@ -34,7 +36,7 @@ describe('annotation view preference controls', () => {
     expect(booleanViewPreferenceFromControlId('lc-show-lines')).toBe('showLines');
   });
 
-  it('does not claim unrelated controls', () => {
+  it('does not claim controls owned by other browser surfaces', () => {
     expect(booleanViewPreferenceFromControlId('lc-show-seams')).toBeNull();
     expect(booleanViewPreferenceFromControlId('lc-piece-snap')).toBeNull();
     expect(booleanViewPreferenceFromControlId('unknown')).toBeNull();
