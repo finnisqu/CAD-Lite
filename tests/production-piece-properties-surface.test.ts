@@ -41,7 +41,7 @@ describe('production Piece properties projection', () => {
       fillOpacity: 1,
     });
     expect(projection?.overhangs).toEqual({
-      front: 0,
+      front: 1.5,
       back: 0,
       left: 0,
       right: 0,
