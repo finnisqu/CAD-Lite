@@ -80,9 +80,7 @@ export class FloorPlanCalibrationSurface {
     this.alert =
       options.alert ??
       ((message) => {
-        if (typeof globalThis.alert === 'function') {
-          globalThis.alert(message);
-        }
+        if (typeof window !== 'undefined') window.alert(message);
       });
     this.onModal = options.onModal ?? null;
     this.document = ownerDocument(options.root);
