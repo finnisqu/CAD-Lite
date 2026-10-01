@@ -12,7 +12,11 @@ export type DimensionPrecision = 1 | 2 | 4 | 8 | 16;
 export type BooleanViewPreference =
   | 'showManualDims'
   | 'showNotes'
-  | 'showLines';
+  | 'showLines'
+  | 'showSeams'
+  | 'showSinkCenterlines'
+  | 'showCutoutLabels'
+  | 'showSlabMaterial';
 
 const BOOLEAN_VIEW_CONTROLS: ReadonlyArray<{
   id: string;
@@ -21,6 +25,10 @@ const BOOLEAN_VIEW_CONTROLS: ReadonlyArray<{
   { id: 'lc-show-manual-dims', preference: 'showManualDims' },
   { id: 'lc-show-notes', preference: 'showNotes' },
   { id: 'lc-show-lines', preference: 'showLines' },
+  { id: 'lc-show-seams', preference: 'showSeams' },
+  { id: 'lc-show-sink-centerlines', preference: 'showSinkCenterlines' },
+  { id: 'lc-show-cutout-labels', preference: 'showCutoutLabels' },
+  { id: 'lc-show-slab-material', preference: 'showSlabMaterial' },
 ];
 
 export interface ViewPreferencesSurfaceOptions {
@@ -57,7 +65,7 @@ export function booleanViewPreferenceFromControlId(
 }
 
 /**
- * Browser binding for shared View preferences.
+ * Browser binding for shared and workspace-scoped View preferences.
  *
  * The controls intentionally dispatch the existing typed preferences command;
  * formatting and visibility state stay outside drawing entities. Number format
@@ -134,7 +142,7 @@ export class ViewPreferencesSurface {
     });
 
     this.unsubscribe = this.store.subscribe((event) => {
-      if (event.changed.preferences) this.render();
+      if (event.changed.preferences || event.changed.session) this.render();
     });
     this.render();
   }
@@ -144,11 +152,14 @@ export class ViewPreferencesSurface {
     this.abort = null;
     this.unsubscribe?.();
     this.unsubscribe = null;
+    this.formatControl = null;
+    this.precisionControl = null;
     this.booleanControls = [];
   }
 
   render(): void {
-    const preferences = this.store.getState().preferences;
+    const state = this.store.getState();
+    const preferences = state.preferences;
     if (this.formatControl) {
       this.formatControl.value = preferences.dimFormat;
     }
@@ -160,6 +171,9 @@ export class ViewPreferencesSurface {
       const active = preferences[preference];
       element.setAttribute('aria-pressed', String(active));
       element.classList.toggle('is-active', active);
+      if (preference === 'showSlabMaterial') {
+        element.hidden = state.session.workspace !== 'slab';
+      }
     });
   }
 }
