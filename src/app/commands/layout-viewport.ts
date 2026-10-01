@@ -1,5 +1,10 @@
-import { clampPiecePoseToWorkspace, pieceGeometry, piecePose } from '../../domain/pieces';
+import {
+  clampPiecePoseToWorkspace,
+  pieceGeometry,
+  piecePose,
+} from '../../domain/pieces';
 import type { Layout } from '../../domain/project';
+import type { HistoryPolicy, PersistencePolicy } from '../store';
 import type { AppCommand } from './types';
 
 export const MIN_CANVAS_DIMENSION = 12;
@@ -14,11 +19,21 @@ export interface LayoutViewportPatch {
   grid?: number;
 }
 
+export interface LayoutViewportCommandOptions {
+  history?: HistoryPolicy;
+  persistence?: PersistencePolicy;
+  label?: string;
+}
+
 function finite(value: number | undefined, fallback: number): number {
   return typeof value === 'number' && Number.isFinite(value) ? value : fallback;
 }
 
-function clamp(value: number, minimum: number, maximum = Number.POSITIVE_INFINITY): number {
+function clamp(
+  value: number,
+  minimum: number,
+  maximum = Number.POSITIVE_INFINITY,
+): number {
   return Math.max(minimum, Math.min(maximum, value));
 }
 
@@ -95,12 +110,13 @@ function applyViewportPatch(
 export function updateLayoutViewport(
   layoutId: string,
   patch: LayoutViewportPatch,
+  options: LayoutViewportCommandOptions = {},
 ): AppCommand {
   return {
     type: 'layout.updateViewport',
-    label: 'Update canvas view',
-    history: 'record',
-    persistence: 'save',
+    label: options.label ?? 'Update canvas view',
+    history: options.history ?? 'record',
+    persistence: options.persistence ?? 'save',
     reduce(state) {
       const index = state.project.layouts.findIndex(
         (layout) => layout.id === layoutId,
