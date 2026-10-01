@@ -4,6 +4,7 @@ import {
   ApplicationEffects,
   CommandDispatcher,
   PieceInteractionController,
+  ProjectLifecycle,
   RoomFeatureInteractionController,
   SelectionController,
   ToolController,
@@ -18,6 +19,7 @@ import {
   type BrowserConfirm,
   type BrowserEntityIdFactory,
 } from './project-layout-surface';
+import { ProjectFileSurface } from './project-file-surface';
 import { FloorPlanCanvasSurface } from './floor-plan-canvas-surface';
 import { FloorPlanNavigatorSurface } from './floor-plan-navigator-surface';
 import { FloorPlanPreparationSurface } from './floor-plan-preparation-surface';
@@ -42,6 +44,8 @@ export interface CadLiteBrowserRuntime {
   selection: SelectionController;
   tools: ToolController;
   effects: ApplicationEffects;
+  lifecycle: ProjectLifecycle;
+  projectFileSurface: ProjectFileSurface;
   surface: ProjectLayoutSurface;
   materialSurface: MaterialSurface;
   scratchpadSurface: ScratchpadSurface;
@@ -110,6 +114,19 @@ export function mountCadLiteBrowserRuntime(
     autosaveStorage: options.storage ?? browserStorage(),
     autosave: options.autosave ?? {},
   });
+  const lifecycle = new ProjectLifecycle(store, effects, {
+    beforeReplace: () => {
+      pieceInteractions.cancel();
+      annotationInteractions.cancel();
+      roomFeatureInteractions.cancel();
+      tools.cancel();
+    },
+  });
+  const projectFileSurface = new ProjectFileSurface({
+    root,
+    lifecycle,
+    ...(options.confirm ? { confirm: options.confirm } : {}),
+  });
   const surface = new ProjectLayoutSurface({
     root,
     store,
@@ -176,6 +193,7 @@ export function mountCadLiteBrowserRuntime(
     interaction: roomFeatureInteractions,
   });
 
+  projectFileSurface.mount();
   surface.mount();
   materialSurface.mount();
   scratchpadSurface.mount();
@@ -200,6 +218,8 @@ export function mountCadLiteBrowserRuntime(
     selection,
     tools,
     effects,
+    lifecycle,
+    projectFileSurface,
     surface,
     materialSurface,
     scratchpadSurface,
@@ -228,6 +248,7 @@ export function mountCadLiteBrowserRuntime(
       scratchpadSurface.unmount();
       materialSurface.unmount();
       surface.unmount();
+      projectFileSurface.unmount();
       effects.stop(false);
     },
   };
