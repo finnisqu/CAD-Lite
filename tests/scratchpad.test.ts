@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import {
   AppStore,
   CommandDispatcher,
+  HistoryManager,
   applicationStateFromLegacyPayload,
   updateProjectScratchpad,
 } from '../src/app';
@@ -17,7 +18,10 @@ function setup() {
   const store = new AppStore(
     applicationStateFromLegacyPayload(v159ProjectFixture),
   );
-  return { store, commands: new CommandDispatcher(store) };
+  const commands = new CommandDispatcher(store);
+  const history = new HistoryManager(store);
+  history.start();
+  return { store, commands, history };
 }
 
 describe('Batch 28 Project Scratchpad foundation', () => {
@@ -73,8 +77,8 @@ describe('Batch 28 Project Scratchpad foundation', () => {
   });
 
   it('updates project scratchpad without creating CAD Undo history', () => {
-    const { store, commands } = setup();
-    const historyBefore = store.getHistoryState();
+    const { store, commands, history } = setup();
+    const historyBefore = history.getStatus();
     expect(
       commands.execute(
         updateProjectScratchpad({ html: '<i>Template notes</i>' }),
@@ -83,7 +87,7 @@ describe('Batch 28 Project Scratchpad foundation', () => {
     expect(store.getState().project.meta.scratchpad.html).toBe(
       '<i>Template notes</i>',
     );
-    expect(store.getHistoryState()).toEqual(historyBefore);
+    expect(history.getStatus()).toEqual(historyBefore);
   });
 
   it('isolates scratchpad-only project invalidation from the CAD surfaces', () => {

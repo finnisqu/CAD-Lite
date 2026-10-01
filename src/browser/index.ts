@@ -20,6 +20,8 @@ export type {
 
 export { MaterialSurface } from './material-surface';
 export type { MaterialSurfaceOptions } from './material-surface';
+export { ScratchpadSurface } from './scratchpad-surface';
+export type { ScratchpadSurfaceOptions } from './scratchpad-surface';
 
 export {
   mountCadLiteBrowserRuntime,

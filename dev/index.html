@@ -76,19 +76,19 @@
             <svg
               id="lc-svg"
               role="img"
-              aria-label="Read-only Piece rendering architecture harness"
+              aria-label="Piece rendering architecture harness"
             ></svg>
           </div>
           <p class="lc-small">
-            Batch 23 harness: typed Room Features and Walls now share Layout
-            ownership, selection, visibility filters, canvas projection, Navigator,
-            and command-backed Inspector editing alongside the annotation stack.
+            Batch 28 harness: the typed Project Scratchpad now persists rich-text
+            notes and dock/floating geometry without consuming CAD Undo history or
+            invalidating the drawing surfaces on each edit.
           </p>
           <pre id="build-info"></pre>
         </section>
 
-        <aside>
-          <section class="lc-card">
+        <aside class="lc-inspector-col">
+          <section class="lc-card lc-inspector-panel">
             <h2>Inspector</h2>
             <div id="lc-inspector"></div>
           </section>
@@ -108,7 +108,15 @@
           name: 'Architecture Test',
           date: '2026-09-30',
           notes: 'Piece foundation architecture harness',
-          scratchpad: null,
+          scratchpad: {
+            html: '<b>Field notes</b><br>Verify sink-wall dimension.',
+            floating: false,
+            dockHeight: 220,
+            width: 360,
+            height: 300,
+            left: null,
+            top: null,
+          },
         },
         materials: [],
         layouts: [

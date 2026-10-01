@@ -1,0 +1,176 @@
+/* Batch 28 — v1.5.99 Project Scratchpad parity. */
+
+.lc-scratchpad-host {
+  position: relative;
+}
+
+.lc-scratchpad {
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  min-height: 150px;
+  overflow: hidden;
+  border: 1px solid #e2e1dc;
+  background: #fffef9;
+  color: #252525;
+}
+
+.lc-scratchpad.is-docked {
+  position: relative;
+  z-index: 25;
+  width: 100%;
+  height: 220px;
+  max-height: 420px;
+  margin-top: 12px;
+  flex: 0 0 auto;
+  overflow: auto;
+  resize: vertical;
+  border-radius: 8px 8px 0 0;
+}
+
+.lc-scratchpad.is-floating {
+  position: fixed !important;
+  z-index: 2147483646 !important;
+  min-width: 280px;
+  min-height: 190px;
+  max-width: calc(100vw - 16px);
+  max-height: min(560px, calc(100vh - 16px));
+  overflow: auto;
+  resize: both;
+  border-radius: 9px;
+  box-shadow: 0 14px 34px rgb(0 0 0 / 0.2);
+  isolation: isolate;
+  pointer-events: auto;
+}
+
+.lc-scratchpad-head {
+  display: flex;
+  align-items: center;
+  min-height: 24px;
+  height: 24px;
+  padding: 0 4px 0 7px;
+  flex: 0 0 auto;
+  border-bottom: 1px solid rgb(0 0 0 / 0.045);
+  background: #faf9f5;
+  user-select: none;
+}
+
+.lc-scratchpad-grab {
+  display: grid;
+  grid-template-columns: repeat(2, 3px);
+  grid-auto-rows: 3px;
+  width: 18px;
+  height: 16px;
+  gap: 2px 3px;
+  border-radius: 4px;
+  opacity: 0.48;
+  cursor: grab;
+}
+
+.lc-scratchpad-grab:active {
+  cursor: grabbing;
+}
+
+.lc-scratchpad-grab:hover {
+  background: rgb(91 77 25 / 0.07);
+  opacity: 0.8;
+}
+
+.lc-scratchpad-grab i {
+  display: block;
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.lc-scratchpad-iconbtn {
+  width: 24px;
+  height: 20px;
+  margin-left: auto;
+  padding: 0;
+  border: 0;
+  border-radius: 5px;
+  appearance: none;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-size: 13px;
+  line-height: 1;
+  opacity: 0.55;
+  cursor: pointer;
+}
+
+.lc-scratchpad-iconbtn:hover {
+  background: rgb(91 77 25 / 0.08);
+  opacity: 1;
+}
+
+.lc-scratchpad-editor {
+  min-height: 82px;
+  padding: 9px 10px 15px;
+  flex: 1 1 auto;
+  overflow: auto;
+  outline: none;
+  font: 13px/1.45 system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+
+.lc-scratchpad-editor:empty::before {
+  content: attr(data-placeholder);
+  color: #a39a79;
+  pointer-events: none;
+}
+
+.lc-scratchpad-editor ul,
+.lc-scratchpad-editor ol {
+  margin: 5px 0;
+  padding-left: 22px;
+}
+
+.lc-scratchpad-home {
+  position: absolute;
+  right: 7px;
+  bottom: 6px;
+  z-index: 40;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  background: #fff;
+  color: #666;
+  font: inherit;
+  font-size: 14px;
+  line-height: 1;
+  cursor: pointer;
+  box-shadow: 0 1px 3px rgb(0 0 0 / 0.08);
+}
+
+.lc-scratchpad-home.is-away {
+  display: flex;
+}
+
+.lc-scratchpad-home:hover {
+  background: #f6f6f6;
+  color: #333;
+}
+
+.lite-cad.lc-theme-dark .lc-scratchpad {
+  border-color: var(--lc-dark-border);
+  background: #27271f;
+  color: var(--lc-dark-text);
+}
+
+.lite-cad.lc-theme-dark .lc-scratchpad-head {
+  border-bottom-color: rgb(255 255 255 / 0.05);
+  background: #2b2b24;
+}
+
+.lite-cad.lc-theme-dark .lc-scratchpad-editor:empty::before {
+  color: var(--lc-dark-muted);
+}

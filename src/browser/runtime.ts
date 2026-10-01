@@ -24,6 +24,7 @@ import { FloorPlanPreparationSurface } from './floor-plan-preparation-surface';
 import { MaterialSurface } from './material-surface';
 import { PieceCanvasSurface } from './piece-canvas-surface';
 import { RoomFeatureCanvasInteractions } from './room-feature-canvas-interactions';
+import { ScratchpadSurface } from './scratchpad-surface';
 
 export interface CadLiteBrowserRuntimeOptions {
   root?: ParentNode;
@@ -43,6 +44,7 @@ export interface CadLiteBrowserRuntime {
   effects: ApplicationEffects;
   surface: ProjectLayoutSurface;
   materialSurface: MaterialSurface;
+  scratchpadSurface: ScratchpadSurface;
   pieceCanvas: PieceCanvasSurface;
   floorPlanCanvas: FloorPlanCanvasSurface;
   floorPlanPreparation: FloorPlanPreparationSurface;
@@ -125,6 +127,12 @@ export function mountCadLiteBrowserRuntime(
     createId,
     ...(options.confirm ? { confirm: options.confirm } : {}),
   });
+  const scratchpadSurface = new ScratchpadSurface({
+    root,
+    store,
+    commands,
+    effects,
+  });
 
   const pieceCanvas = new PieceCanvasSurface({
     root,
@@ -170,6 +178,7 @@ export function mountCadLiteBrowserRuntime(
 
   surface.mount();
   materialSurface.mount();
+  scratchpadSurface.mount();
   pieceCanvas.mount();
   floorPlanCanvas.mount();
   floorPlanPreparation.mount();
@@ -193,6 +202,7 @@ export function mountCadLiteBrowserRuntime(
     effects,
     surface,
     materialSurface,
+    scratchpadSurface,
     pieceCanvas,
     floorPlanCanvas,
     floorPlanPreparation,
@@ -215,6 +225,7 @@ export function mountCadLiteBrowserRuntime(
       floorPlanPreparation.unmount();
       floorPlanCanvas.unmount();
       pieceCanvas.unmount();
+      scratchpadSurface.unmount();
       materialSurface.unmount();
       surface.unmount();
       effects.stop(false);
