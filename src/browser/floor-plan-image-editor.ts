@@ -17,6 +17,16 @@ interface EditorSnapshot {
   transformed: boolean;
 }
 
+interface EditorControls {
+  undo: HTMLButtonElement | null;
+  redo: HTMLButtonElement | null;
+  focus: HTMLButtonElement | null;
+  crop: HTMLButtonElement | null;
+  level: HTMLButtonElement | null;
+  erase: HTMLButtonElement | null;
+  brushWrap: HTMLLabelElement | null;
+}
+
 export interface FloorPlanImageEditorOptions {
   document: Document;
   dataURL: string;
@@ -165,9 +175,17 @@ export async function openFloorPlanImageEditor(
     | null = null;
   const history: EditorSnapshot[] = [];
   let historyIndex = -1;
+  const controls: EditorControls = {
+    undo: null,
+    redo: null,
+    focus: null,
+    crop: null,
+    level: null,
+    erase: null,
+    brushWrap: null,
+  };
 
-  let modal: FloorPlanModal;
-  modal = createFloorPlanModal(
+  const modal = createFloorPlanModal(
     options.document,
     'Prepare Floor Plan',
     'lc-plan-import-dialog',
@@ -216,12 +234,13 @@ export async function openFloorPlanImageEditor(
     levelLine = null;
   };
 
-  let undo: HTMLButtonElement;
-  let redo: HTMLButtonElement;
   const syncHistoryButtons = (): void => {
-    undo.disabled = historyIndex <= 0;
-    redo.disabled = historyIndex >= history.length - 1;
+    if (controls.undo) controls.undo.disabled = historyIndex <= 0;
+    if (controls.redo) {
+      controls.redo.disabled = historyIndex >= history.length - 1;
+    }
   };
+
   const pushHistory = (): void => {
     history.splice(historyIndex + 1);
     history.push({
@@ -234,7 +253,6 @@ export async function openFloorPlanImageEditor(
     syncHistoryButtons();
   };
 
-  let focus: HTMLButtonElement;
   const render = (): void => {
     const context = preview.getContext('2d');
     if (!context) return;
@@ -312,7 +330,9 @@ export async function openFloorPlanImageEditor(
       `${Math.round(crop.w)} × ${Math.round(crop.h)} px selected` +
       (transformed ? ' · image adjusted' : '') +
       ` · preview ${Math.round(previewZoom * 100)}%`;
-    focus.textContent = cropFocused ? 'Show Full' : 'Focus Crop';
+    if (controls.focus) {
+      controls.focus.textContent = cropFocused ? 'Show Full' : 'Focus Crop';
+    }
   };
 
   const localPoint = (event: PointerEvent): Point => {
@@ -360,30 +380,30 @@ export async function openFloorPlanImageEditor(
     context.restore();
   };
 
-  let cropButton: HTMLButtonElement;
-  let levelButton: HTMLButtonElement;
-  let eraseButton: HTMLButtonElement;
-  let brushWrap: HTMLLabelElement;
   const setMode = (next: EditorMode): void => {
     mode = next;
-    cropButton.classList.toggle('is-active', next === 'crop');
-    levelButton.classList.toggle('is-active', next === 'level');
-    eraseButton.classList.toggle('is-active', next === 'erase');
-    brushWrap.hidden = next !== 'erase';
+    controls.crop?.classList.toggle('is-active', next === 'crop');
+    controls.level?.classList.toggle('is-active', next === 'level');
+    controls.erase?.classList.toggle('is-active', next === 'erase');
+    if (controls.brushWrap) controls.brushWrap.hidden = next !== 'erase';
     pointer = null;
     levelLine = null;
     render();
   };
 
-  cropButton = createFloorPlanButton(options.document, 'Crop', () =>
+  const cropButton = createFloorPlanButton(options.document, 'Crop', () =>
     setMode('crop'),
   );
-  levelButton = createFloorPlanButton(options.document, 'Level', () =>
+  const levelButton = createFloorPlanButton(options.document, 'Level', () =>
     setMode('level'),
   );
-  eraseButton = createFloorPlanButton(options.document, 'Erase', () =>
+  const eraseButton = createFloorPlanButton(options.document, 'Erase', () =>
     setMode('erase'),
   );
+  controls.crop = cropButton;
+  controls.level = levelButton;
+  controls.erase = eraseButton;
+
   const rotateLeft = createFloorPlanButton(options.document, '↶ 90°', () => {
     commitCrop();
     work = rotateCanvas(work, -90);
@@ -400,20 +420,22 @@ export async function openFloorPlanImageEditor(
     pushHistory();
     render();
   });
-  undo = createFloorPlanButton(options.document, 'Undo', () => {
+  const undo = createFloorPlanButton(options.document, 'Undo', () => {
     if (historyIndex <= 0) return;
     historyIndex -= 1;
     restore(history[historyIndex]!);
     syncHistoryButtons();
     render();
   });
-  redo = createFloorPlanButton(options.document, 'Redo', () => {
+  const redo = createFloorPlanButton(options.document, 'Redo', () => {
     if (historyIndex >= history.length - 1) return;
     historyIndex += 1;
     restore(history[historyIndex]!);
     syncHistoryButtons();
     render();
   });
+  controls.undo = undo;
+  controls.redo = redo;
   const reset = createFloorPlanButton(options.document, 'Reset', () => {
     work = cloneCanvas(initial);
     crop = fullCrop(work);
@@ -441,14 +463,16 @@ export async function openFloorPlanImageEditor(
     previewZoom = Math.min(3, previewZoom + 0.25);
     render();
   });
-  focus = createFloorPlanButton(options.document, 'Focus Crop', () => {
+  const focus = createFloorPlanButton(options.document, 'Focus Crop', () => {
     cropFocused = !cropFocused;
     previewZoom = 1;
     render();
   });
-  brushWrap = options.document.createElement('label');
+  controls.focus = focus;
+  const brushWrap = options.document.createElement('label');
   brushWrap.className = 'lc-plan-brush-control lc-small';
   brushWrap.textContent = 'Brush';
+  controls.brushWrap = brushWrap;
   const brush = options.document.createElement('input');
   brush.type = 'range';
   brush.min = '12';
