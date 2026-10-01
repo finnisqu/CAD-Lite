@@ -18,6 +18,12 @@ export type {
   ProjectLayoutSurfaceOptions,
 } from './project-layout-surface';
 
+export { ProjectFileSurface } from './project-file-surface';
+export type {
+  BrowserProjectDownload,
+  ProjectFileSurfaceOptions,
+} from './project-file-surface';
+
 export { MaterialSurface } from './material-surface';
 export type { MaterialSurfaceOptions } from './material-surface';
 export { ScratchpadSurface } from './scratchpad-surface';
