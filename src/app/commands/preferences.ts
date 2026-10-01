@@ -17,15 +17,20 @@ export function updatePreferences(patch: Partial<EditorPreferences>): AppCommand
     history: 'skip',
     persistence: 'save',
     reduce(state) {
+      const workspaceViewChange = workspaceViewPatchTouches(patch);
+      // Production initializes both workspace buckets from the pre-toggle state,
+      // then writes the changed visibility into only the active workspace.
+      const current = workspaceViewChange
+        ? saveWorkspaceView(state.preferences, state.session.workspace)
+        : state.preferences;
       let next = normalizeEditorPreferences({
-        ...state.preferences,
+        ...current,
         ...patch,
       });
 
-      // v1.5.99 stores visibility/display toggles independently for DESIGN and
-      // SLAB. Keep that behavior centralized instead of making every toolbar or
-      // View-menu control remember to update workspaceViews itself.
-      if (workspaceViewPatchTouches(patch)) {
+      // Keep workspace-view persistence centralized instead of making every
+      // toolbar or View-menu control remember to update workspaceViews itself.
+      if (workspaceViewChange) {
         next = saveWorkspaceView(next, state.session.workspace);
       }
 
