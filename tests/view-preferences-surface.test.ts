@@ -34,6 +34,9 @@ describe('view preference controls', () => {
     );
     expect(booleanViewPreferenceFromControlId('lc-show-notes')).toBe('showNotes');
     expect(booleanViewPreferenceFromControlId('lc-show-lines')).toBe('showLines');
+    expect(booleanViewPreferenceFromControlId('lc-show-piece-fills')).toBe(
+      'showPieceFills',
+    );
   });
 
   it('does not claim controls owned by other browser surfaces', () => {
