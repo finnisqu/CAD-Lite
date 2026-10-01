@@ -194,3 +194,29 @@ export function calibrateFloorPlan(
     },
   })!;
 }
+
+export function calibrateFloorPlanSquare24(
+  plan: FloorPlan,
+  measuredSide: number,
+  updatedAt = new Date().toISOString(),
+): FloorPlan {
+  if (!(measuredSide > 0.0001)) return plan;
+  const factor = 24 / measuredSide;
+  return normalizeFloorPlan({
+    ...plan,
+    w: plan.w * factor,
+    h: plan.h * factor,
+    calibrated: true,
+    locked: true,
+    calibration: {
+      mode: 'square24',
+      knownWidth: 24,
+      knownHeight: 24,
+      measuredDistance: measuredSide,
+      factor,
+      updatedAt,
+    },
+  })!;
+}
+
+export { syncLayoutCanvasToFloorPlan } from './layout-sync';
