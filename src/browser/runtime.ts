@@ -283,6 +283,12 @@ export function mountCadLiteBrowserRuntime(
       if (typeof window !== 'undefined') {
         window.removeEventListener('beforeunload', beforeUnload);
       }
+      pieceInteractions.cancel();
+      annotationInteractions.cancel();
+      roomFeatureInteractions.cancel();
+      roomFeatureNudge.cancel();
+      unregisterAnnotationTools.forEach((unregister) => unregister());
+      unregisterRoomFeatureTools.forEach((unregister) => unregister());
       startupRecoverySurface.unmount();
       roomFeatureCanvasInteractions.unmount();
       floorPlanNavigator.unmount();
@@ -295,9 +301,7 @@ export function mountCadLiteBrowserRuntime(
       materialSurface.unmount();
       surface.unmount();
       projectFileSurface.unmount();
-      unregisterRoomFeatureTools();
-      unregisterAnnotationTools();
-      effects.stop();
+      effects.stop(false);
     },
   };
 }
