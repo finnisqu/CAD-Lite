@@ -32,6 +32,7 @@ import { FloorPlanPreparationSurface } from './floor-plan-preparation-surface';
 import { MaterialSurface } from './material-surface';
 import { PieceCanvasSurface } from './piece-canvas-surface';
 import { ProductionInspectorSurface } from './production-inspector-surface';
+import { ProductionPiecePropertiesSurface } from './production-piece-properties-surface';
 import { ProductionShellSurface } from './production-shell-surface';
 import { ProductionViewportSurface } from './production-viewport-surface';
 import { RoomFeatureCanvasInteractions } from './room-feature-canvas-interactions';
@@ -64,6 +65,7 @@ export interface CadLiteBrowserRuntime {
   materialSurface: MaterialSurface;
   scratchpadSurface: ScratchpadSurface;
   viewPreferencesSurface: ViewPreferencesSurface;
+  productionPiecePropertiesSurface: ProductionPiecePropertiesSurface;
   productionInspectorSurface: ProductionInspectorSurface;
   productionShellSurface: ProductionShellSurface;
   productionViewportSurface: ProductionViewportSurface;
@@ -188,6 +190,8 @@ export function mountCadLiteBrowserRuntime(
     store,
     commands,
   });
+  const productionPiecePropertiesSurface =
+    new ProductionPiecePropertiesSurface({ root, store, commands });
   const productionInspectorSurface = new ProductionInspectorSurface({ root });
   const productionShellSurface = new ProductionShellSurface({
     root,
@@ -272,6 +276,7 @@ export function mountCadLiteBrowserRuntime(
   floorPlanNavigator.mount();
   roomFeatureCanvasInteractions.mount();
   slabNavigatorSurface.mount();
+  productionPiecePropertiesSurface.mount();
   productionInspectorSurface.mount();
   productionShellSurface.mount();
   productionViewportSurface.mount();
@@ -301,6 +306,7 @@ export function mountCadLiteBrowserRuntime(
     materialSurface,
     scratchpadSurface,
     viewPreferencesSurface,
+    productionPiecePropertiesSurface,
     productionInspectorSurface,
     productionShellSurface,
     productionViewportSurface,
@@ -329,6 +335,7 @@ export function mountCadLiteBrowserRuntime(
       productionViewportSurface.unmount();
       productionShellSurface.unmount();
       productionInspectorSurface.unmount();
+      productionPiecePropertiesSurface.unmount();
       slabNavigatorSurface.unmount();
       roomFeatureCanvasInteractions.unmount();
       floorPlanNavigator.unmount();
