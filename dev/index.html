@@ -20,18 +20,9 @@
         <aside>
           <section class="lc-card">
             <h2>Project</h2>
-            <label>
-              <span>Project Name</span>
-              <input id="lc-project" type="text" />
-            </label>
-            <label>
-              <span>Date</span>
-              <input id="lc-date" type="date" />
-            </label>
-            <label>
-              <span>Notes</span>
-              <textarea id="lc-notes" rows="4"></textarea>
-            </label>
+            <label><span>Project Name</span><input id="lc-project" type="text" /></label>
+            <label><span>Date</span><input id="lc-date" type="date" /></label>
+            <label><span>Notes</span><textarea id="lc-notes" rows="4"></textarea></label>
           </section>
 
           <section class="lc-card">
@@ -45,9 +36,7 @@
           <section class="lc-card">
             <div class="cad-lite-architecture-harness__section-head">
               <h2>Areas / Pieces</h2>
-              <button id="lc-add-area" class="lc-add-area-btn" type="button">
-                + Add Area
-              </button>
+              <button id="lc-add-area" class="lc-add-area-btn" type="button">+ Add Area</button>
             </div>
             <div id="lc-list"></div>
             <button id="lc-add" type="button">+ Add Piece</button>
@@ -70,19 +59,34 @@
             <button id="lc-show-seams" type="button">Seams</button>
             <button id="lc-show-sink-centerlines" type="button">Sink CL</button>
             <button id="lc-show-cutout-labels" type="button">Cutout Labels</button>
+            <button id="lc-show-manual-dims" type="button">Manual Dims</button>
+            <button id="lc-show-notes" type="button">Notes</button>
+            <button id="lc-show-lines" type="button">Lines</button>
+            <label>
+              <span>Number Format</span>
+              <select id="lc-dim-format">
+                <option value="fraction">Fraction</option>
+                <option value="decimal">Decimal</option>
+              </select>
+            </label>
+            <label>
+              <span>Fraction Precision</span>
+              <select id="lc-dim-precision">
+                <option value="1">1</option>
+                <option value="2">1/2</option>
+                <option value="4">1/4</option>
+                <option value="8">1/8</option>
+                <option value="16">1/16</option>
+              </select>
+            </label>
             <span id="lc-canvas-meta" aria-live="polite"></span>
           </div>
           <div class="cad-lite-architecture-harness__canvas-wrap">
-            <svg
-              id="lc-svg"
-              role="img"
-              aria-label="Piece rendering architecture harness"
-            ></svg>
+            <svg id="lc-svg" role="img" aria-label="Piece rendering architecture harness"></svg>
           </div>
           <p class="lc-small">
-            Batch 28 harness: the typed Project Scratchpad now persists rich-text
-            notes and dock/floating geometry without consuming CAD Undo history or
-            invalidating the drawing surfaces on each edit.
+            Architecture harness: typed browser surfaces exercise the current v1.6
+            command, view-preference, rendering, and persistence boundaries.
           </p>
           <pre id="build-info"></pre>
         </section>
@@ -97,10 +101,7 @@
     </main>
 
     <script type="module">
-      import {
-        getBuildInfo,
-        mountCadLiteBrowserRuntime,
-      } from '/src/main.ts';
+      import { getBuildInfo, mountCadLiteBrowserRuntime } from '/src/main.ts';
 
       const initialPayload = {
         sinkSideConvention: 'front-bottom-v1',
@@ -137,199 +138,56 @@
             activeAreaId: 'area-kitchen',
             pieces: [
               {
-                id: 'piece-1',
-                name: 'Island',
-                areaId: 'area-island',
-                w: 81.997,
-                h: 36.125,
-                x: 18.375,
-                y: 52.625,
-                rotation: 8.5,
-                layer: 2,
-                color: '#dbeafe',
-                fillOpacity: 0.82,
-                cornerRadii: { tl: 3.125, tr: 0.75, br: 1.5, bl: 0.25 },
+                id: 'piece-1', name: 'Island', areaId: 'area-island', w: 81.997, h: 36.125,
+                x: 18.375, y: 52.625, rotation: 8.5, layer: 2, color: '#dbeafe',
+                fillOpacity: 0.82, cornerRadii: { tl: 3.125, tr: 0.75, br: 1.5, bl: 0.25 },
                 slabPlacement: { x: 55.875, y: 15.125, rotation: 90.25 },
               },
               {
-                id: 'piece-2',
-                name: 'Range Run',
-                areaId: 'area-kitchen',
-                w: 48.5,
-                h: 25.5,
-                x: 16.75,
-                y: 12.25,
-                rotation: 17.25,
-                layer: 1,
-                color: '#fde68a',
-                fillOpacity: 0.58,
-                cornerRadii: { tl: 0, tr: 2.25, br: 0.5, bl: 0 },
+                id: 'piece-2', name: 'Range Run', areaId: 'area-kitchen', w: 48.5, h: 25.5,
+                x: 16.75, y: 12.25, rotation: 17.25, layer: 1, color: '#fde68a',
+                fillOpacity: 0.58, cornerRadii: { tl: 0, tr: 2.25, br: 0.5, bl: 0 },
                 slabPlacement: { x: 5.125, y: 54.75, rotation: 0 },
               },
               {
-                id: 'piece-3',
-                name: 'No Fill Sample',
-                areaId: 'area-kitchen',
-                w: 32.375,
-                h: 18.625,
-                x: 126.5,
-                y: 18.875,
-                rotation: -12.5,
-                layer: 3,
-                color: '#fecaca',
-                noFill: true,
+                id: 'piece-3', name: 'No Fill Sample', areaId: 'area-kitchen', w: 32.375, h: 18.625,
+                x: 126.5, y: 18.875, rotation: -12.5, layer: 3, color: '#fecaca', noFill: true,
                 cornerRadii: { tl: 1, tr: 1, br: 1, bl: 1 },
                 slabPlacement: { x: 112.375, y: 62.125, rotation: 22.75 },
               },
             ],
-            dims: [
-              {
-                id: 'dim-demo-1',
-                name: 'Island overall',
-                x1: 18.375,
-                y1: 102,
-                x2: 100.372,
-                y2: 102,
-                offsetPx: 12,
-              },
-            ],
-            notes: [
-              {
-                id: 'note-demo-1',
-                x: 112,
-                y: 48,
-                text: 'Verify field seam',
-                fontSize: 12,
-                bold: true,
-                italic: false,
-                align: 'left',
-                color: '#7c2d12',
-                halo: true,
-                rotation: 0,
-              },
-            ],
-            lines: [
-              {
-                id: 'line-demo-1',
-                name: 'Note Leader',
-                x1: 112,
-                y1: 48,
-                x2: 96,
-                y2: 57,
-                style: 'solid',
-                color: '#7c2d12',
-                thickness: 2,
-                startCap: 'none',
-                endCap: 'arrow',
-                attachedNoteId: 'note-demo-1',
-                attachedEnd: 'start',
-              },
-            ],
+            dims: [{ id: 'dim-demo-1', name: 'Island overall', x1: 18.375, y1: 102, x2: 100.372, y2: 102, offsetPx: 12 }],
+            notes: [{ id: 'note-demo-1', x: 112, y: 48, text: 'Verify field seam', fontSize: 12, bold: true, italic: false, align: 'left', color: '#7c2d12', halo: true, rotation: 0 }],
+            lines: [{ id: 'line-demo-1', name: 'Note Leader', x1: 112, y1: 48, x2: 96, y2: 57, style: 'solid', color: '#7c2d12', thickness: 2, startCap: 'none', endCap: 'arrow', attachedNoteId: 'note-demo-1', attachedEnd: 'start' }],
             roomFeatures: [
-              {
-                id: 'room-base-demo',
-                kind: 'feature',
-                featureType: 'base',
-                name: 'Sink Base',
-                x: 28,
-                y: 132,
-                length: 36,
-                depth: 24,
-                rotation: 0,
-                visible: true,
-                receivesCountertop: true,
-              },
-              {
-                id: 'room-panel-demo',
-                kind: 'feature',
-                featureType: 'end-panel',
-                name: 'Fridge Panel',
-                x: 72,
-                y: 132,
-                length: 2,
-                depth: 24,
-                rotation: 0,
-                visible: true,
-                receivesCountertop: false,
-              },
-              {
-                id: 'room-wall-demo',
-                kind: 'wall',
-                featureType: 'knee-wall',
-                name: 'Knee Wall',
-                x: 145,
-                y: 92,
-                length: 58,
-                depth: 4,
-                rotation: 12,
-                visible: true,
-                wallType: 'knee',
-                wallHeight: 42,
-              },
+              { id: 'room-base-demo', kind: 'feature', featureType: 'base', name: 'Sink Base', x: 28, y: 132, length: 36, depth: 24, rotation: 0, visible: true, receivesCountertop: true },
+              { id: 'room-panel-demo', kind: 'feature', featureType: 'end-panel', name: 'Fridge Panel', x: 72, y: 132, length: 2, depth: 24, rotation: 0, visible: true, receivesCountertop: false },
+              { id: 'room-wall-demo', kind: 'wall', featureType: 'knee-wall', name: 'Knee Wall', x: 145, y: 92, length: 58, depth: 4, rotation: 12, visible: true, wallType: 'knee', wallHeight: 42 },
             ],
             plan: null,
-            overlays: [
-              {
-                id: 'slab-demo-1',
-                name: 'Blank Slab 1',
-                slabW: 126,
-                slabH: 63,
-                x: 2,
-                y: 2,
-                opacity: 0.78,
-                visible: true,
-              },
-            ],
+            overlays: [{ id: 'slab-demo-1', name: 'Blank Slab 1', slabW: 126, slabH: 63, x: 2, y: 2, opacity: 0.78, visible: true }],
             slabCW: 180,
             slabCH: 100,
           },
           {
-            id: 'layout-bath',
-            name: 'Bath',
-            quantity: 1,
-            cw: 180,
-            ch: 120,
-            scale: 6,
-            grid: 1,
-            showGrid: true,
-            pieceFillOpacity: 1,
-            areas: [{ id: 'area-bath', name: 'Bath' }],
-            activeAreaId: 'area-bath',
-            pieces: [],
-            dims: [],
-            notes: [],
-            lines: [],
-            roomFeatures: [],
-            plan: null,
-            overlays: [],
+            id: 'layout-bath', name: 'Bath', quantity: 1, cw: 180, ch: 120, scale: 6, grid: 1,
+            showGrid: true, pieceFillOpacity: 1, areas: [{ id: 'area-bath', name: 'Bath' }],
+            activeAreaId: 'area-bath', pieces: [], dims: [], notes: [], lines: [], roomFeatures: [], plan: null, overlays: [],
           },
         ],
         ui: {
-          workspace: 'layout',
-          gridSnap: true,
-          pieceSnap: true,
-          slabCutClearance: 0.25,
-          slabEdgeAllowance: 1.5,
-          defaultSlabW: 126,
-          defaultSlabH: 63,
-          showSlabMaterial: true,
-          showGrid: true,
-          showDims: true,
-          dimPrecision: 16,
-          dimFormat: 'fraction',
+          workspace: 'layout', gridSnap: true, pieceSnap: true, slabCutClearance: 0.25,
+          slabEdgeAllowance: 1.5, defaultSlabW: 126, defaultSlabH: 63,
+          showSlabMaterial: true, showGrid: true, showDims: true, dimPrecision: 16, dimFormat: 'fraction',
         },
         active: 0,
       };
 
-      document.querySelector('#build-info').textContent =
-        JSON.stringify(getBuildInfo(), null, 2);
-
+      document.querySelector('#build-info').textContent = JSON.stringify(getBuildInfo(), null, 2);
       window.cadLiteArchitectureRuntime = mountCadLiteBrowserRuntime({
         root: document,
         initialPayload,
-        autosave: {
-          key: 'cadlite:architecture-harness',
-        },
+        autosave: { key: 'cadlite:architecture-harness' },
       });
     </script>
   </body>
