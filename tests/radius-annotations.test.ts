@@ -158,10 +158,10 @@ describe('radius annotation geometry and commands', () => {
     const movedLine = after?.lines.find((item) => item.id === 'radius-line');
     expect(movedNote?.x).toBeCloseTo(note.x + 10, 3);
     expect(movedNote?.y).toBeCloseTo(note.y + 5, 3);
-    expect(movedLine?.x1).toBeCloseTo((line.x1 as number) + 10, 3);
-    expect(movedLine?.y1).toBeCloseTo((line.y1 as number) + 5, 3);
-    expect(movedLine?.x2).toBeCloseTo((line.x2 as number) + 10, 3);
-    expect(movedLine?.y2).toBeCloseTo((line.y2 as number) + 5, 3);
+    expect(movedLine?.x1).toBeCloseTo(line.x1 + 10, 3);
+    expect(movedLine?.y1).toBeCloseTo(line.y1 + 5, 3);
+    expect(movedLine?.x2).toBeCloseTo(line.x2 + 10, 3);
+    expect(movedLine?.y2).toBeCloseTo(line.y2 + 5, 3);
   });
 
   it('updates automatic text with radius and number-format changes', () => {
