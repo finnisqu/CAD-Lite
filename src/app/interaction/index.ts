@@ -72,6 +72,21 @@ export type {
   SplashToolOptions,
 } from './splashes';
 
+export {
+  createRadiusCornerTargets,
+  hitTestRadiusTarget,
+  radiusPointHitsEligibleParent,
+  radiusToolOptions,
+  registerRadiusToolHandler,
+} from './radius';
+export type {
+  RadiusArc,
+  RadiusBrushAction,
+  RadiusCornerTarget,
+  RadiusToolIdFactory,
+  RadiusToolOptions,
+} from './radius';
+
 export { AnnotationInteractionController } from './annotation-editing';
 export type { AnnotationEditPreview, AnnotationEndpoint } from './annotation-editing';
 
