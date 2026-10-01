@@ -7,8 +7,8 @@ import {
   MAX_SINKS_PER_PIECE,
   isBacksplashPiece, isFabricationAssemblyGroup, nextPieceGroupName,
   normalizePieceGroupMembership, pieceGroupMembersById,
-  mirrorPiecesInLayout, resizePieceDimensionInLayout, updatePieceSeam,
-  updatePieceCutout, updatePieceSink,
+  mirrorPiecesInLayout, resizePieceDimensionInLayout, synchronizeLinkedSplashes,
+  updatePieceSeam, updatePieceCutout, updatePieceSink,
   type Piece, type PieceCutoutKind, type PieceCutoutPatch,
   type PieceDimension, type PieceDuplicationPlan,
   type PieceGeometry, type PieceMirrorAxis, type PiecePose,
@@ -21,13 +21,17 @@ import type { ReadonlyApplicationState, Selection } from '../state';
 import type { AppCommand } from './types';
 
 function replace(state: ReadonlyApplicationState, layout: Layout, selection?: Selection) {
+  const synchronizedPieces = synchronizeLinkedSplashes(layout);
+  const nextLayout = synchronizedPieces === layout.pieces
+    ? layout
+    : { ...layout, pieces: synchronizedPieces };
   const next = {
     ...state,
-    project: { ...state.project, layouts: state.project.layouts.map(item => item.id === layout.id ? layout : item) },
+    project: { ...state.project, layouts: state.project.layouts.map(item => item.id === nextLayout.id ? nextLayout : item) },
     session: { ...state.session },
   };
   next.session.selection = normalizeSelection(next,
-    state.session.activeLayoutId === layout.id && selection ? selection : state.session.selection);
+    state.session.activeLayoutId === nextLayout.id && selection ? selection : state.session.selection);
   return next;
 }
 
