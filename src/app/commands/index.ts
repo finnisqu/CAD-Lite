@@ -45,6 +45,7 @@ export {
 } from './annotations';
 export {
   calibrateFloorPlanDistance,
+  calibrateFloorPlanSquare,
   clearFloorPlan,
   setFloorPlan,
   updateFloorPlan,
