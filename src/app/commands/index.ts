@@ -61,6 +61,14 @@ export {
   updateDrawingLine,
 } from './annotations';
 export {
+  addRadiusAnnotation,
+  removeRadiusAnnotation,
+} from './radius-annotations';
+export type {
+  RadiusAnnotationIds,
+  RadiusReferenceSeed,
+} from './radius-annotations';
+export {
   calibrateFloorPlanDistance,
   calibrateFloorPlanSquare,
   clearFloorPlan,
