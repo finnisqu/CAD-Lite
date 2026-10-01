@@ -6,6 +6,7 @@ import {
   type AppStore,
   type CanvasSelectionActions,
   type CommandDispatcher,
+  type RoomFeatureNudgeController,
   type ToolController,
 } from '../app';
 
@@ -14,20 +15,22 @@ export interface CanvasKeyboardSurfaceOptions {
   store: AppStore;
   commands: CommandDispatcher;
   actions: CanvasSelectionActions;
+  roomFeatureNudge: RoomFeatureNudgeController;
   tools: ToolController;
 }
 
 /**
  * Owns production-level canvas shortcuts that are not tool-specific pointer
- * interactions. Piece arrow nudging remains in PieceCanvasSurface because it
- * has a preview/commit lifecycle; this adapter owns selection clipboard,
- * duplicate, workspace toggle, Escape, and entity deletion parity.
+ * interactions. Piece arrow nudging remains in PieceCanvasSurface; this adapter
+ * owns selection clipboard, Room Feature nudge, duplicate, workspace toggle,
+ * Escape, and entity deletion parity.
  */
 export class CanvasKeyboardSurface {
   private readonly root: ParentNode;
   private readonly store: AppStore;
   private readonly commands: CommandDispatcher;
   private readonly actions: CanvasSelectionActions;
+  private readonly roomFeatureNudge: RoomFeatureNudgeController;
   private readonly tools: ToolController;
   private abort: AbortController | null = null;
 
@@ -36,6 +39,7 @@ export class CanvasKeyboardSurface {
     this.store = options.store;
     this.commands = options.commands;
     this.actions = options.actions;
+    this.roomFeatureNudge = options.roomFeatureNudge;
     this.tools = options.tools;
   }
 
@@ -49,12 +53,17 @@ export class CanvasKeyboardSurface {
     if (!view) return;
 
     this.abort = new AbortController();
+    const signal = this.abort.signal;
     view.addEventListener('keydown', (event) => this.onKeyDown(event), {
-      signal: this.abort.signal,
+      signal,
+    });
+    view.addEventListener('keyup', (event) => this.onKeyUp(event), {
+      signal,
     });
   }
 
   unmount(): void {
+    this.roomFeatureNudge.cancel();
     this.abort?.abort();
     this.abort = null;
   }
@@ -89,7 +98,13 @@ export class CanvasKeyboardSurface {
       return;
     }
 
-    if (!event.altKey && !event.ctrlKey && !event.metaKey && event.shiftKey && key === 'q') {
+    if (
+      !event.altKey &&
+      !event.ctrlKey &&
+      !event.metaKey &&
+      event.shiftKey &&
+      key === 'q'
+    ) {
       if (this.tools.toggleWorkspace()) event.preventDefault();
       return;
     }
@@ -98,6 +113,13 @@ export class CanvasKeyboardSurface {
       if (this.commands.execute(setSelection({ kind: 'none' }))) {
         event.preventDefault();
       }
+      return;
+    }
+
+    if (
+      this.roomFeatureNudge.nudgeKeyDown(event.key, event.shiftKey)
+    ) {
+      event.preventDefault();
       return;
     }
 
@@ -118,5 +140,12 @@ export class CanvasKeyboardSurface {
             : null;
 
     if (changed) event.preventDefault();
+  }
+
+  private onKeyUp(event: KeyboardEvent): void {
+    if (event.defaultPrevented || this.editableTarget(event.target)) return;
+    if (this.roomFeatureNudge.nudgeKeyUp(event.key)) {
+      event.preventDefault();
+    }
   }
 }
