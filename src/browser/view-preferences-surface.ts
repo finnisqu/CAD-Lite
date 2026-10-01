@@ -10,6 +10,8 @@ import type {
 
 export type DimensionPrecision = 1 | 2 | 4 | 8 | 16;
 export type BooleanViewPreference =
+  | 'showGrid'
+  | 'showDims'
   | 'showManualDims'
   | 'showNotes'
   | 'showLines';
@@ -18,6 +20,8 @@ const BOOLEAN_VIEW_CONTROLS: ReadonlyArray<{
   id: string;
   preference: BooleanViewPreference;
 }> = [
+  { id: 'lc-show-grid', preference: 'showGrid' },
+  { id: 'lc-show-dims', preference: 'showDims' },
   { id: 'lc-show-manual-dims', preference: 'showManualDims' },
   { id: 'lc-show-notes', preference: 'showNotes' },
   { id: 'lc-show-lines', preference: 'showLines' },
