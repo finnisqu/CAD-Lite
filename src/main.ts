@@ -3,6 +3,7 @@ import './styles/production-shell.css';
 import './styles/production-inspector.css';
 import './styles/production-inspector-accordion.css';
 import './styles/production-piece-properties.css';
+import './styles/production-splash.css';
 import './styles/production-viewport.css';
 import './styles/floor-plan-preparation.css';
 import './styles/materials.css';
