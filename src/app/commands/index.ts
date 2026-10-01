@@ -44,6 +44,11 @@ export {
   updateDrawingLine,
 } from './annotations';
 export {
+  clearFloorPlan,
+  setFloorPlan,
+  updateFloorPlan,
+} from './floor-plans';
+export {
   addRoomFeature,
   deleteRoomFeature,
   updateRoomFeature,
