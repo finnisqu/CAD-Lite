@@ -1,0 +1,223 @@
+/* Batch 26 — Floor Plan import, preparation, and calibration surfaces. */
+
+.lc-plan-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: rgb(15 23 42 / 0.56);
+  backdrop-filter: blur(2px);
+}
+
+.lc-plan-dialog {
+  display: flex;
+  flex-direction: column;
+  width: min(1180px, calc(100vw - 48px));
+  max-height: calc(100vh - 48px);
+  overflow: hidden;
+  border: 1px solid #cbd5e1;
+  border-radius: 10px;
+  background: #ffffff;
+  box-shadow: 0 24px 72px rgb(15 23 42 / 0.28);
+  color: #0f172a;
+  font-family:
+    Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
+    "Segoe UI", sans-serif;
+}
+
+.lc-plan-pdf-dialog {
+  width: min(980px, calc(100vw - 48px));
+}
+
+.lc-plan-calibrate-dialog {
+  width: min(480px, calc(100vw - 48px));
+}
+
+.lc-plan-dialog-head,
+.lc-plan-dialog-foot,
+.lc-plan-editor-toolbar,
+.lc-plan-preview-controls,
+.lc-plan-pdf-top,
+.lc-floor-plan-calibration-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.lc-plan-dialog-head {
+  justify-content: space-between;
+  padding: 12px 14px;
+  border-bottom: 1px solid #e2e8f0;
+  background: #f8fafc;
+}
+
+.lc-plan-dialog-body {
+  min-height: 0;
+  overflow: auto;
+  padding: 14px;
+}
+
+.lc-plan-dialog-foot {
+  justify-content: flex-end;
+  padding: 12px 14px;
+  border-top: 1px solid #e2e8f0;
+  background: #f8fafc;
+}
+
+.lc-plan-dialog .lc-btn,
+.lc-floor-plan-calibration-controls .lc-btn {
+  min-height: 30px;
+  padding: 5px 9px;
+  border: 1px solid #cbd5e1;
+  border-radius: 5px;
+  background: #ffffff;
+  color: #1e293b;
+  font: inherit;
+  cursor: pointer;
+}
+
+.lc-plan-dialog .lc-btn:hover:not(:disabled),
+.lc-floor-plan-calibration-controls .lc-btn:hover:not(:disabled) {
+  background: #f1f5f9;
+}
+
+.lc-plan-dialog .lc-btn.alt,
+.lc-floor-plan-calibration-controls .lc-btn.alt {
+  border-color: #1d4ed8;
+  background: #2563eb;
+  color: #ffffff;
+}
+
+.lc-plan-dialog .lc-btn.is-active {
+  border-color: #2563eb;
+  background: #dbeafe;
+  color: #1d4ed8;
+}
+
+.lc-plan-dialog .lc-btn:disabled,
+.lc-floor-plan-calibration-controls .lc-btn:disabled {
+  opacity: 0.42;
+  cursor: default;
+}
+
+.lc-plan-dialog .lc-iconbtn {
+  min-width: 30px;
+  padding-inline: 7px;
+}
+
+.lc-plan-editor-toolbar,
+.lc-plan-preview-controls {
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+}
+
+.lc-plan-preview-controls {
+  padding-bottom: 8px;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.lc-plan-editor-preview,
+.lc-plan-pdf-preview {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-height: min(68vh, 760px);
+  border: 1px solid #cbd5e1;
+  border-radius: 7px;
+  background: #f1f5f9;
+  touch-action: none;
+}
+
+.lc-plan-editor-preview {
+  cursor: crosshair;
+}
+
+.lc-plan-pdf-top {
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.lc-plan-pdf-top .lc-input,
+.lc-plan-calibrate-dialog .lc-input {
+  min-width: 120px;
+  padding: 6px 8px;
+  border: 1px solid #cbd5e1;
+  border-radius: 5px;
+  background: #ffffff;
+  font: inherit;
+}
+
+.lc-plan-brush-control {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: 4px;
+}
+
+.lc-plan-brush-control input[type="range"] {
+  width: 150px;
+}
+
+.lc-plan-help {
+  margin: 0 0 12px;
+  line-height: 1.45;
+}
+
+.lc-plan-muted {
+  margin-top: 8px;
+  color: #64748b;
+}
+
+.lc-floor-plan-calibration-controls {
+  position: absolute;
+  z-index: 30;
+  top: 10px;
+  left: 50%;
+  max-width: calc(100% - 20px);
+  transform: translateX(-50%);
+  flex-wrap: wrap;
+  justify-content: center;
+  padding: 7px 9px;
+  border: 1px solid #bfdbfe;
+  border-radius: 7px;
+  background: rgb(255 255 255 / 0.96);
+  box-shadow: 0 5px 18px rgb(15 23 42 / 0.16);
+}
+
+.lc-floor-plan-calibration-controls .lc-small {
+  color: #1e3a8a;
+  font-weight: 600;
+}
+
+.lc-floor-plan-workflow-actions {
+  padding-bottom: 8px;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.lc-floor-plan-import {
+  margin-top: 8px;
+}
+
+@media (max-width: 720px) {
+  .lc-plan-modal-overlay {
+    padding: 8px;
+  }
+
+  .lc-plan-dialog,
+  .lc-plan-pdf-dialog,
+  .lc-plan-calibrate-dialog {
+    width: calc(100vw - 16px);
+    max-height: calc(100vh - 16px);
+  }
+
+  .lc-plan-dialog-body {
+    padding: 10px;
+  }
+
+  .lc-plan-editor-preview,
+  .lc-plan-pdf-preview {
+    max-height: 60vh;
+  }
+}
