@@ -5,7 +5,8 @@ export type ViewInvalidationTarget =
   | 'navigator'
   | 'inspector'
   | 'toolbar'
-  | 'hud';
+  | 'hud'
+  | 'scratchpad';
 
 const TARGET_ORDER: readonly ViewInvalidationTarget[] = [
   'canvas',
@@ -13,6 +14,7 @@ const TARGET_ORDER: readonly ViewInvalidationTarget[] = [
   'inspector',
   'toolbar',
   'hud',
+  'scratchpad',
 ];
 
 export interface ViewInvalidationBatch {
@@ -37,13 +39,38 @@ function add(
   items.forEach((item) => targets.add(item));
 }
 
+function scratchpadOnlyProjectChange(event: StoreChangeEvent): boolean {
+  if (!event.changed.project) return false;
+  const previous = event.previous.project;
+  const current = event.current.project;
+  return (
+    previous.layouts === current.layouts &&
+    previous.materials === current.materials &&
+    previous.meta.name === current.meta.name &&
+    previous.meta.date === current.meta.date &&
+    previous.meta.notes === current.meta.notes &&
+    previous.meta.scratchpad !== current.meta.scratchpad
+  );
+}
+
 export function deriveViewInvalidations(
   event: StoreChangeEvent,
 ): ViewInvalidationTarget[] {
   const targets = new Set<ViewInvalidationTarget>();
 
   if (event.changed.project) {
-    add(targets, 'canvas', 'navigator', 'inspector', 'toolbar');
+    if (scratchpadOnlyProjectChange(event)) {
+      add(targets, 'scratchpad');
+    } else {
+      add(
+        targets,
+        'canvas',
+        'navigator',
+        'inspector',
+        'toolbar',
+        'scratchpad',
+      );
+    }
   }
 
   if (event.changed.preferences) {

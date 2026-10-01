@@ -2,6 +2,7 @@ import type { CanvasNote, DimensionAnnotation, DrawingLine } from '../annotation
 import type { FloorPlan } from '../floor-plans';
 import type { Piece } from '../pieces/types';
 import type { RoomFeature } from '../room-features';
+import type { ProjectScratchpad } from '../scratchpad';
 import type { SlabSurface } from '../slabs';
 import type { EntityId, JsonObject, JsonValue } from '../types';
 
@@ -9,7 +10,7 @@ export interface ProjectMeta {
   name: string;
   date: string;
   notes: string;
-  scratchpad: JsonValue;
+  scratchpad: ProjectScratchpad;
 }
 
 export interface Material {

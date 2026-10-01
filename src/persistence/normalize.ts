@@ -5,10 +5,11 @@ import {
   normalizeDrawingLines,
 } from '../domain/annotations';
 import { normalizeFloorPlan } from '../domain/floor-plans';
+import { normalizeProjectScratchpad } from '../domain/scratchpad';
 import { normalizeRoomFeatures } from '../domain/room-features';
 import { normalizeSlabSurfaces } from '../domain/slabs';
 import { clamp } from '../core/numeric';
-import type { JsonObject, JsonValue } from '../domain/types';
+import type { JsonObject } from '../domain/types';
 import { cloneJson, isJsonObject } from '../domain/types';
 import type {
   Area,
@@ -40,27 +41,6 @@ function booleanValue(value: unknown, fallback: boolean): boolean {
 function stableId(prefix: string, index: number, raw: unknown): string {
   const candidate = stringValue(raw).trim();
   return candidate || `migrated-${prefix}-${index + 1}`;
-}
-
-function toJsonValue(value: unknown, fallback: JsonValue = null): JsonValue {
-  if (
-    value === null ||
-    typeof value === 'string' ||
-    typeof value === 'number' ||
-    typeof value === 'boolean'
-  ) {
-    return value;
-  }
-
-  if (Array.isArray(value)) {
-    return value.map((item) => toJsonValue(item));
-  }
-
-  if (isJsonObject(value)) {
-    return cloneJson(value);
-  }
-
-  return fallback;
 }
 
 export function normalizeMaterial(raw: unknown, index: number): Material {
@@ -196,7 +176,7 @@ export function normalizeProjectMeta(raw: unknown): ProjectMeta {
     name: stringValue(source.name),
     date: stringValue(source.date),
     notes: stringValue(source.notes),
-    scratchpad: toJsonValue(source.scratchpad),
+    scratchpad: normalizeProjectScratchpad(source.scratchpad),
   };
 }
 

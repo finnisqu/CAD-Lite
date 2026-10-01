@@ -33,6 +33,7 @@ export {
   deleteMaterial,
   updateMaterial,
 } from './materials';
+export { updateProjectScratchpad } from './scratchpad';
 
 export { updatePreferences } from './preferences';
 export {
