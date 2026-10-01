@@ -57,6 +57,7 @@ export class ProjectFileSurface {
   private abort: AbortController | null = null;
   private input: HTMLInputElement | null = null;
   private status: HTMLElement | null = null;
+  private generatedControls: HTMLElement | null = null;
 
   constructor(options: ProjectFileSurfaceOptions) {
     this.root = options.root;
@@ -69,6 +70,8 @@ export class ProjectFileSurface {
     if (this.abort) return;
     this.abort = new AbortController();
     const signal = this.abort.signal;
+
+    this.ensureHarnessControls();
 
     const exportButton =
       this.root.querySelector<HTMLButtonElement>('#lc-export-project');
@@ -94,6 +97,8 @@ export class ProjectFileSurface {
     this.abort = null;
     this.input = null;
     this.status = null;
+    this.generatedControls?.remove();
+    this.generatedControls = null;
   }
 
   exportProject(): void {
@@ -107,6 +112,32 @@ export class ProjectFileSurface {
     } catch (value) {
       this.setStatus(`Export failed: ${asError(value).message}`, true);
     }
+  }
+
+  private ensureHarnessControls(): void {
+    if (
+      this.root.querySelector('#lc-export-project') ||
+      typeof document === 'undefined'
+    ) {
+      return;
+    }
+
+    const host = this.root.querySelector<HTMLElement>(
+      '.cad-lite-architecture-harness__history',
+    );
+    if (!host) return;
+
+    const controls = document.createElement('span');
+    controls.dataset.cadLiteFileControls = 'true';
+    controls.innerHTML = [
+      '<button id="lc-new-project" type="button">New</button>',
+      '<button id="lc-import-project" type="button">Import</button>',
+      '<button id="lc-export-project" type="button">Export</button>',
+      '<input id="lc-project-file-input" type="file" accept=".json,.cadlite,application/json" hidden>',
+      '<span id="lc-file-status" aria-live="polite"></span>',
+    ].join('');
+    host.prepend(controls);
+    this.generatedControls = controls;
   }
 
   private async importSelectedFile(): Promise<void> {
