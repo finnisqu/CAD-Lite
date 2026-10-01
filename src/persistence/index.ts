@@ -9,6 +9,19 @@ export {
   normalizeWorkspace,
 } from './normalize';
 export {
+  captureWorkspaceView,
+  ensureWorkspaceViews,
+  loadWorkspaceView,
+  saveWorkspaceView,
+  WORKSPACE_VIEW_KEYS,
+  workspaceViewPatchTouches,
+  workspaceViewStorageKey,
+} from './workspace-views';
+export type {
+  WorkspaceViewKey,
+  WorkspaceViewStorageKey,
+} from './workspace-views';
+export {
   deserializeCadLiteFile,
   isCanonicalCadLiteFile,
   migrateCadLiteFile,
