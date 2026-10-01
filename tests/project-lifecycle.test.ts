@@ -7,6 +7,7 @@ import {
   DEFAULT_AUTOSAVE_KEY,
   ProjectLifecycle,
   ToolController,
+  addPiece,
   applicationStateFromLegacyPayload,
   renameLayout,
   setSelection,
@@ -101,6 +102,62 @@ describe('project file lifecycle', () => {
     });
     expect(storage.writes).toBe(1);
     expect(storage.getItem(DEFAULT_AUTOSAVE_KEY)).not.toContain('Dirty Kitchen');
+  });
+
+  it('continues editing, undo/redo, export, and reload after a legacy import', () => {
+    const { store, commands, effects, lifecycle } = setup();
+
+    lifecycle.importJson(JSON.stringify(v159ProjectFixture));
+    expect(effects.history.getStatus()).toMatchObject({
+      size: 1,
+      index: 0,
+      canUndo: false,
+      canRedo: false,
+    });
+
+    commands.execute(addPiece('layout-kitchen', 'piece-post-import', { name: 'Post Import' }));
+    expect(
+      store.getState().project.layouts[0]?.pieces.some(
+        (piece) => piece.id === 'piece-post-import',
+      ),
+    ).toBe(true);
+    expect(effects.history.getStatus()).toMatchObject({
+      size: 2,
+      index: 1,
+      canUndo: true,
+      canRedo: false,
+    });
+
+    expect(effects.history.undo()).toBe(true);
+    expect(
+      store.getState().project.layouts[0]?.pieces.some(
+        (piece) => piece.id === 'piece-post-import',
+      ),
+    ).toBe(false);
+    expect(effects.history.redo()).toBe(true);
+    expect(
+      store.getState().project.layouts[0]?.pieces.some(
+        (piece) => piece.id === 'piece-post-import',
+      ),
+    ).toBe(true);
+
+    const exported = lifecycle.exportJson();
+    commands.execute(renameLayout('layout-kitchen', 'Unsaved Divergence'));
+    lifecycle.importJson(exported);
+
+    expect(store.getState().project.layouts[0]?.name).toBe('Kitchen');
+    expect(
+      store.getState().project.layouts[0]?.pieces.some(
+        (piece) => piece.id === 'piece-post-import',
+      ),
+    ).toBe(true);
+    expect(store.getState().session.selection).toEqual({ kind: 'none' });
+    expect(effects.history.getStatus()).toMatchObject({
+      size: 1,
+      index: 0,
+      canUndo: false,
+      canRedo: false,
+    });
   });
 
   it('accepts canonical v1.6 exports through the same import path', () => {
