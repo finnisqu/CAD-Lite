@@ -14,7 +14,8 @@ export type BooleanViewPreference =
   | 'showDims'
   | 'showManualDims'
   | 'showNotes'
-  | 'showLines';
+  | 'showLines'
+  | 'showPieceFills';
 
 const BOOLEAN_VIEW_CONTROLS: ReadonlyArray<{
   id: string;
@@ -25,6 +26,7 @@ const BOOLEAN_VIEW_CONTROLS: ReadonlyArray<{
   { id: 'lc-show-manual-dims', preference: 'showManualDims' },
   { id: 'lc-show-notes', preference: 'showNotes' },
   { id: 'lc-show-lines', preference: 'showLines' },
+  { id: 'lc-show-piece-fills', preference: 'showPieceFills' },
 ];
 
 export interface ViewPreferencesSurfaceOptions {
