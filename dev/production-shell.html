@@ -6,27 +6,94 @@
     <title>CAD Lite v1.6 Production Shell</title>
   </head>
   <body>
-    <main class="cad-lite-production-shell" data-theme="light">
+    <main class="cad-lite-production-shell" data-cad-lite-production-shell data-theme="light">
       <header class="cad-lite-production-shell__topbar">
         <div class="cad-lite-production-shell__brand">
           <span>CAD Lite</span><small>v1.6</small>
         </div>
-        <nav class="cad-lite-production-shell__toolbar" aria-label="Primary tools">
-          <div class="cad-lite-production-shell__toolbar-group" aria-label="File">
-            <button id="lc-new-project" type="button">New</button>
-            <button id="lc-import-project" type="button">Import</button>
-            <button id="lc-export-project" type="button">Export</button>
-            <input id="lc-project-file-input" type="file" accept=".json,.cadlite,application/json" hidden />
+
+        <nav class="cad-lite-production-shell__toolbar" aria-label="CAD toolbar">
+          <div class="cad-lite-production-shell__primary-tools" aria-label="Primary tools">
+            <button id="lc-undo" class="cad-lite-production-shell__icon-button" type="button" title="Undo" aria-label="Undo">↶</button>
+            <button id="lc-redo" class="cad-lite-production-shell__icon-button" type="button" title="Redo" aria-label="Redo">↷</button>
+            <button class="cad-lite-production-shell__icon-button" data-cad-lite-proxy="#lc-add" type="button" title="Add Piece" aria-label="Add Piece">＋</button>
+            <button id="lc-piece-snap" class="cad-lite-production-shell__compact-button" type="button">Piece Snap</button>
+            <button id="lc-grid-snap" class="cad-lite-production-shell__compact-button" type="button">Grid Snap</button>
           </div>
-          <div class="cad-lite-production-shell__toolbar-group" aria-label="History">
-            <button id="lc-undo" type="button">Undo</button>
-            <button id="lc-redo" type="button">Redo</button>
+
+          <div class="cad-lite-production-shell__menus" aria-label="Application menus">
+            <div class="cad-lite-production-shell__menu" data-cad-lite-menu>
+              <button class="cad-lite-production-shell__menu-trigger" data-cad-lite-menu-button type="button" aria-haspopup="menu" aria-expanded="false">EDIT</button>
+              <div class="cad-lite-production-shell__menu-panel" data-cad-lite-menu-panel role="menu" hidden>
+                <button data-cad-lite-proxy="#lc-undo" type="button" role="menuitem"><span>Undo</span><kbd>Ctrl+Z</kbd></button>
+                <button data-cad-lite-proxy="#lc-redo" type="button" role="menuitem"><span>Redo</span><kbd>Ctrl+Y</kbd></button>
+                <div class="cad-lite-production-shell__menu-note">Copy, Paste, Duplicate, Delete, Select All, and Deselect remain keyboard-backed until their typed menu bindings are migrated.</div>
+              </div>
+            </div>
+
+            <div class="cad-lite-production-shell__menu" data-cad-lite-menu>
+              <button class="cad-lite-production-shell__menu-trigger" data-cad-lite-menu-button type="button" aria-haspopup="menu" aria-expanded="false">VIEW</button>
+              <div class="cad-lite-production-shell__menu-panel cad-lite-production-shell__view-menu" data-cad-lite-menu-panel role="menu" hidden>
+                <div class="cad-lite-production-shell__menu-heading">Canvas</div>
+                <button id="lc-show-grid" type="button" role="menuitemcheckbox">Grid</button>
+                <div class="cad-lite-production-shell__menu-heading">Pieces</div>
+                <button id="lc-show-piece-fills" type="button" role="menuitemcheckbox">Piece Fill</button>
+                <button id="lc-show-dims" type="button" role="menuitemcheckbox">Piece Dims</button>
+                <button id="lc-show-seams" type="button" role="menuitemcheckbox">Seams</button>
+                <button id="lc-show-sink-centerlines" type="button" role="menuitemcheckbox">Sink Centerlines</button>
+                <button id="lc-show-cutout-labels" type="button" role="menuitemcheckbox">Cutout Labels</button>
+                <button id="lc-show-slab-material" type="button" role="menuitemcheckbox">Slab Material</button>
+                <div class="cad-lite-production-shell__menu-heading">Annotations</div>
+                <button id="lc-show-manual-dims" type="button" role="menuitemcheckbox">Manual Dims</button>
+                <button id="lc-show-lines" type="button" role="menuitemcheckbox">Lines</button>
+                <button id="lc-show-notes" type="button" role="menuitemcheckbox">Notes</button>
+                <div class="cad-lite-production-shell__menu-heading">Room Features</div>
+                <button id="lc-show-room-features" type="button" role="menuitemcheckbox">Room Features</button>
+                <button id="lc-show-room-feature-labels" type="button" role="menuitemcheckbox">Room Labels</button>
+                <button id="lc-show-room-cabinets" type="button" role="menuitemcheckbox">Cabinets</button>
+                <button id="lc-show-room-fillers-panels" type="button" role="menuitemcheckbox">Fillers / Panels</button>
+                <button id="lc-show-room-appliances" type="button" role="menuitemcheckbox">Appliances</button>
+                <button id="lc-show-room-walls" type="button" role="menuitemcheckbox">Walls</button>
+                <div class="cad-lite-production-shell__menu-heading">Number Format</div>
+                <label class="cad-lite-production-shell__menu-field"><span>Format</span><select id="lc-dim-format"><option value="fraction">Fraction</option><option value="decimal">Decimal</option></select></label>
+                <label class="cad-lite-production-shell__menu-field"><span>Precision</span><select id="lc-dim-precision"><option value="1">1</option><option value="2">1/2</option><option value="4">1/4</option><option value="8">1/8</option><option value="16">1/16</option></select></label>
+              </div>
+            </div>
+
+            <div class="cad-lite-production-shell__menu" data-cad-lite-menu>
+              <button id="lc-insert-menu-btn" class="cad-lite-production-shell__menu-trigger" data-cad-lite-menu-button type="button" aria-haspopup="menu" aria-expanded="false">INSERT</button>
+              <div class="cad-lite-production-shell__menu-panel" data-cad-lite-menu-panel role="menu" hidden>
+                <button data-cad-lite-proxy="#lc-add" type="button" role="menuitem"><span>Piece</span><kbd>P</kbd></button>
+                <button id="lc-tool-note" type="button" role="menuitem"><span>Note</span><kbd>N</kbd></button>
+                <button id="lc-tool-dimension" type="button" role="menuitem"><span>Dimension</span><kbd>D</kbd></button>
+                <button id="lc-tool-line" type="button" role="menuitem"><span>Line</span><kbd>L</kbd></button>
+                <div class="cad-lite-production-shell__menu-heading">SLAB</div>
+                <button id="lc-add-slab" type="button" role="menuitem">Blank Slab</button>
+              </div>
+            </div>
+
+            <div class="cad-lite-production-shell__menu" data-cad-lite-menu>
+              <button class="cad-lite-production-shell__menu-trigger" data-cad-lite-menu-button type="button" aria-haspopup="menu" aria-expanded="false">IMPORT</button>
+              <div class="cad-lite-production-shell__menu-panel" data-cad-lite-menu-panel role="menu" hidden>
+                <button id="lc-import-floor-plan" type="button" role="menuitem">Floor Plan (PDF / PNG / JPG)</button>
+                <div class="cad-lite-production-shell__menu-separator"></div>
+                <button id="lc-import-project" type="button" role="menuitem">Import Project JSON</button>
+              </div>
+            </div>
+
+            <div class="cad-lite-production-shell__menu" data-cad-lite-menu>
+              <button id="lc-export-menu-btn" class="cad-lite-production-shell__menu-trigger" data-cad-lite-menu-button type="button" aria-haspopup="menu" aria-expanded="false">EXPORT</button>
+              <div class="cad-lite-production-shell__menu-panel" data-cad-lite-menu-panel role="menu" hidden>
+                <button id="lc-export-project" type="button" role="menuitem">Project JSON</button>
+                <div class="cad-lite-production-shell__menu-note">PDF / PNG / SVG output parity is tracked separately and is not being faked by this shell.</div>
+              </div>
+            </div>
           </div>
-          <div class="cad-lite-production-shell__toolbar-group" aria-label="Snapping">
-            <button id="lc-piece-snap" type="button">Object Snap</button>
-            <button id="lc-grid-snap" type="button">Grid Snap</button>
-          </div>
+
+          <button id="lc-new-project" class="cad-lite-production-shell__reset-button" type="button" title="Reset Project">Reset</button>
+          <input id="lc-project-file-input" type="file" accept=".json,.cadlite,application/json" hidden />
         </nav>
+
         <div class="cad-lite-production-shell__status">
           <span id="lc-file-status" aria-live="polite"></span>
           <span id="lc-save-status" aria-live="polite"></span>
@@ -56,42 +123,14 @@
 
         <section class="cad-lite-production-shell__workspace" aria-label="CAD workspace">
           <div class="cad-lite-production-shell__workspace-bar">
-            <div class="cad-lite-production-shell__toolbar-group" aria-label="Workspace">
+            <div class="cad-lite-production-shell__workspace-switcher" aria-label="Workspace">
               <button id="lc-workspace-design" type="button">DESIGN</button>
               <button id="lc-workspace-slab" type="button">SLAB</button>
-            </div>
-            <div class="cad-lite-production-shell__toolbar-group" aria-label="Insert">
-              <button id="lc-add-slab" type="button">+ Slab</button>
-              <button id="lc-tool-dimension" type="button">Dimension</button>
-              <button id="lc-tool-line" type="button">Line</button>
-              <button id="lc-tool-note" type="button">Note</button>
-            </div>
-            <div class="cad-lite-production-shell__toolbar-group" aria-label="View">
-              <button id="lc-show-grid" type="button">Grid</button>
-              <button id="lc-show-dims" type="button">Piece Dims</button>
-              <button id="lc-show-piece-fills" type="button">Fills</button>
-              <button id="lc-show-seams" type="button">Seams</button>
-              <button id="lc-show-sink-centerlines" type="button">Sink CL</button>
-              <button id="lc-show-cutout-labels" type="button">Cutouts</button>
-              <button id="lc-show-manual-dims" type="button">Manual Dims</button>
-              <button id="lc-show-notes" type="button">Notes</button>
-              <button id="lc-show-lines" type="button">Lines</button>
-              <button id="lc-show-slab-material" type="button">Slab Material</button>
-              <button id="lc-show-room-features" type="button">Room Features</button>
-              <button id="lc-show-room-feature-labels" type="button">Room Labels</button>
-              <button id="lc-show-room-cabinets" type="button">Cabinets</button>
-              <button id="lc-show-room-fillers-panels" type="button">Panels</button>
-              <button id="lc-show-room-appliances" type="button">Appliances</button>
-              <button id="lc-show-room-walls" type="button">Walls</button>
-            </div>
-            <div class="cad-lite-production-shell__toolbar-group" aria-label="Number format">
-              <label><span>Format</span><select id="lc-dim-format"><option value="fraction">Fraction</option><option value="decimal">Decimal</option></select></label>
-              <label><span>Precision</span><select id="lc-dim-precision"><option value="1">1</option><option value="2">1/2</option><option value="4">1/4</option><option value="8">1/8</option><option value="16">1/16</option></select></label>
             </div>
             <span id="lc-canvas-meta" class="cad-lite-production-shell__workspace-meta" aria-live="polite"></span>
           </div>
           <div class="cad-lite-production-shell__canvas-wrap"><svg id="lc-svg" role="img" aria-label="CAD Lite drawing canvas"></svg></div>
-          <footer class="cad-lite-production-shell__footer">v1.6 production-shell scaffold — typed runtime</footer>
+          <footer class="cad-lite-production-shell__footer">v1.6 production shell — typed runtime</footer>
         </section>
 
         <aside class="cad-lite-production-shell__inspector" aria-label="Inspector">
@@ -100,7 +139,7 @@
         </aside>
       </div>
 
-      <div class="cad-lite-production-shell__portal-layer" aria-hidden="true">
+      <div class="cad-lite-production-shell__portal-layer">
         <div id="lc-modal-root" class="cad-lite-production-shell__modal-root"></div>
         <div id="lc-hud-root" class="cad-lite-production-shell__hud-root"></div>
       </div>
