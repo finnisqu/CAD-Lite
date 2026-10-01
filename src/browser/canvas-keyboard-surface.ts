@@ -1,4 +1,5 @@
 import {
+  addPiece,
   deletePieces,
   deleteRoomFeature,
   deleteSlabSurface,
@@ -23,6 +24,10 @@ export function canvasHistoryShortcut(
   return null;
 }
 
+export function canvasAddPieceShortcut(key: string): boolean {
+  return key.toLowerCase() === 'p';
+}
+
 export interface CanvasKeyboardSurfaceOptions {
   root: ParentNode;
   store: AppStore;
@@ -31,13 +36,14 @@ export interface CanvasKeyboardSurfaceOptions {
   history: HistoryManager;
   roomFeatureNudge: RoomFeatureNudgeController;
   tools: ToolController;
+  createPieceId: () => string;
 }
 
 /**
  * Owns production-level canvas shortcuts that are not tool-specific pointer
  * interactions. Piece arrow nudging remains in PieceCanvasSurface; this adapter
- * owns history, selection clipboard, Room Feature nudge, duplicate, workspace
- * toggle, Escape, and entity deletion parity.
+ * owns history, selection clipboard, Room Feature nudge, duplicate, add Piece,
+ * workspace toggle, Escape, and entity deletion parity.
  */
 export class CanvasKeyboardSurface {
   private readonly root: ParentNode;
@@ -47,6 +53,7 @@ export class CanvasKeyboardSurface {
   private readonly history: HistoryManager;
   private readonly roomFeatureNudge: RoomFeatureNudgeController;
   private readonly tools: ToolController;
+  private readonly createPieceId: () => string;
   private abort: AbortController | null = null;
 
   constructor(options: CanvasKeyboardSurfaceOptions) {
@@ -57,6 +64,7 @@ export class CanvasKeyboardSurface {
     this.history = options.history;
     this.roomFeatureNudge = options.roomFeatureNudge;
     this.tools = options.tools;
+    this.createPieceId = options.createPieceId;
   }
 
   mount(): void {
@@ -121,6 +129,22 @@ export class CanvasKeyboardSurface {
                 ? this.actions.duplicate()
                 : false;
       if (handled) event.preventDefault();
+      return;
+    }
+
+    if (
+      !event.altKey &&
+      !event.ctrlKey &&
+      !event.metaKey &&
+      canvasAddPieceShortcut(key)
+    ) {
+      const state = this.store.getState();
+      const layoutId = state.session.activeLayoutId;
+      if (layoutId && state.session.workspace === 'design') {
+        if (this.commands.execute(addPiece(layoutId, this.createPieceId()))) {
+          event.preventDefault();
+        }
+      }
       return;
     }
 
