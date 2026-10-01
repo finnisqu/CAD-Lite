@@ -95,6 +95,10 @@ export type {
   PieceEdgePropertiesPatch,
   PieceOverhangSide,
 } from './piece-edge-properties';
+export {
+  addLinkedSplash,
+  removeLinkedSplash,
+} from './piece-splashes';
 
 export {
   addPiece,
