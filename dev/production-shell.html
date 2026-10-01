@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>CAD Lite v1.6 Production Shell</title>
+  </head>
+  <body>
+    <main class="cad-lite-production-shell" data-theme="light">
+      <header class="cad-lite-production-shell__topbar">
+        <div class="cad-lite-production-shell__brand">
+          <span>CAD Lite</span><small>v1.6</small>
+        </div>
+        <nav class="cad-lite-production-shell__toolbar" aria-label="Primary tools">
+          <button id="lc-undo" type="button">Undo</button>
+          <button id="lc-redo" type="button">Redo</button>
+          <button id="lc-piece-snap" type="button">Object Snap</button>
+          <button id="lc-grid-snap" type="button">Grid Snap</button>
+        </nav>
+        <div class="cad-lite-production-shell__status">
+          <span id="lc-save-status" aria-live="polite"></span>
+        </div>
+      </header>
+
+      <div class="cad-lite-production-shell__body">
+        <aside class="cad-lite-production-shell__navigator" aria-label="Navigator">
+          <h1 class="cad-lite-production-shell__panel-title">Navigator</h1>
+          <section class="cad-lite-production-shell__section">
+            <div class="cad-lite-production-shell__section-head"><h2>Project</h2></div>
+            <label><span>Name</span><input id="lc-project" type="text" /></label>
+            <label><span>Date</span><input id="lc-date" type="date" /></label>
+            <label><span>Notes</span><textarea id="lc-notes" rows="3"></textarea></label>
+          </section>
+          <section class="cad-lite-production-shell__section">
+            <div class="cad-lite-production-shell__section-head"><h2>Layouts</h2><button id="lc-add-layout" type="button">+ Layout</button></div>
+            <div id="lc-layouts"></div>
+          </section>
+          <section class="cad-lite-production-shell__section">
+            <div class="cad-lite-production-shell__section-head"><h2>Areas / Pieces</h2><button id="lc-add-area" class="lc-add-area-btn" type="button">+ Area</button></div>
+            <div id="lc-list"></div>
+            <button id="lc-add" type="button">+ Add Piece</button>
+            <div id="lc-pieces"></div>
+          </section>
+        </aside>
+
+        <section class="cad-lite-production-shell__workspace" aria-label="CAD workspace">
+          <div class="cad-lite-production-shell__workspace-bar">
+            <button id="lc-workspace-design" type="button">DESIGN</button>
+            <button id="lc-workspace-slab" type="button">SLAB</button>
+            <button id="lc-add-slab" type="button">+ Slab</button>
+            <button id="lc-tool-dimension" type="button">Dimension</button>
+            <button id="lc-tool-line" type="button">Line</button>
+            <button id="lc-tool-note" type="button">Note</button>
+            <button id="lc-show-grid" type="button">Grid</button>
+            <button id="lc-show-dims" type="button">Piece Dims</button>
+            <button id="lc-show-piece-fills" type="button">Fills</button>
+            <button id="lc-show-seams" type="button">Seams</button>
+            <button id="lc-show-sink-centerlines" type="button">Sink CL</button>
+            <button id="lc-show-cutout-labels" type="button">Cutouts</button>
+            <button id="lc-show-manual-dims" type="button">Manual Dims</button>
+            <button id="lc-show-notes" type="button">Notes</button>
+            <button id="lc-show-lines" type="button">Lines</button>
+            <button id="lc-show-slab-material" type="button">Slab Material</button>
+            <button id="lc-show-room-features" type="button">Room Features</button>
+            <button id="lc-show-room-feature-labels" type="button">Room Labels</button>
+            <button id="lc-show-room-cabinets" type="button">Cabinets</button>
+            <button id="lc-show-room-fillers-panels" type="button">Panels</button>
+            <button id="lc-show-room-appliances" type="button">Appliances</button>
+            <button id="lc-show-room-walls" type="button">Walls</button>
+            <label><span>Format</span><select id="lc-dim-format"><option value="fraction">Fraction</option><option value="decimal">Decimal</option></select></label>
+            <label><span>Precision</span><select id="lc-dim-precision"><option value="1">1</option><option value="2">1/2</option><option value="4">1/4</option><option value="8">1/8</option><option value="16">1/16</option></select></label>
+            <span id="lc-canvas-meta" class="cad-lite-production-shell__workspace-meta" aria-live="polite"></span>
+          </div>
+          <div class="cad-lite-production-shell__canvas-wrap"><svg id="lc-svg" role="img" aria-label="CAD Lite drawing canvas"></svg></div>
+          <footer class="cad-lite-production-shell__footer">v1.6 production-shell scaffold — typed runtime</footer>
+        </section>
+
+        <aside class="cad-lite-production-shell__inspector" aria-label="Inspector">
+          <h1 class="cad-lite-production-shell__panel-title">Inspector</h1>
+          <div class="cad-lite-production-shell__section"><div id="lc-inspector"></div></div>
+        </aside>
+      </div>
+
+      <div class="cad-lite-production-shell__portal-layer" aria-hidden="true">
+        <div id="lc-modal-root" class="cad-lite-production-shell__modal-root"></div>
+        <div id="lc-hud-root" class="cad-lite-production-shell__hud-root"></div>
+      </div>
+    </main>
+
+    <script type="module">
+      import { mountCadLiteBrowserRuntime } from '/src/main.ts';
+
+      const initialPayload = {
+        sinkSideConvention: 'front-bottom-v1',
+        project: { name: 'v1.6 Shell Test', date: '2026-10-01', notes: '', scratchpad: { html: '', floating: false, dockHeight: 220, width: 360, height: 300, left: null, top: null } },
+        materials: [],
+        layouts: [{
+          id: 'layout-main', name: 'Kitchen', quantity: 1, cw: 300, ch: 200, scale: 6, grid: 1,
+          showGrid: true, pieceFillOpacity: 1,
+          areas: [{ id: 'area-main', name: 'Kitchen' }], activeAreaId: 'area-main',
+          pieces: [{ id: 'piece-main', name: 'Countertop', areaId: 'area-main', w: 72, h: 25.5, x: 24, y: 30, rotation: 0, layer: 1, color: '#dbeafe', fillOpacity: 1, cornerRadii: { tl: 0, tr: 0, br: 0, bl: 0 }, slabPlacement: { x: 4, y: 4, rotation: 0 } }],
+          dims: [], notes: [], lines: [], roomFeatures: [], plan: null, overlays: [], slabCW: 180, slabCH: 100,
+        }],
+        ui: { workspace: 'layout', gridSnap: true, pieceSnap: true, slabCutClearance: 0.25, slabEdgeAllowance: 1.5, defaultSlabW: 126, defaultSlabH: 63, showSlabMaterial: true, showGrid: true, showDims: true, dimPrecision: 16, dimFormat: 'fraction' },
+        active: 0,
+      };
+
+      window.cadLiteProductionRuntime = mountCadLiteBrowserRuntime({
+        root: document,
+        initialPayload,
+        autosave: { key: 'cadlite:v1.6-production-shell' },
+      });
+    </script>
+  </body>
+</html>
