@@ -68,6 +68,8 @@ export { FloorPlanCanvasSurface } from './floor-plan-canvas-surface';
 export type { FloorPlanCanvasSurfaceOptions } from './floor-plan-canvas-surface';
 export { FloorPlanNavigatorSurface } from './floor-plan-navigator-surface';
 export type { FloorPlanNavigatorSurfaceOptions } from './floor-plan-navigator-surface';
+export { FloorPlanPreparationSurface } from './floor-plan-preparation-surface';
+export type { FloorPlanPreparationSurfaceOptions } from './floor-plan-preparation-surface';
 
 export {
   createRoomFeatureCanvasProjection,
