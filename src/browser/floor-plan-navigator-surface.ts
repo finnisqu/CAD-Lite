@@ -12,6 +12,10 @@ export interface FloorPlanNavigatorSurfaceOptions {
   commands: CommandDispatcher;
   effects: ApplicationEffects;
   confirm?: (message: string) => boolean;
+  onImport?: () => void;
+  onPrepare?: () => void;
+  onDistanceCalibration?: () => void;
+  onSquareCalibration?: () => void;
 }
 
 export class FloorPlanNavigatorSurface {
@@ -20,6 +24,10 @@ export class FloorPlanNavigatorSurface {
   private readonly commands: CommandDispatcher;
   private readonly effects: ApplicationEffects;
   private readonly confirm: (message: string) => boolean;
+  private readonly onImport: (() => void) | null;
+  private readonly onPrepare: (() => void) | null;
+  private readonly onDistanceCalibration: (() => void) | null;
+  private readonly onSquareCalibration: (() => void) | null;
   private mountElement: HTMLElement | null = null;
   private observer: MutationObserver | null = null;
   private unsubscribe: (() => void) | null = null;
@@ -32,6 +40,10 @@ export class FloorPlanNavigatorSurface {
     this.effects = options.effects;
     this.confirm = options.confirm ?? ((message) =>
       typeof window === 'undefined' ? true : window.confirm(message));
+    this.onImport = options.onImport ?? null;
+    this.onPrepare = options.onPrepare ?? null;
+    this.onDistanceCalibration = options.onDistanceCalibration ?? null;
+    this.onSquareCalibration = options.onSquareCalibration ?? null;
   }
 
   mount(): void {
@@ -85,11 +97,37 @@ export class FloorPlanNavigatorSurface {
       header.appendChild(title);
       root.appendChild(header);
 
+      const button = (
+        label: string,
+        titleText: string,
+        onClick: () => void,
+      ): HTMLButtonElement => {
+        const control = document.createElement('button');
+        control.type = 'button';
+        control.className = 'lc-btn ghost sm';
+        control.textContent = label;
+        control.title = titleText;
+        control.addEventListener('click', onClick);
+        return control;
+      };
+
       const plan = layout.plan;
       if (!plan) {
         const empty = document.createElement('div');
-        empty.className = 'lc-small lc-floor-plan-nav-empty';
-        empty.textContent = 'No floor plan on this Layout.';
+        empty.className = 'lc-floor-plan-nav-empty';
+        const text = document.createElement('div');
+        text.className = 'lc-small';
+        text.textContent = 'No floor plan on this Layout.';
+        empty.appendChild(text);
+        if (this.onImport) {
+          const importButton = button(
+            'Import Floor Plan',
+            'Import PDF, PNG, JPG, or JPEG',
+            this.onImport,
+          );
+          importButton.classList.add('lc-floor-plan-import');
+          empty.appendChild(importButton);
+        }
         root.appendChild(empty);
         mount.prepend(root);
         return;
@@ -109,23 +147,44 @@ export class FloorPlanNavigatorSurface {
       identity.append(name, meta);
       root.appendChild(identity);
 
+      const workflow = document.createElement('div');
+      workflow.className = 'lc-floor-plan-nav-actions lc-floor-plan-workflow-actions';
+      if (this.onImport) {
+        workflow.append(
+          button('Replace', 'Replace Floor Plan from PDF or image', this.onImport),
+        );
+      }
+      if (this.onPrepare) {
+        const prepare = button(
+          'Prepare',
+          'Crop, level, erase, or rotate the prepared image',
+          this.onPrepare,
+        );
+        prepare.disabled = plan.locked;
+        workflow.append(prepare);
+      }
+      if (this.onDistanceCalibration) {
+        const calibrate = button(
+          'Calibrate',
+          'Calibrate from a known point-to-point distance',
+          this.onDistanceCalibration,
+        );
+        calibrate.disabled = plan.locked;
+        workflow.append(calibrate);
+      }
+      if (this.onSquareCalibration) {
+        const square = button(
+          '24″ Square',
+          'Calibrate from a known 24 × 24 inch square',
+          this.onSquareCalibration,
+        );
+        square.disabled = plan.locked;
+        workflow.append(square);
+      }
+      if (workflow.childElementCount) root.appendChild(workflow);
+
       const actions = document.createElement('div');
       actions.className = 'lc-floor-plan-nav-actions';
-
-      const button = (
-        label: string,
-        titleText: string,
-        onClick: () => void,
-      ): HTMLButtonElement => {
-        const control = document.createElement('button');
-        control.type = 'button';
-        control.className = 'lc-btn ghost sm';
-        control.textContent = label;
-        control.title = titleText;
-        control.addEventListener('click', onClick);
-        return control;
-      };
-
       actions.append(
         button(plan.visible ? 'Hide' : 'Show', 'Toggle Floor Plan visibility', () =>
           this.commands.execute(
@@ -170,6 +229,9 @@ export class FloorPlanNavigatorSurface {
       opacity.max = '100';
       opacity.step = '1';
       opacity.value = String(Math.round(plan.opacity * 100));
+      opacity.addEventListener('input', () => {
+        opacityText.textContent = `Opacity ${opacity.value}%`;
+      });
       opacity.addEventListener('change', () =>
         this.commands.execute(
           updateFloorPlan(layout.id, { opacity: Number(opacity.value) / 100 }),
@@ -200,11 +262,21 @@ export class FloorPlanNavigatorSurface {
       );
       root.appendChild(options);
 
+      if (plan.locked) {
+        const note = document.createElement('div');
+        note.className = 'lc-small lc-plan-muted';
+        note.textContent =
+          'Unlock to prepare, recalibrate, mirror, rotate, replace, or delete the plan.';
+        root.appendChild(note);
+      }
+
       const remove = document.createElement('button');
       remove.type = 'button';
       remove.className = 'lc-btn red sm lc-floor-plan-delete';
       remove.textContent = 'Delete Floor Plan';
+      remove.disabled = plan.locked;
       remove.addEventListener('click', () => {
+        if (plan.locked) return;
         if (
           this.confirm(
             `Delete ${plan.name || 'the Floor Plan'} from this Layout?`,
