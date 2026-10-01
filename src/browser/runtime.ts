@@ -30,6 +30,7 @@ import { FloorPlanNavigatorSurface } from './floor-plan-navigator-surface';
 import { FloorPlanPreparationSurface } from './floor-plan-preparation-surface';
 import { MaterialSurface } from './material-surface';
 import { PieceCanvasSurface } from './piece-canvas-surface';
+import { ProductionShellSurface } from './production-shell-surface';
 import { RoomFeatureCanvasInteractions } from './room-feature-canvas-interactions';
 import { ScratchpadSurface } from './scratchpad-surface';
 import { ViewPreferencesSurface } from './view-preferences-surface';
@@ -59,6 +60,7 @@ export interface CadLiteBrowserRuntime {
   materialSurface: MaterialSurface;
   scratchpadSurface: ScratchpadSurface;
   viewPreferencesSurface: ViewPreferencesSurface;
+  productionShellSurface: ProductionShellSurface;
   pieceCanvas: PieceCanvasSurface;
   canvasKeyboard: CanvasKeyboardSurface;
   floorPlanCanvas: FloorPlanCanvasSurface;
@@ -179,6 +181,7 @@ export function mountCadLiteBrowserRuntime(
     store,
     commands,
   });
+  const productionShellSurface = new ProductionShellSurface({ root });
 
   const pieceCanvas = new PieceCanvasSurface({
     root,
@@ -243,6 +246,7 @@ export function mountCadLiteBrowserRuntime(
   floorPlanPreparation.mount();
   floorPlanNavigator.mount();
   roomFeatureCanvasInteractions.mount();
+  productionShellSurface.mount();
   startupRecoverySurface.mount();
   effects.start();
 
@@ -269,6 +273,7 @@ export function mountCadLiteBrowserRuntime(
     materialSurface,
     scratchpadSurface,
     viewPreferencesSurface,
+    productionShellSurface,
     pieceCanvas,
     canvasKeyboard,
     floorPlanCanvas,
@@ -290,6 +295,7 @@ export function mountCadLiteBrowserRuntime(
       unregisterAnnotationTools.forEach((unregister) => unregister());
       unregisterRoomFeatureTools.forEach((unregister) => unregister());
       startupRecoverySurface.unmount();
+      productionShellSurface.unmount();
       roomFeatureCanvasInteractions.unmount();
       floorPlanNavigator.unmount();
       floorPlanPreparation.unmount();
