@@ -1,5 +1,9 @@
 /* Batch 26 — Floor Plan import, preparation, and calibration surfaces. */
 
+.cad-lite-architecture-harness__canvas-wrap {
+  position: relative;
+}
+
 .lc-plan-modal-overlay {
   position: fixed;
   inset: 0;
