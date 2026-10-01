@@ -28,6 +28,11 @@ export {
   renameMaterial,
   setProjectMeta,
 } from './project';
+export {
+  addMaterial,
+  deleteMaterial,
+  updateMaterial,
+} from './materials';
 
 export { updatePreferences } from './preferences';
 export {

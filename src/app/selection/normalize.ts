@@ -24,7 +24,9 @@ export function normalizeSelection(
   state: ReadonlyApplicationState,
   selection: Selection,
 ): Selection {
-  if (selection.kind === 'none') return selection;
+  if (selection.kind === 'none' || selection.kind === 'materialCollection') {
+    return selection;
+  }
 
   const layout = activeLayoutForState(state);
 
@@ -37,7 +39,7 @@ export function normalizeSelection(
   if (selection.kind === 'material') {
     return state.project.materials.some((item) => item.id === selection.id)
       ? selection
-      : { kind: 'none' };
+      : { kind: 'materialCollection' };
   }
 
   if (!layout) return { kind: 'none' };

@@ -11,6 +11,7 @@ export type Selection =
   | { kind: 'note'; id: string }
   | { kind: 'roomFeature'; id: string }
   | { kind: 'area'; id: string }
+  | { kind: 'materialCollection' }
   | { kind: 'material'; id: string }
   | { kind: 'layout'; id: string }
   | { kind: 'slab'; id: string }

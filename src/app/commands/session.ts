@@ -6,6 +6,12 @@ import type { AppCommand } from './types';
 function sameSelection(a: Selection, b: Selection): boolean {
   if (a.kind !== b.kind) return false;
   if (a.kind === 'none' && b.kind === 'none') return true;
+  if (
+    a.kind === 'materialCollection' &&
+    b.kind === 'materialCollection'
+  ) {
+    return true;
+  }
 
   if (a.kind === 'pieces' && b.kind === 'pieces') {
     return a.ids.length === b.ids.length && a.ids.every((id, index) => id === b.ids[index]);
