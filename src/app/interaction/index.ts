@@ -60,3 +60,15 @@ export type { AnnotationIdFactory, AnnotationSegmentPreview } from './annotation
 
 export { AnnotationInteractionController } from './annotation-editing';
 export type { AnnotationEditPreview, AnnotationEndpoint } from './annotation-editing';
+
+export {
+  RoomFeatureInteractionController,
+  registerRoomFeatureToolHandlers,
+  resolveRoomFeaturePointer,
+} from './room-features';
+export type {
+  RoomFeatureEditPreview,
+  RoomFeatureIdFactory,
+  RoomFeatureResizeSide,
+  RoomFeatureSnapResult,
+} from './room-features';
