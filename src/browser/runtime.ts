@@ -7,6 +7,7 @@ import {
   ProjectLifecycle,
   RoomFeatureInteractionController,
   SelectionController,
+  StartupRecovery,
   ToolController,
   registerAnnotationToolHandlers,
   registerRoomFeatureToolHandlers,
@@ -20,6 +21,7 @@ import {
   type BrowserEntityIdFactory,
 } from './project-layout-surface';
 import { ProjectFileSurface } from './project-file-surface';
+import { StartupRecoverySurface } from './startup-recovery-surface';
 import { FloorPlanCanvasSurface } from './floor-plan-canvas-surface';
 import { FloorPlanNavigatorSurface } from './floor-plan-navigator-surface';
 import { FloorPlanPreparationSurface } from './floor-plan-preparation-surface';
@@ -45,6 +47,8 @@ export interface CadLiteBrowserRuntime {
   tools: ToolController;
   effects: ApplicationEffects;
   lifecycle: ProjectLifecycle;
+  startupRecovery: StartupRecovery;
+  startupRecoverySurface: StartupRecoverySurface;
   projectFileSurface: ProjectFileSurface;
   surface: ProjectLayoutSurface;
   materialSurface: MaterialSurface;
@@ -121,6 +125,11 @@ export function mountCadLiteBrowserRuntime(
       roomFeatureInteractions.cancel();
       tools.cancel();
     },
+  });
+  const startupRecovery = new StartupRecovery(lifecycle, effects);
+  const startupRecoverySurface = new StartupRecoverySurface({
+    root,
+    recovery: startupRecovery,
   });
   const projectFileSurface = new ProjectFileSurface({
     root,
@@ -202,6 +211,7 @@ export function mountCadLiteBrowserRuntime(
   floorPlanPreparation.mount();
   floorPlanNavigator.mount();
   roomFeatureCanvasInteractions.mount();
+  startupRecoverySurface.mount();
   effects.start();
 
   const beforeUnload = (): void => {
@@ -219,6 +229,8 @@ export function mountCadLiteBrowserRuntime(
     tools,
     effects,
     lifecycle,
+    startupRecovery,
+    startupRecoverySurface,
     projectFileSurface,
     surface,
     materialSurface,
@@ -240,6 +252,7 @@ export function mountCadLiteBrowserRuntime(
       roomFeatureInteractions.cancel();
       unregisterAnnotationTools.forEach((unregister) => unregister());
       unregisterRoomFeatureTools.forEach((unregister) => unregister());
+      startupRecoverySurface.unmount();
       roomFeatureCanvasInteractions.unmount();
       floorPlanNavigator.unmount();
       floorPlanPreparation.unmount();
