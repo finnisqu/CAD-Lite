@@ -1,4 +1,5 @@
 import type { CanvasNote, DimensionAnnotation, DrawingLine } from '../annotations';
+import type { FloorPlan } from '../floor-plans';
 import type { Piece } from '../pieces/types';
 import type { RoomFeature } from '../room-features';
 import type { SlabSurface } from '../slabs';
@@ -48,7 +49,7 @@ export interface Layout {
   notes: CanvasNote[];
   lines: DrawingLine[];
   roomFeatures: RoomFeature[];
-  plan: JsonValue;
+  plan: FloorPlan | null;
   overlays: SlabSurface[];
   extra: JsonObject;
 }
