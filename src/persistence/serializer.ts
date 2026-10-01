@@ -1,5 +1,6 @@
 import { isJsonObject } from '../domain/types';
 import { normalizePersistedEditorState, normalizeProjectState } from './normalize';
+import { loadWorkspaceView } from './workspace-views';
 import { importV159, looksLikeV159ExportApp, looksLikeV159Snapshot } from './legacy/v159';
 import type { CadLiteFile } from './schema';
 import { CAD_LITE_SCHEMA_VERSION } from './schema';
@@ -23,12 +24,18 @@ export function isCanonicalCadLiteFile(value: unknown): value is CadLiteFile {
 
 export function normalizeCanonicalFile(value: CadLiteFile): CadLiteFile {
   const project = normalizeProjectState(value.project);
+  const editor = normalizePersistedEditorState(value.editor, project);
 
   return {
     schemaVersion: CAD_LITE_SCHEMA_VERSION,
     appVersion: value.appVersion,
     project,
-    editor: normalizePersistedEditorState(value.editor, project),
+    editor: {
+      ...editor,
+      // v1.5.99 loads the active workspace's saved visibility state after the
+      // ordinary editor preference fields. Do the same at the canonical seam.
+      preferences: loadWorkspaceView(editor.preferences, editor.workspace),
+    },
   };
 }
 
@@ -40,7 +47,7 @@ export function migrateCadLiteFile(value: unknown): CadLiteFile {
   }
 
   if (looksLikeV159ExportApp(value) || looksLikeV159Snapshot(value)) {
-    return importV159(value);
+    return normalizeCanonicalFile(importV159(value));
   }
 
   throw new Error('Unrecognized CAD Lite project format.');
