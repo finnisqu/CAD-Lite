@@ -71,3 +71,6 @@ export type {
   RoomFeatureCanvasItem,
   RoomFeatureCanvasProjection,
 } from './room-feature-canvas-model';
+
+export { RoomFeatureCanvasInteractions } from './room-feature-canvas-interactions';
+export type { RoomFeatureCanvasInteractionsOptions } from './room-feature-canvas-interactions';
