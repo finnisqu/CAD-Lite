@@ -1,5 +1,6 @@
 import {
   clampCornerRadii,
+  synchronizeLinkedSplashMiterProfile,
   type CornerRadii,
   type Piece,
   type PieceSide,
@@ -36,21 +37,13 @@ const CORNER_KEYS: readonly (keyof CornerRadii)[] = [
   'bl',
 ];
 
-function replacePiece(
+function replacePieces(
   state: ReadonlyApplicationState,
   layoutId: string,
-  pieceId: string,
-  nextPiece: Piece,
+  pieces: Piece[],
 ): ReadonlyApplicationState {
   const layouts = state.project.layouts.map((layout) =>
-    layout.id === layoutId
-      ? {
-          ...layout,
-          pieces: layout.pieces.map((piece) =>
-            piece.id === pieceId ? nextPiece : piece,
-          ),
-        }
-      : layout,
+    layout.id === layoutId ? { ...layout, pieces } : layout,
   );
   return {
     ...state,
@@ -77,9 +70,9 @@ function sameCornerRadii(a: CornerRadii, b: CornerRadii): boolean {
 }
 
 /**
- * Update the already-typed per-Piece fabrication/detail properties that are
- * independent from relationship state. Linked Splash creation/removal is
- * intentionally not handled here.
+ * Update the already-typed per-Piece fabrication/detail properties. Linked
+ * Splash creation/removal stays in its own commands, while the physical miter
+ * joint shared by a parent edge and Splash contact edge remains synchronized.
  */
 export function updatePieceEdgeProperties(
   layoutId: string,
@@ -137,12 +130,28 @@ export function updatePieceEdgeProperties(
         return state;
       }
 
-      return replacePiece(state, layoutId, pieceId, {
+      const nextPiece: Piece = {
         ...piece,
         overhangs,
         edgeProfiles,
         cornerRadii,
+      };
+      let pieces = layout.pieces.map((item) =>
+        item.id === pieceId ? nextPiece : item,
+      );
+
+      EDGE_SIDES.forEach((side) => {
+        if (piece.edgeProfiles[side] === edgeProfiles[side]) return;
+        pieces = synchronizeLinkedSplashMiterProfile(
+          pieces,
+          pieceId,
+          side,
+          edgeProfiles[side],
+          piece.edgeProfiles[side],
+        );
       });
+
+      return replacePieces(state, layoutId, pieces);
     },
   };
 }
