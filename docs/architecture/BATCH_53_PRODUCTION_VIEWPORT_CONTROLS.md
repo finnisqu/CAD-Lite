@@ -4,7 +4,7 @@ Status: complete
 
 Starting architecture head: `f233d227255adeddfaea1bb8aba4f80bc62ffa72`
 
-Validated implementation head: `5b7943fc2d08e6e6bcbd3e76ec9cdf1d185e7b3a`
+Validated implementation head: `4543240245a3707d5de30dbcc13046f667e7a89d`
 
 ## Goal
 
@@ -167,7 +167,7 @@ The completed viewport integration follows one ownership rule:
 - `ProductionViewportSurface` binds behavior to that markup.
 - typed commands own persisted CAD state.
 
-An intermediate implementation briefly experimented with browser-side control injection. The completed implementation removed that fallback so the production shell has one authoritative control structure and cannot accidentally render duplicate VIEW / Theme controls.
+An intermediate implementation briefly included browser-side fallback control injection. The final reconciliation removed that fallback after confirming the production shell already owns the static controls. This leaves one authoritative markup path and prevents duplicate control IDs or competing ownership.
 
 ## Tests
 
@@ -195,9 +195,9 @@ The wheel-history test explicitly exercises the same preview → restore baselin
 
 ## Validation
 
-Architecture CI run: `36912552359`
+Architecture CI run: `36912558903`
 
-Quality job: `110538523458`
+Quality job: `110538545459`
 
 Result: success.
 
@@ -211,7 +211,7 @@ Validated:
 
 Artifacts:
 
-- JS: 377.27 kB / 93.82 kB gzip
+- JS: 375.02 kB / 93.28 kB gzip
 - CSS: 64.52 kB / 9.39 kB gzip
 
 ## Production safety
