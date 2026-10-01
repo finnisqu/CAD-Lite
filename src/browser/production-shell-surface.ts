@@ -21,7 +21,7 @@ function loadCollapsedSections(document: Document | null): Set<string> {
   try {
     const raw = document?.defaultView?.localStorage.getItem(NAV_SECTION_STORAGE_KEY);
     if (!raw) return new Set();
-    const parsed = JSON.parse(raw);
+    const parsed: unknown = JSON.parse(raw) as unknown;
     return new Set(
       Array.isArray(parsed)
         ? parsed.filter((value): value is string => typeof value === 'string')
