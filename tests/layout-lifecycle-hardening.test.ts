@@ -10,8 +10,25 @@ import {
   setActiveLayout,
   setSelection,
   setWorkspace,
+  type AutosaveStorage,
 } from '../src/app';
 import { v159ProjectFixture } from './fixtures/v159-project';
+
+class MemoryStorage implements AutosaveStorage {
+  readonly values = new Map<string, string>();
+
+  getItem(key: string): string | null {
+    return this.values.get(key) ?? null;
+  }
+
+  setItem(key: string, value: string): void {
+    this.values.set(key, value);
+  }
+
+  removeItem(key: string): void {
+    this.values.delete(key);
+  }
+}
 
 function setup() {
   const store = new AppStore(
@@ -19,6 +36,7 @@ function setup() {
   );
   const commands = new CommandDispatcher(store);
   const effects = new ApplicationEffects(store, {
+    autosaveStorage: new MemoryStorage(),
     autosave: { debounceMs: 60_000 },
   });
   effects.start();
