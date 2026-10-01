@@ -187,6 +187,7 @@ export function mountCadLiteBrowserRuntime(
     store,
     commands,
     actions: selectionActions,
+    history: effects.history,
     roomFeatureNudge,
     tools,
   });
