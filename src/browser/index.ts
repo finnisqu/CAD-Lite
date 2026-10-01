@@ -36,6 +36,15 @@ export type { ScratchpadSurfaceOptions } from './scratchpad-surface';
 export { ProductionShellSurface } from './production-shell-surface';
 export type { ProductionShellSurfaceOptions } from './production-shell-surface';
 export {
+  SlabNavigatorSurface,
+  createSlabNavigatorProjection,
+} from './slab-navigator-surface';
+export type {
+  SlabNavigatorItem,
+  SlabNavigatorProjection,
+  SlabNavigatorSurfaceOptions,
+} from './slab-navigator-surface';
+export {
   ViewPreferencesSurface,
   dimensionFormatFromControl,
   dimensionPrecisionFromControl,
