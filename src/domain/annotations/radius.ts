@@ -93,7 +93,7 @@ export function radiusReferenceKey(reference: RadiusReference): string {
 }
 
 export function radiusReferenceFromAnnotation(
-  annotation: Pick<CanvasNote | DrawingLine, 'annotationType' | 'radiusRef'>,
+  annotation: CanvasNote | DrawingLine,
 ): RadiusReference | null {
   if (annotation.annotationType !== 'radius' && annotation.radiusRef === undefined) {
     return null;
