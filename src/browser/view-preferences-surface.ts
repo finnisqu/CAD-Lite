@@ -3,9 +3,25 @@ import {
   type AppStore,
   type CommandDispatcher,
 } from '../app';
-import type { DimensionFormat } from '../persistence';
+import type {
+  DimensionFormat,
+  EditorPreferences,
+} from '../persistence';
 
 export type DimensionPrecision = 1 | 2 | 4 | 8 | 16;
+export type BooleanViewPreference =
+  | 'showManualDims'
+  | 'showNotes'
+  | 'showLines';
+
+const BOOLEAN_VIEW_CONTROLS: ReadonlyArray<{
+  id: string;
+  preference: BooleanViewPreference;
+}> = [
+  { id: 'lc-show-manual-dims', preference: 'showManualDims' },
+  { id: 'lc-show-notes', preference: 'showNotes' },
+  { id: 'lc-show-lines', preference: 'showLines' },
+];
 
 export interface ViewPreferencesSurfaceOptions {
   root: ParentNode;
@@ -32,12 +48,21 @@ export function dimensionPrecisionFromControl(
     : null;
 }
 
+export function booleanViewPreferenceFromControlId(
+  id: string,
+): BooleanViewPreference | null {
+  return (
+    BOOLEAN_VIEW_CONTROLS.find((control) => control.id === id)?.preference ?? null
+  );
+}
+
 /**
- * Browser binding for shared number-format preferences.
+ * Browser binding for shared View preferences.
  *
  * The controls intentionally dispatch the existing typed preferences command;
- * formatting state stays outside drawing entities and remains shared between
- * DESIGN and SLAB, matching the production preference model.
+ * formatting and visibility state stay outside drawing entities. Number format
+ * remains shared between DESIGN and SLAB, while workspace-view persistence is
+ * handled by the existing preferences command boundary.
  */
 export class ViewPreferencesSurface {
   private readonly root: ParentNode;
@@ -47,6 +72,10 @@ export class ViewPreferencesSurface {
   private unsubscribe: (() => void) | null = null;
   private formatControl: HTMLSelectElement | null = null;
   private precisionControl: HTMLSelectElement | null = null;
+  private booleanControls: Array<{
+    element: HTMLButtonElement;
+    preference: BooleanViewPreference;
+  }> = [];
 
   constructor(options: ViewPreferencesSurfaceOptions) {
     this.root = options.root;
@@ -63,6 +92,10 @@ export class ViewPreferencesSurface {
       this.root.querySelector<HTMLSelectElement>('#lc-dim-format');
     this.precisionControl =
       this.root.querySelector<HTMLSelectElement>('#lc-dim-precision');
+    this.booleanControls = BOOLEAN_VIEW_CONTROLS.flatMap((control) => {
+      const element = this.root.querySelector<HTMLButtonElement>(`#${control.id}`);
+      return element ? [{ element, preference: control.preference }] : [];
+    });
 
     this.formatControl?.addEventListener(
       'change',
@@ -88,6 +121,18 @@ export class ViewPreferencesSurface {
       { signal },
     );
 
+    this.booleanControls.forEach(({ element, preference }) => {
+      element.addEventListener(
+        'click',
+        () => {
+          const current = this.store.getState().preferences[preference];
+          const patch = { [preference]: !current } as Partial<EditorPreferences>;
+          this.commands.execute(updatePreferences(patch));
+        },
+        { signal },
+      );
+    });
+
     this.unsubscribe = this.store.subscribe((event) => {
       if (event.changed.preferences) this.render();
     });
@@ -99,6 +144,7 @@ export class ViewPreferencesSurface {
     this.abort = null;
     this.unsubscribe?.();
     this.unsubscribe = null;
+    this.booleanControls = [];
   }
 
   render(): void {
@@ -110,5 +156,10 @@ export class ViewPreferencesSurface {
       this.precisionControl.value = String(preferences.dimPrecision);
       this.precisionControl.disabled = preferences.dimFormat === 'decimal';
     }
+    this.booleanControls.forEach(({ element, preference }) => {
+      const active = preferences[preference];
+      element.setAttribute('aria-pressed', String(active));
+      element.classList.toggle('is-active', active);
+    });
   }
 }
