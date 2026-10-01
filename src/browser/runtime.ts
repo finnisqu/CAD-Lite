@@ -31,6 +31,7 @@ import { FloorPlanNavigatorSurface } from './floor-plan-navigator-surface';
 import { FloorPlanPreparationSurface } from './floor-plan-preparation-surface';
 import { MaterialSurface } from './material-surface';
 import { PieceCanvasSurface } from './piece-canvas-surface';
+import { ProductionInspectorSurface } from './production-inspector-surface';
 import { ProductionShellSurface } from './production-shell-surface';
 import { RoomFeatureCanvasInteractions } from './room-feature-canvas-interactions';
 import { ScratchpadSurface } from './scratchpad-surface';
@@ -62,6 +63,7 @@ export interface CadLiteBrowserRuntime {
   materialSurface: MaterialSurface;
   scratchpadSurface: ScratchpadSurface;
   viewPreferencesSurface: ViewPreferencesSurface;
+  productionInspectorSurface: ProductionInspectorSurface;
   productionShellSurface: ProductionShellSurface;
   slabNavigatorSurface: SlabNavigatorSurface;
   pieceCanvas: PieceCanvasSurface;
@@ -184,6 +186,7 @@ export function mountCadLiteBrowserRuntime(
     store,
     commands,
   });
+  const productionInspectorSurface = new ProductionInspectorSurface({ root });
   const productionShellSurface = new ProductionShellSurface({
     root,
     actions: selectionActions,
@@ -262,6 +265,7 @@ export function mountCadLiteBrowserRuntime(
   floorPlanNavigator.mount();
   roomFeatureCanvasInteractions.mount();
   slabNavigatorSurface.mount();
+  productionInspectorSurface.mount();
   productionShellSurface.mount();
   startupRecoverySurface.mount();
   effects.start();
@@ -289,6 +293,7 @@ export function mountCadLiteBrowserRuntime(
     materialSurface,
     scratchpadSurface,
     viewPreferencesSurface,
+    productionInspectorSurface,
     productionShellSurface,
     slabNavigatorSurface,
     pieceCanvas,
@@ -313,6 +318,7 @@ export function mountCadLiteBrowserRuntime(
       unregisterRoomFeatureTools.forEach((unregister) => unregister());
       startupRecoverySurface.unmount();
       productionShellSurface.unmount();
+      productionInspectorSurface.unmount();
       slabNavigatorSurface.unmount();
       roomFeatureCanvasInteractions.unmount();
       floorPlanNavigator.unmount();
