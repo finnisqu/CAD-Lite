@@ -327,7 +327,7 @@ export function synchronizeLinkedSplashes(
             rotation: placement.rotation,
           };
         }
-      } else if (attachment.snapped !== false) {
+      } else {
         candidate = {
           ...candidate,
           attachment: { ...attachment, snapped: false },
