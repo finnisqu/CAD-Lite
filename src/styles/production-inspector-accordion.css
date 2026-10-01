@@ -1,0 +1,107 @@
+.cad-lite-production-shell #lc-inspector .lc-production-inspector-toggle {
+  position: relative;
+  cursor: pointer;
+  user-select: none;
+}
+
+.cad-lite-production-shell #lc-inspector .lc-production-inspector-toggle::before {
+  content: "▸";
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  width: 12px;
+  margin-right: 5px;
+  color: var(--lc-muted);
+  font-size: 9px;
+  line-height: 1;
+  transform-origin: center;
+  transition: transform 100ms ease;
+}
+
+.cad-lite-production-shell #lc-inspector .lc-production-inspector-toggle[aria-expanded="true"]::before {
+  transform: rotate(90deg);
+}
+
+.cad-lite-production-shell #lc-inspector .lc-production-inspector-toggle:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--lc-selected-border) 45%, transparent);
+  outline-offset: 2px;
+}
+
+.cad-lite-production-shell #lc-inspector .lc-inspector-context-title.lc-production-inspector-toggle,
+.cad-lite-production-shell #lc-inspector > .lc-production-piece-info > h3.lc-production-inspector-toggle {
+  display: flex;
+  align-items: center;
+}
+
+.cad-lite-production-shell #lc-inspector > .lc-production-piece-info {
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.cad-lite-production-shell #lc-inspector > .lc-production-piece-info > h3 {
+  margin: 0 -12px 10px;
+  padding: 9px 12px 10px;
+  border-bottom: 1px solid var(--lc-border);
+  color: var(--lc-text);
+  background: var(--lc-panel);
+  font-size: 12px;
+  font-weight: 750;
+  letter-spacing: .015em;
+}
+
+.cad-lite-production-shell #lc-inspector > .lc-production-piece-info > h3[aria-expanded="false"] {
+  margin-bottom: 0;
+}
+
+.cad-lite-production-shell #lc-inspector .lc-production-piece-info-body {
+  min-width: 0;
+}
+
+.cad-lite-production-shell #lc-inspector .lc-production-piece-info-body > label:first-child {
+  margin-top: 0;
+}
+
+.cad-lite-production-shell #lc-inspector .lc-production-inspector-section {
+  min-width: 0;
+}
+
+.cad-lite-production-shell #lc-inspector .lc-production-inspector-section-toggle {
+  min-height: 28px;
+}
+
+.cad-lite-production-shell #lc-inspector .lc-piece-sinks-inspector__header.lc-production-inspector-section-toggle,
+.cad-lite-production-shell #lc-inspector .lc-piece-cutouts-inspector__header.lc-production-inspector-section-toggle,
+.cad-lite-production-shell #lc-inspector .lc-piece-seams-inspector__header.lc-production-inspector-section-toggle {
+  justify-content: flex-start;
+}
+
+.cad-lite-production-shell #lc-inspector .lc-piece-sinks-inspector__header.lc-production-inspector-section-toggle > strong,
+.cad-lite-production-shell #lc-inspector .lc-piece-cutouts-inspector__header.lc-production-inspector-section-toggle > strong,
+.cad-lite-production-shell #lc-inspector .lc-piece-seams-inspector__header.lc-production-inspector-section-toggle > strong {
+  margin-right: auto;
+}
+
+.cad-lite-production-shell #lc-inspector .lc-piece-sinks-inspector.is-collapsed,
+.cad-lite-production-shell #lc-inspector .lc-piece-cutouts-inspector.is-collapsed,
+.cad-lite-production-shell #lc-inspector .lc-piece-seams-inspector.is-collapsed,
+.cad-lite-production-shell #lc-inspector .lc-fabrication-seams-inspector.is-collapsed {
+  padding-bottom: 0;
+}
+
+.cad-lite-production-shell #lc-inspector .lc-fabrication-seams-inspector > strong.lc-production-inspector-section-toggle {
+  display: flex;
+  align-items: center;
+  width: 100%;
+}
+
+.cad-lite-production-shell #lc-inspector .lc-production-inspector-context.is-production-collapsed > .lc-inspector-context-title {
+  margin-bottom: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cad-lite-production-shell #lc-inspector .lc-production-inspector-toggle::before {
+    transition: none;
+  }
+}
