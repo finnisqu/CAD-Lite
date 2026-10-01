@@ -185,14 +185,32 @@ function createInteractionFeature(
   );
 }
 
-function applyEditPreview(
+function applyInteractionPreview(
   state: ReadonlyApplicationState,
   feature: RoomFeature,
   index: number,
 ): RoomFeature {
   const record = interactionRecord(state);
+  if (!record) return feature;
+
   if (
-    !record ||
+    record.kind === 'room-feature-nudge' &&
+    Array.isArray(record.ids) &&
+    record.ids.includes(feature.id)
+  ) {
+    return normalizeRoomFeature(
+      {
+        ...feature,
+        x: feature.x + previewNumber(record, 'dx', 0),
+        y: feature.y + previewNumber(record, 'dy', 0),
+        id: feature.id,
+      },
+      index,
+      'room-feature-preview',
+    );
+  }
+
+  if (
     record.kind !== 'room-feature-edit' ||
     record.id !== feature.id ||
     !record.patch ||
@@ -225,7 +243,7 @@ export function createRoomFeatureCanvasProjection(
 
   const selection = state.session.selection;
   const items = layout.roomFeatures
-    .map((feature, index) => applyEditPreview(state, feature, index))
+    .map((feature, index) => applyInteractionPreview(state, feature, index))
     .filter(
       (feature) =>
         feature.visible &&
