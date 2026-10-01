@@ -58,6 +58,20 @@ export type {
 export { registerAnnotationToolHandlers } from './annotations';
 export type { AnnotationIdFactory, AnnotationSegmentPreview } from './annotations';
 
+export {
+  createSplashEdgeTargets,
+  hitTestSplashEdge,
+  registerSplashToolHandler,
+  splashPointHitsEligibleParent,
+  splashToolOptions,
+} from './splashes';
+export type {
+  SplashBrushAction,
+  SplashEdgeTarget,
+  SplashToolIdFactory,
+  SplashToolOptions,
+} from './splashes';
+
 export { AnnotationInteractionController } from './annotation-editing';
 export type { AnnotationEditPreview, AnnotationEndpoint } from './annotation-editing';
 
