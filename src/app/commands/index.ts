@@ -23,6 +23,14 @@ export type {
   AddLayoutOptions,
   DuplicateLayoutOptions,
 } from './layouts';
+export {
+  updateLayoutViewport,
+  MIN_CANVAS_DIMENSION,
+  MIN_CANVAS_SCALE,
+  MAX_CANVAS_SCALE,
+  MIN_GRID_SIZE,
+} from './layout-viewport';
+export type { LayoutViewportPatch } from './layout-viewport';
 
 export {
   renameMaterial,
