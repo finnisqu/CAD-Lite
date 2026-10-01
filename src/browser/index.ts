@@ -24,6 +24,9 @@ export type {
   ProjectFileSurfaceOptions,
 } from './project-file-surface';
 
+export { StartupRecoverySurface } from './startup-recovery-surface';
+export type { StartupRecoverySurfaceOptions } from './startup-recovery-surface';
+
 export { MaterialSurface } from './material-surface';
 export type { MaterialSurfaceOptions } from './material-surface';
 export { ScratchpadSurface } from './scratchpad-surface';
