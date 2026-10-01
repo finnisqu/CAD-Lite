@@ -29,7 +29,8 @@ function productionDimension(value: unknown, fallback: number): number {
   return Number.isFinite(number) && number !== 0 ? number : fallback;
 }
 
-function productionPosition(value: unknown): number | null {
+function normalizedPosition(value: unknown): number | null {
+  if (value === null || value === undefined) return null;
   const number = Number(value);
   return Number.isFinite(number) ? number : null;
 }
@@ -46,8 +47,8 @@ export function normalizeProjectScratchpad(raw: unknown): ProjectScratchpad {
     ),
     width: clamp(productionDimension(source.width, 360), 280, 720),
     height: clamp(productionDimension(source.height, 300), 190, 560),
-    left: productionPosition(source.left),
-    top: productionPosition(source.top),
+    left: normalizedPosition(source.left),
+    top: normalizedPosition(source.top),
   };
 }
 
