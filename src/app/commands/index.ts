@@ -44,6 +44,7 @@ export {
   updateDrawingLine,
 } from './annotations';
 export {
+  calibrateFloorPlanDistance,
   clearFloorPlan,
   setFloorPlan,
   updateFloorPlan,
