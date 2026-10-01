@@ -1,5 +1,6 @@
 import {
   calibrateFloorPlan,
+  calibrateFloorPlanSquare24,
   normalizeFloorPlan,
   type FloorPlan,
   type FloorPlanPatch,
@@ -52,6 +53,13 @@ function patchChangesCanvasSize(patch: FloorPlanPatch): boolean {
   );
 }
 
+function calibratedLayout(
+  layout: Layout,
+  plan: FloorPlan,
+): Layout {
+  return syncLayoutCanvasToFloorPlan({ ...layout, plan }, plan);
+}
+
 export function setFloorPlan(
   layoutId: string,
   plan: FloorPlan,
@@ -66,8 +74,7 @@ export function setFloorPlan(
       if (!target) return state;
       const next = normalizeFloorPlan(plan, 0, `${layoutId}-floor-plan`);
       if (!next) return state;
-      const withPlan: Layout = { ...target.layout, plan: next };
-      const synced = syncLayoutCanvasToFloorPlan(withPlan, next);
+      const synced = calibratedLayout(target.layout, next);
       if (sameJson(target.layout, synced)) return state;
       return replaceLayout(state, target.index, synced);
     },
@@ -134,11 +141,44 @@ export function calibrateFloorPlanDistance(
         updatedAt,
       );
       if (sameJson(current, next)) return state;
-      const withPlan: Layout = { ...target.layout, plan: next };
       return replaceLayout(
         state,
         target.index,
-        syncLayoutCanvasToFloorPlan(withPlan, next),
+        calibratedLayout(target.layout, next),
+      );
+    },
+  };
+}
+
+export function calibrateFloorPlanSquare(
+  layoutId: string,
+  measuredSide: number,
+  updatedAt?: string,
+): AppCommand {
+  return {
+    type: 'floorPlan.calibrateSquare24',
+    label: 'Calibrate floor plan to 24-inch square',
+    history: 'record',
+    persistence: 'save',
+    reduce(state) {
+      const target = designLayout(state, layoutId);
+      if (!target) return state;
+      const current = normalizeFloorPlan(
+        target.layout.plan,
+        0,
+        `${layoutId}-floor-plan`,
+      );
+      if (!current || current.locked) return state;
+      const next = calibrateFloorPlanSquare24(
+        current,
+        measuredSide,
+        updatedAt,
+      );
+      if (sameJson(current, next)) return state;
+      return replaceLayout(
+        state,
+        target.index,
+        calibratedLayout(target.layout, next),
       );
     },
   };
