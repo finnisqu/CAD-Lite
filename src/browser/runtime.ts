@@ -20,6 +20,7 @@ import {
 } from './project-layout-surface';
 import { FloorPlanCanvasSurface } from './floor-plan-canvas-surface';
 import { FloorPlanNavigatorSurface } from './floor-plan-navigator-surface';
+import { FloorPlanPreparationSurface } from './floor-plan-preparation-surface';
 import { PieceCanvasSurface } from './piece-canvas-surface';
 import { RoomFeatureCanvasInteractions } from './room-feature-canvas-interactions';
 
@@ -42,6 +43,7 @@ export interface CadLiteBrowserRuntime {
   surface: ProjectLayoutSurface;
   pieceCanvas: PieceCanvasSurface;
   floorPlanCanvas: FloorPlanCanvasSurface;
+  floorPlanPreparation: FloorPlanPreparationSurface;
   floorPlanNavigator: FloorPlanNavigatorSurface;
   pieceInteractions: PieceInteractionController;
   annotationInteractions: AnnotationInteractionController;
@@ -128,12 +130,25 @@ export function mountCadLiteBrowserRuntime(
     store,
     effects,
   });
+  const floorPlanPreparation = new FloorPlanPreparationSurface({
+    root,
+    store,
+    commands,
+    effects,
+    createId,
+    ...(options.confirm ? { confirm: options.confirm } : {}),
+  });
   const floorPlanNavigator = new FloorPlanNavigatorSurface({
     root,
     store,
     commands,
     effects,
     ...(options.confirm ? { confirm: options.confirm } : {}),
+    onImport: () => floorPlanPreparation.openFilePicker(),
+    onPrepare: () => floorPlanPreparation.prepareCurrentPlan(),
+    onDistanceCalibration: () =>
+      floorPlanPreparation.startDistanceCalibration(),
+    onSquareCalibration: () => floorPlanPreparation.startSquareCalibration(),
   });
   const roomFeatureCanvasInteractions = new RoomFeatureCanvasInteractions({
     root,
@@ -146,6 +161,7 @@ export function mountCadLiteBrowserRuntime(
   surface.mount();
   pieceCanvas.mount();
   floorPlanCanvas.mount();
+  floorPlanPreparation.mount();
   floorPlanNavigator.mount();
   roomFeatureCanvasInteractions.mount();
   effects.start();
@@ -167,6 +183,7 @@ export function mountCadLiteBrowserRuntime(
     surface,
     pieceCanvas,
     floorPlanCanvas,
+    floorPlanPreparation,
     floorPlanNavigator,
     pieceInteractions,
     annotationInteractions,
@@ -183,6 +200,7 @@ export function mountCadLiteBrowserRuntime(
       unregisterRoomFeatureTools.forEach((unregister) => unregister());
       roomFeatureCanvasInteractions.unmount();
       floorPlanNavigator.unmount();
+      floorPlanPreparation.unmount();
       floorPlanCanvas.unmount();
       pieceCanvas.unmount();
       surface.unmount();
