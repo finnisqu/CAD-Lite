@@ -1,4 +1,5 @@
 import './styles/index.css';
+import './styles/floor-plan-preparation.css';
 
 export {
   CAD_LITE_ARCHITECTURE_VERSION,
