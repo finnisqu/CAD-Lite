@@ -47,7 +47,7 @@ export interface FloorPlanCalibrationSurfaceOptions {
   commands: CommandDispatcher;
   effects: ApplicationEffects;
   alert?: (message: string) => void;
-  onModal?(modal: FloorPlanModal | null): void;
+  onModal?: (modal: FloorPlanModal | null) => void;
 }
 
 function ownerDocument(root: ParentNode): Document {
