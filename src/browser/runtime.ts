@@ -36,6 +36,7 @@ import { MaterialSurface } from './material-surface';
 import { PieceCanvasSurface } from './piece-canvas-surface';
 import { ProductionEdgePainterSurface } from './production-edge-painter-surface';
 import { ProductionInspectorSurface } from './production-inspector-surface';
+import { ProductionPieceInteractionParitySurface } from './production-piece-interaction-parity-surface';
 import { ProductionPiecePropertiesSurface } from './production-piece-properties-surface';
 import { ProductionRadiusSurface } from './production-radius-surface';
 import { ProductionSplashSurface } from './production-splash-surface';
@@ -72,6 +73,7 @@ export interface CadLiteBrowserRuntime {
   scratchpadSurface: ScratchpadSurface;
   viewPreferencesSurface: ViewPreferencesSurface;
   productionPiecePropertiesSurface: ProductionPiecePropertiesSurface;
+  productionPieceInteractionParitySurface: ProductionPieceInteractionParitySurface;
   productionSplashSurface: ProductionSplashSurface;
   productionRadiusSurface: ProductionRadiusSurface;
   productionEdgePainterSurface: ProductionEdgePainterSurface;
@@ -212,6 +214,8 @@ export function mountCadLiteBrowserRuntime(
   });
   const productionPiecePropertiesSurface =
     new ProductionPiecePropertiesSurface({ root, store, commands });
+  const productionPieceInteractionParitySurface =
+    new ProductionPieceInteractionParitySurface({ root, store, commands });
   const productionSplashSurface = new ProductionSplashSurface({
     root,
     store,
@@ -312,6 +316,7 @@ export function mountCadLiteBrowserRuntime(
   roomFeatureCanvasInteractions.mount();
   slabNavigatorSurface.mount();
   productionPiecePropertiesSurface.mount();
+  productionPieceInteractionParitySurface.mount();
   productionSplashSurface.mount();
   productionRadiusSurface.mount();
   productionEdgePainterSurface.mount();
@@ -345,6 +350,7 @@ export function mountCadLiteBrowserRuntime(
     scratchpadSurface,
     viewPreferencesSurface,
     productionPiecePropertiesSurface,
+    productionPieceInteractionParitySurface,
     productionSplashSurface,
     productionRadiusSurface,
     productionEdgePainterSurface,
@@ -382,6 +388,7 @@ export function mountCadLiteBrowserRuntime(
       productionEdgePainterSurface.unmount();
       productionRadiusSurface.unmount();
       productionSplashSurface.unmount();
+      productionPieceInteractionParitySurface.unmount();
       productionPiecePropertiesSurface.unmount();
       slabNavigatorSurface.unmount();
       roomFeatureCanvasInteractions.unmount();
