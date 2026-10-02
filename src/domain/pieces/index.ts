@@ -18,6 +18,8 @@ export * from './sinks';
 
 export * from './cutouts';
 
+export * from './ordering';
+
 export * from './fabrication';
 
 export * from './groups';
