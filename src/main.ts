@@ -7,6 +7,7 @@ import './styles/production-piece-interaction-parity.css';
 import './styles/production-splash.css';
 import './styles/production-radius.css';
 import './styles/production-edge-painter.css';
+import './styles/production-mode-hud.css';
 import './styles/production-viewport.css';
 import './styles/floor-plan-preparation.css';
 import './styles/materials.css';
