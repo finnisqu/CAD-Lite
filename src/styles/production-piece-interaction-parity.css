@@ -1,20 +1,25 @@
-.cad-lite-production-shell .lc-piece-sink-row > .lc-piece-sink-fields {
+.cad-lite-production-shell .lc-piece-sink-row > .lc-piece-sink-fields,
+.cad-lite-production-shell .lc-piece-cutout-row > .lc-piece-cutout-fields {
   display: none;
 }
 
-.cad-lite-production-shell .lc-piece-sink-row.is-expanded > .lc-piece-sink-fields {
+.cad-lite-production-shell .lc-piece-sink-row.is-expanded > .lc-piece-sink-fields,
+.cad-lite-production-shell .lc-piece-cutout-row.is-expanded > .lc-piece-cutout-fields {
   display: grid;
 }
 
-.cad-lite-production-shell .lc-piece-sink-row__header {
+.cad-lite-production-shell .lc-piece-sink-row__header,
+.cad-lite-production-shell .lc-piece-cutout-row__header {
   cursor: pointer;
 }
 
-.cad-lite-production-shell .lc-piece-sink-row.is-expanded > .lc-piece-sink-row__header {
+.cad-lite-production-shell .lc-piece-sink-row.is-expanded > .lc-piece-sink-row__header,
+.cad-lite-production-shell .lc-piece-cutout-row.is-expanded > .lc-piece-cutout-row__header {
   background: var(--lc-surface-soft);
 }
 
-.cad-lite-production-shell .lc-sink-reorder-handle {
+.cad-lite-production-shell .lc-sink-reorder-handle,
+.cad-lite-production-shell .lc-cutout-reorder-handle {
   display: inline-flex;
   flex: 0 0 auto;
   align-items: center;
@@ -34,22 +39,27 @@
 }
 
 .cad-lite-production-shell .lc-sink-reorder-handle:hover,
-.cad-lite-production-shell .lc-sink-reorder-handle:focus-visible {
+.cad-lite-production-shell .lc-sink-reorder-handle:focus-visible,
+.cad-lite-production-shell .lc-cutout-reorder-handle:hover,
+.cad-lite-production-shell .lc-cutout-reorder-handle:focus-visible {
   border-color: var(--lc-border);
   background: var(--lc-surface-soft);
   color: var(--lc-text);
   outline: none;
 }
 
-.cad-lite-production-shell .lc-sink-reorder-handle:active {
+.cad-lite-production-shell .lc-sink-reorder-handle:active,
+.cad-lite-production-shell .lc-cutout-reorder-handle:active {
   cursor: grabbing;
 }
 
-.cad-lite-production-shell .lc-piece-sink-row.is-dragging {
+.cad-lite-production-shell .lc-piece-sink-row.is-dragging,
+.cad-lite-production-shell .lc-piece-cutout-row.is-dragging {
   opacity: 0.55;
 }
 
-.cad-lite-production-shell .lc-piece-sink-row.is-drop-target {
+.cad-lite-production-shell .lc-piece-sink-row.is-drop-target,
+.cad-lite-production-shell .lc-piece-cutout-row.is-drop-target {
   outline: 2px solid var(--lc-accent);
   outline-offset: 2px;
 }
