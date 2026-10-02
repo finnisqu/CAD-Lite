@@ -2,13 +2,16 @@ import { normalizeDegrees, round3 } from '../../core/numeric';
 import {
   createRoomFeature,
   type RoomFeature,
-  type RoomWallType,
 } from '../../domain/room-features';
 import type { Layout } from '../../domain/project';
 import type { JsonObject } from '../../domain/types';
 import { addRoomFeature } from '../commands/room-features';
 import type { ReadonlyApplicationState } from '../state';
-import { resolveRoomFeaturePointer, type RoomFeatureIdFactory } from './room-features';
+import { createLinkedWallBrushHandler } from './linked-wall-brush';
+import {
+  resolveRoomFeaturePointer,
+  type RoomFeatureIdFactory,
+} from './room-features';
 import type {
   ToolHandler,
   ToolHandlerContext,
@@ -16,7 +19,7 @@ import type {
   ToolPointerInput,
 } from './types';
 
-type PlacementTool = 'roomFeatures' | 'roomWall' | 'linkedWall';
+type PlacementTool = 'roomFeatures' | 'roomWall';
 
 function activeLayout(state: ReadonlyApplicationState): Layout | null {
   if (state.session.workspace !== 'design') return null;
@@ -66,14 +69,8 @@ function createPreview(
   const layout = activeLayout(context.state);
   if (!layout) return null;
   const snap = resolveRoomFeaturePointer(context.state, input);
-  const wall = tool !== 'roomFeatures';
+  const wall = tool === 'roomWall';
   const depth = wall ? wallThickness(context) : 24;
-  const wallType: RoomWallType =
-    tool === 'linkedWall'
-      ? 'linked'
-      : tool === 'roomWall'
-        ? roomWallType(context)
-        : null;
 
   return {
     kind: 'room-feature-create',
@@ -85,13 +82,8 @@ function createPreview(
     length: wall ? 0.25 : 36,
     depth,
     rotation: 0,
-    featureType:
-      tool === 'linkedWall'
-        ? 'linked-wall'
-        : tool === 'roomWall'
-          ? 'wall'
-          : 'base',
-    wallType,
+    featureType: wall ? 'wall' : 'base',
+    wallType: wall ? roomWallType(context) : null,
     guideX: snap.guideX,
     guideY: snap.guideY,
     snapX: snap.snapped ? snap.point.x : null,
@@ -143,8 +135,6 @@ function updatePreview(
     y: start.y + dy / 2,
   };
   const depth = wallThickness(context);
-  const wallType: RoomWallType =
-    tool === 'linkedWall' ? 'linked' : roomWallType(context);
 
   return {
     ...current,
@@ -152,7 +142,7 @@ function updatePreview(
     y: round3(center.y - depth / 2),
     length: round3(length),
     depth,
-    wallType,
+    wallType: roomWallType(context),
     rotation: round3(rotation),
     guideX: snap.guideX,
     guideY: snap.guideY,
@@ -165,40 +155,29 @@ function featureFromPreview(
   preview: Record<string, unknown>,
   id: string,
 ): RoomFeature {
-  const tool = preview.tool;
-  const wallType: RoomWallType =
-    tool === 'linkedWall'
-      ? 'linked'
-      : preview.wallType === 'knee'
-        ? 'knee'
-        : tool === 'roomWall'
-          ? 'full'
-          : null;
-  const wall = wallType !== null;
-  const name =
-    wallType === 'linked'
-      ? 'Linked Wall'
-      : wallType === 'knee'
-        ? 'Knee Wall'
-        : wall
-          ? 'Wall'
-          : 'Base Cabinet';
+  const wall = preview.tool === 'roomWall';
+  const wallType = wall
+    ? preview.wallType === 'knee'
+      ? 'knee'
+      : 'full'
+    : null;
+  const name = wall
+    ? wallType === 'knee'
+      ? 'Knee Wall'
+      : 'Wall'
+    : 'Base Cabinet';
 
-  return createRoomFeature(
-    id,
-    wall ? (wallType === 'linked' ? 'linked-wall' : 'wall') : 'base',
-    {
-      kind: wall ? 'wall' : 'feature',
-      name,
-      x: Number(preview.x) || 0,
-      y: Number(preview.y) || 0,
-      length: Number(preview.length) || (wall ? 96 : 36),
-      depth: Number(preview.depth) || (wall ? 4.5 : 24),
-      rotation: Number(preview.rotation) || 0,
-      wallType,
-      receivesCountertop: !wall,
-    },
-  );
+  return createRoomFeature(id, wall ? 'wall' : 'base', {
+    kind: wall ? 'wall' : 'feature',
+    name,
+    x: Number(preview.x) || 0,
+    y: Number(preview.y) || 0,
+    length: Number(preview.length) || (wall ? 96 : 36),
+    depth: Number(preview.depth) || (wall ? 4.5 : 24),
+    rotation: Number(preview.rotation) || 0,
+    wallType,
+    receivesCountertop: !wall,
+  });
 }
 
 function placementHandler(
@@ -221,7 +200,7 @@ function placementHandler(
       if (!preview) return { preview: null };
 
       if (
-        tool !== 'roomFeatures' &&
+        tool === 'roomWall' &&
         Number(preview.length) < 2 / Math.max(0.001, Math.abs(layout.scale || 1))
       ) {
         const startX = Number(preview.startX) || input.x;
@@ -232,8 +211,7 @@ function placementHandler(
           x: startX,
           y: startY - depth / 2,
           depth,
-          wallType:
-            tool === 'linkedWall' ? 'linked' : roomWallType(context),
+          wallType: roomWallType(context),
           length: 96,
           rotation: 0,
         };
@@ -248,19 +226,16 @@ function placementHandler(
           ),
         ],
         transactionLabel:
-          tool === 'roomFeatures'
-            ? 'Add room feature'
-            : tool === 'linkedWall'
-              ? 'Add linked wall'
-              : 'Add wall',
+          tool === 'roomFeatures' ? 'Add room feature' : 'Add wall',
       };
     },
   };
 }
 
 /**
- * Batch 59 production placement handlers. They retain the established typed
- * creation flow while restoring the v1.5.99 Wall Type / Thickness HUD contract.
+ * Batch 59 production placement handlers. Room Feature and free-wall creation
+ * retain the established typed flow, while Linked Walls use the v1.5.99
+ * add/erase edge-brush contract.
  */
 export function registerProductionRoomFeatureToolHandlers(
   register: (tool: ToolId, handler: ToolHandler) => () => void,
@@ -269,6 +244,6 @@ export function registerProductionRoomFeatureToolHandlers(
   return [
     register('roomFeatures', placementHandler('roomFeatures', createId)),
     register('roomWall', placementHandler('roomWall', createId)),
-    register('linkedWall', placementHandler('linkedWall', createId)),
+    register('linkedWall', createLinkedWallBrushHandler(createId)),
   ];
 }
