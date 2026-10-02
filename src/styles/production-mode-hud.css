@@ -1,0 +1,221 @@
+.cad-lite-production-shell .lc-production-mode-hud {
+  position: absolute;
+  top: 12px;
+  left: 50%;
+  display: grid;
+  width: min(398px, calc(100% - 24px));
+  gap: 7px;
+  padding: 8px;
+  border: 1px solid var(--lc-border);
+  border-radius: 7px;
+  color: var(--lc-text);
+  background: color-mix(in srgb, var(--lc-panel) 97%, transparent);
+  box-shadow: 0 6px 18px rgb(15 23 42 / 16%);
+  transform: translateX(-50%);
+  backdrop-filter: blur(8px);
+  pointer-events: auto;
+  user-select: none;
+}
+
+.cad-lite-production-shell .lc-production-mode-hud.is-user-moved { transform: none; }
+.cad-lite-production-shell .lc-production-mode-hud.is-dragging { cursor: grabbing; }
+
+.cad-lite-production-shell .lc-production-mode-hud__header {
+  display: flex;
+  min-height: 25px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  cursor: grab;
+}
+
+.cad-lite-production-shell .lc-production-mode-hud__identity,
+.cad-lite-production-shell .lc-production-mode-hud__header-actions {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.cad-lite-production-shell .lc-production-mode-hud__identity strong {
+  font-size: 11px;
+  letter-spacing: .08em;
+}
+
+.cad-lite-production-shell .lc-production-mode-hud__identity kbd {
+  min-width: 22px;
+  padding: 2px 5px;
+  border: 1px solid var(--lc-border);
+  border-radius: 4px;
+  color: var(--lc-muted);
+  background: var(--lc-toolbar);
+  font: 9px/1.2 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  text-align: center;
+}
+
+.cad-lite-production-shell .lc-production-mode-hud__icon-btn,
+.cad-lite-production-shell .lc-production-mode-hud__room-actions button {
+  min-height: 26px;
+  padding: 3px 7px;
+  border-radius: 5px;
+  font-size: 9px;
+}
+
+.cad-lite-production-shell .lc-production-mode-hud__icon-btn { min-width: 30px; }
+
+.cad-lite-production-shell .lc-production-mode-hud__room-actions {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 4px;
+}
+
+.cad-lite-production-shell .lc-production-mode-hud__wall-controls {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.cad-lite-production-shell .lc-production-mode-hud__wall-controls label {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  font-size: 9px;
+}
+
+.cad-lite-production-shell .lc-production-mode-hud__wall-controls input,
+.cad-lite-production-shell .lc-production-mode-hud__wall-controls select {
+  min-width: 0;
+  min-height: 27px;
+  padding: 3px 6px;
+  font-size: 10px;
+}
+
+.cad-lite-production-shell .lc-production-mode-hud__help {
+  overflow: hidden;
+  color: var(--lc-muted);
+  font-size: 8px;
+  font-style: italic;
+  line-height: 1.35;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cad-lite-production-shell .lc-production-room-modal-overlay {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 12px;
+  background: rgb(15 23 42 / 48%);
+  backdrop-filter: blur(2px);
+  pointer-events: auto;
+}
+
+.cad-lite-production-shell .lc-production-room-modal {
+  display: flex;
+  width: min(430px, calc(100vw - 24px));
+  max-height: calc(100vh - 24px);
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid var(--lc-border);
+  border-radius: 8px;
+  color: var(--lc-text);
+  background: var(--lc-panel);
+  box-shadow: 0 20px 56px rgb(0 0 0 / 24%);
+}
+
+.cad-lite-production-shell .lc-production-room-modal__head,
+.cad-lite-production-shell .lc-production-room-modal__foot {
+  display: flex;
+  align-items: center;
+  padding: 10px 12px;
+  background: var(--lc-toolbar);
+}
+
+.cad-lite-production-shell .lc-production-room-modal__head {
+  justify-content: space-between;
+  border-bottom: 1px solid var(--lc-border);
+}
+
+.cad-lite-production-shell .lc-production-room-modal__head strong {
+  font-size: 12px;
+  letter-spacing: .02em;
+}
+
+.cad-lite-production-shell .lc-production-room-modal__close {
+  width: 28px;
+  min-width: 28px;
+  min-height: 28px;
+  padding: 0;
+  font-size: 16px;
+}
+
+.cad-lite-production-shell .lc-production-room-modal__body {
+  min-height: 0;
+  overflow: auto;
+  padding: 12px;
+}
+
+.cad-lite-production-shell .lc-production-room-modal__foot {
+  justify-content: flex-end;
+  gap: 6px;
+  border-top: 1px solid var(--lc-border);
+}
+
+.cad-lite-production-shell .lc-production-room-modal__foot button.is-primary {
+  border-color: #2563eb;
+  color: #fff;
+  background: #2563eb;
+}
+
+.cad-lite-production-shell .lc-production-room-feature-form {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 9px;
+}
+
+.cad-lite-production-shell .lc-production-room-feature-form label {
+  min-width: 0;
+  margin: 0;
+}
+
+.cad-lite-production-shell .lc-production-room-feature-form label.is-wide {
+  grid-column: 1 / -1;
+}
+
+.cad-lite-production-shell .lc-production-room-feature-form__check {
+  display: flex !important;
+  align-items: center;
+  gap: 7px;
+  min-height: 30px;
+}
+
+.cad-lite-production-shell .lc-production-room-feature-form__check input {
+  width: auto;
+  margin: 0;
+}
+
+.cad-lite-production-shell[data-theme="dark"] .lc-production-mode-hud {
+  box-shadow: 0 6px 18px rgb(0 0 0 / 34%);
+}
+
+@media (max-width: 640px) {
+  .cad-lite-production-shell .lc-production-mode-hud {
+    top: 8px;
+    width: min(370px, calc(100% - 10px));
+  }
+
+  .cad-lite-production-shell .lc-production-mode-hud__room-actions {
+    grid-template-columns: 1fr;
+  }
+
+  .cad-lite-production-shell .lc-production-mode-hud__wall-controls,
+  .cad-lite-production-shell .lc-production-room-feature-form {
+    grid-template-columns: 1fr;
+  }
+
+  .cad-lite-production-shell .lc-production-room-feature-form label.is-wide {
+    grid-column: auto;
+  }
+}
