@@ -88,18 +88,14 @@ describe('Batch 58 Floor Plan geometry parity', () => {
     ).not.toBeNull();
 
     const after = store.getState().project.layouts[0];
-    const afterPiece = after?.pieces[0];
-    expect(after?.plan?.margin).toBe(100);
-    expect(after?.cw).toBeGreaterThanOrEqual(500);
-    expect(after?.ch).toBeGreaterThanOrEqual(400);
-    expect(afterPiece?.x - (after?.cw ?? 0) / 2).toBeCloseTo(
-      beforeRelativeX,
-      3,
-    );
-    expect(afterPiece?.y - (after?.ch ?? 0) / 2).toBeCloseTo(
-      beforeRelativeY,
-      3,
-    );
-    expect(afterPiece?.slabPlacement).toEqual(slabPlacement);
+    if (!after) throw new Error('Updated Layout missing');
+    const afterPiece = after.pieces[0];
+    if (!afterPiece) throw new Error('Updated Piece missing');
+    expect(after.plan?.margin).toBe(100);
+    expect(after.cw).toBeGreaterThanOrEqual(500);
+    expect(after.ch).toBeGreaterThanOrEqual(400);
+    expect(afterPiece.x - after.cw / 2).toBeCloseTo(beforeRelativeX, 3);
+    expect(afterPiece.y - after.ch / 2).toBeCloseTo(beforeRelativeY, 3);
+    expect(afterPiece.slabPlacement).toEqual(slabPlacement);
   });
 });
