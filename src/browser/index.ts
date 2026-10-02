@@ -59,6 +59,8 @@ export {
   RADIUS_PLACEMENT_KEY,
 } from './production-radius-surface';
 export type { ProductionRadiusSurfaceOptions } from './production-radius-surface';
+export { ProductionEdgePainterSurface } from './production-edge-painter-surface';
+export type { ProductionEdgePainterSurfaceOptions } from './production-edge-painter-surface';
 export { ProductionShellSurface } from './production-shell-surface';
 export type { ProductionShellSurfaceOptions } from './production-shell-surface';
 export {
