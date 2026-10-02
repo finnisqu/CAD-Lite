@@ -53,7 +53,8 @@
 }
 
 .cad-lite-production-shell .lc-production-mode-hud__icon-btn,
-.cad-lite-production-shell .lc-production-mode-hud__room-actions button {
+.cad-lite-production-shell .lc-production-mode-hud__room-actions button,
+.cad-lite-production-shell .lc-production-mode-hud__brush button {
   min-height: 26px;
   padding: 3px 7px;
   border-radius: 5px;
@@ -74,13 +75,35 @@
   gap: 6px;
 }
 
-.cad-lite-production-shell .lc-production-mode-hud__wall-controls label {
+.cad-lite-production-shell .lc-production-mode-hud__wall-controls label,
+.cad-lite-production-shell .lc-production-mode-hud__brush {
   display: grid;
   grid-template-columns: auto minmax(0, 1fr);
   align-items: center;
   gap: 6px;
   margin: 0;
   font-size: 9px;
+}
+
+.cad-lite-production-shell .lc-production-mode-hud__brush {
+  grid-column: 1 / -1;
+}
+
+.cad-lite-production-shell .lc-production-mode-hud__brush-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 4px;
+}
+
+.cad-lite-production-shell .lc-production-mode-hud__brush button.is-active {
+  border-color: #2563eb;
+  color: #1d4ed8;
+  background: #dbeafe;
+}
+
+.cad-lite-production-shell[data-theme="dark"] .lc-production-mode-hud__brush button.is-active {
+  color: #bfdbfe;
+  background: #1e3a5f;
 }
 
 .cad-lite-production-shell .lc-production-mode-hud__wall-controls input,
@@ -99,6 +122,26 @@
   line-height: 1.35;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.cad-lite-production-shell .lc-production-linked-wall-target {
+  stroke: #2563eb;
+  stroke-width: 3;
+  stroke-dasharray: 6 4;
+  opacity: .68;
+}
+
+.cad-lite-production-shell .lc-production-linked-wall-target.is-occupied {
+  stroke: #16a34a;
+}
+
+.cad-lite-production-shell .lc-production-linked-wall-target.is-erasing {
+  stroke: #dc2626;
+}
+
+.cad-lite-production-shell .lc-production-linked-wall-target.is-hovered {
+  stroke-width: 5;
+  opacity: 1;
 }
 
 .cad-lite-production-shell .lc-production-room-modal-overlay {
@@ -213,6 +256,10 @@
   .cad-lite-production-shell .lc-production-mode-hud__wall-controls,
   .cad-lite-production-shell .lc-production-room-feature-form {
     grid-template-columns: 1fr;
+  }
+
+  .cad-lite-production-shell .lc-production-mode-hud__brush {
+    grid-column: auto;
   }
 
   .cad-lite-production-shell .lc-production-room-feature-form label.is-wide {
