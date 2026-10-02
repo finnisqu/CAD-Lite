@@ -67,6 +67,32 @@ function roomNumberCode(value: number): string {
   return String(rounded).replace(/\.0+$/, '').replace(/(\.\d*?)0+$/, '$1');
 }
 
+function isEditableTarget(target: EventTarget | null): boolean {
+  if (!(target instanceof Element)) return false;
+  const element = target as HTMLElement;
+  const tag = element.tagName.toLowerCase();
+  return (
+    tag === 'input' ||
+    tag === 'textarea' ||
+    tag === 'select' ||
+    element.isContentEditable
+  );
+}
+
+export function productionRoomFeatureModalHost(
+  document: Pick<Document, 'fullscreenElement'>,
+  modalRoot: HTMLElement,
+): Element {
+  return document.fullscreenElement ?? modalRoot;
+}
+
+export function shouldBlockProductionRoomModalKey(
+  key: string,
+  editableTarget: boolean,
+): boolean {
+  return key !== 'Escape' && !editableTarget;
+}
+
 export function defaultRoomFeatureLabel(
   preset: RoomFeaturePreset,
   length: number,
@@ -126,6 +152,7 @@ export class ProductionModeHudSurface {
   private unsubscribe: (() => void) | null = null;
   private abort: AbortController | null = null;
   private modalOverlay: HTMLElement | null = null;
+  private modalCleanup: (() => void) | null = null;
   private scheduled = false;
   private rendering = false;
 
@@ -441,6 +468,10 @@ export class ProductionModeHudSurface {
     const overlay = document.createElement('div');
     overlay.className = 'lc-production-room-modal-overlay';
     overlay.dataset.productionRoomFeatureModal = '1';
+    const appRoot = document.querySelector<HTMLElement>('.lite-cad');
+    if (appRoot?.classList.contains('lc-theme-dark')) {
+      overlay.classList.add('lc-theme-dark');
+    }
     const dialog = document.createElement('section');
     dialog.className = 'lc-production-room-modal';
     dialog.setAttribute('role', 'dialog');
@@ -453,7 +484,6 @@ export class ProductionModeHudSurface {
     title.textContent = 'Add Room Feature';
     const close = button(document, '×', 'lc-production-room-modal__close', () => {
       this.closeRoomFeatureDialog();
-      previousFocus?.focus();
     });
     close.setAttribute('aria-label', 'Close Add Room Feature dialog');
     head.append(title, close);
@@ -530,7 +560,6 @@ export class ProductionModeHudSurface {
     foot.className = 'lc-production-room-modal__foot';
     const cancel = button(document, 'Cancel', '', () => {
       this.closeRoomFeatureDialog();
-      previousFocus?.focus();
     });
     const add = button(document, 'Add Feature', 'is-primary', () => {
       const preset = selectedPreset();
@@ -551,28 +580,38 @@ export class ProductionModeHudSurface {
       });
       this.commands.execute(addRoomFeature(activeLayout.id, feature));
       this.closeRoomFeatureDialog();
-      previousFocus?.focus();
     });
     foot.append(cancel, add);
     dialog.append(head, body, foot);
     overlay.append(dialog);
-    mount.append(overlay);
+    productionRoomFeatureModalHost(document, mount).append(overlay);
     this.modalOverlay = overlay;
+
+    const view = document.defaultView;
+    const blockCanvasKeys = (event: KeyboardEvent): void => {
+      if (!shouldBlockProductionRoomModalKey(event.key, isEditableTarget(event.target))) return;
+      event.stopPropagation();
+      event.stopImmediatePropagation();
+    };
+    const onEscape = (event: KeyboardEvent): void => {
+      if (event.key !== 'Escape') return;
+      event.preventDefault();
+      event.stopPropagation();
+      this.closeRoomFeatureDialog();
+    };
+    view?.addEventListener('keydown', blockCanvasKeys, true);
+    document.addEventListener('keydown', onEscape, true);
+    this.modalCleanup = () => {
+      view?.removeEventListener('keydown', blockCanvasKeys, true);
+      document.removeEventListener('keydown', onEscape, true);
+      if (previousFocus?.isConnected) previousFocus.focus?.();
+    };
 
     overlay.addEventListener('pointerdown', (event) => {
       if (event.target === overlay) {
         this.closeRoomFeatureDialog();
-        previousFocus?.focus();
       }
     });
-    overlay.addEventListener('keydown', (event) => {
-      event.stopPropagation();
-      if (event.key === 'Escape') {
-        event.preventDefault();
-        this.closeRoomFeatureDialog();
-        previousFocus?.focus();
-      }
-    }, true);
 
     syncPreset();
     type.focus();
@@ -581,5 +620,8 @@ export class ProductionModeHudSurface {
   private closeRoomFeatureDialog(): void {
     this.modalOverlay?.remove();
     this.modalOverlay = null;
+    const cleanup = this.modalCleanup;
+    this.modalCleanup = null;
+    cleanup?.();
   }
 }
