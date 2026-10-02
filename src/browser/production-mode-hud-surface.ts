@@ -1,12 +1,12 @@
 import {
   addRoomFeature,
-  createRoomFeature,
   getToolDefinition,
   type AppStore,
   type CommandDispatcher,
   type ToolController,
   type ToolId,
 } from '../app';
+import { createRoomFeature } from '../domain/room-features';
 import type { BrowserEntityIdFactory } from './project-layout-surface';
 
 export interface ProductionModeHudSurfaceOptions {
@@ -67,7 +67,10 @@ function roomNumberCode(value: number): string {
   return String(rounded).replace(/\.0+$/, '').replace(/(\.\d*?)0+$/, '$1');
 }
 
-export function defaultRoomFeatureLabel(preset: RoomFeaturePreset, length: number): string {
+export function defaultRoomFeatureLabel(
+  preset: RoomFeaturePreset,
+  length: number,
+): string {
   return preset.code + roomNumberCode(length);
 }
 
@@ -77,53 +80,17 @@ export function productionModeHudDescriptor(
   const definition = getToolDefinition(toolId);
   switch (toolId) {
     case 'dimension':
-      return {
-        toolId,
-        title: definition.title,
-        help: 'Click two points to place a dimension',
-        shortcut: 'D',
-        kind: 'annotation',
-      };
+      return { toolId, title: definition.title, help: 'Click two points to place a dimension', shortcut: 'D', kind: 'annotation' };
     case 'note':
-      return {
-        toolId,
-        title: definition.title,
-        help: 'Click canvas to place a note',
-        shortcut: 'N',
-        kind: 'annotation',
-      };
+      return { toolId, title: definition.title, help: 'Click canvas to place a note', shortcut: 'N', kind: 'annotation' };
     case 'line':
-      return {
-        toolId,
-        title: definition.title,
-        help: 'Click two points to place a line',
-        shortcut: 'L',
-        kind: 'annotation',
-      };
+      return { toolId, title: definition.title, help: 'Click two points to place a line', shortcut: 'L', kind: 'annotation' };
     case 'roomFeatures':
-      return {
-        toolId,
-        title: definition.title,
-        help: 'Add room features or choose a wall tool',
-        shortcut: 'Q',
-        kind: 'room-parent',
-      };
+      return { toolId, title: definition.title, help: 'Add room features or choose a wall tool', shortcut: 'Q', kind: 'room-parent' };
     case 'roomWall':
-      return {
-        toolId,
-        title: definition.title,
-        help: 'Drag to draw a wall · Shift constrains the angle',
-        shortcut: null,
-        kind: 'room-wall',
-      };
+      return { toolId, title: definition.title, help: 'Drag to draw a wall · Shift constrains the angle', shortcut: null, kind: 'room-wall' };
     case 'linkedWall':
-      return {
-        toolId,
-        title: definition.title,
-        help: 'Draw a linked wall · Shift constrains the angle',
-        shortcut: 'W',
-        kind: 'linked-wall',
-      };
+      return { toolId, title: definition.title, help: 'Draw a linked wall · Shift constrains the angle', shortcut: 'W', kind: 'linked-wall' };
     default:
       return null;
   }
@@ -141,11 +108,6 @@ function button(
   control.textContent = text;
   control.addEventListener('click', onClick);
   return control;
-}
-
-function ownerDocument(root: ParentNode): Document | null {
-  if (typeof Document !== 'undefined' && root instanceof Document) return root;
-  return (root as Node).ownerDocument ?? null;
 }
 
 function numberValue(value: string, fallback: number, min: number): number {
@@ -248,12 +210,7 @@ export class ProductionModeHudSurface {
       return;
     }
 
-    const signature = JSON.stringify({
-      id: active.id,
-      activation: active.activation,
-      options: active.options,
-      hud: state.session.interaction.hud,
-    });
+    const signature = JSON.stringify({ id: active.id, activation: active.activation, options: active.options, hud: state.session.interaction.hud });
     if (existing?.dataset.productionModeSignature === signature) return;
     existing?.remove();
 
@@ -264,12 +221,8 @@ export class ProductionModeHudSurface {
     hud.dataset.productionModeSignature = signature;
     if (state.session.interaction.hud.userMoved) {
       hud.classList.add('is-user-moved');
-      if (state.session.interaction.hud.left !== null) {
-        hud.style.left = `${state.session.interaction.hud.left}px`;
-      }
-      if (state.session.interaction.hud.top !== null) {
-        hud.style.top = `${state.session.interaction.hud.top}px`;
-      }
+      if (state.session.interaction.hud.left !== null) hud.style.left = `${state.session.interaction.hud.left}px`;
+      if (state.session.interaction.hud.top !== null) hud.style.top = `${state.session.interaction.hud.top}px`;
     }
 
     const header = document.createElement('div');
@@ -292,31 +245,23 @@ export class ProductionModeHudSurface {
       const lock = button(
         document,
         active.activation === 'locked' ? 'Locked' : 'Lock',
-        'lc-production-mode-hud__icon-btn' +
-          (active.activation === 'locked' ? ' is-active' : ''),
+        'lc-production-mode-hud__icon-btn' + (active.activation === 'locked' ? ' is-active' : ''),
         () => {
           if (active.activation === 'momentary') this.tools.promoteHeldToLocked();
           else this.tools.cancel();
         },
       );
-      lock.title =
-        active.activation === 'locked'
-          ? active.id === 'roomWall' || active.id === 'linkedWall'
-            ? 'Return to Room Features'
-            : `Unlock and close ${descriptor.title} mode`
-          : `Lock ${descriptor.title} mode`;
+      lock.title = active.activation === 'locked'
+        ? active.id === 'roomWall' || active.id === 'linkedWall'
+          ? 'Return to Room Features'
+          : `Unlock and close ${descriptor.title} mode`
+        : `Lock ${descriptor.title} mode`;
       headerActions.append(lock);
     }
-    const close = button(
-      document,
-      '×',
-      'lc-production-mode-hud__icon-btn',
-      () => this.tools.cancel(),
-    );
-    close.title =
-      active.id === 'roomWall' || active.id === 'linkedWall'
-        ? 'Return to Room Features'
-        : `Exit ${descriptor.title} mode`;
+    const close = button(document, '×', 'lc-production-mode-hud__icon-btn', () => this.tools.cancel());
+    close.title = active.id === 'roomWall' || active.id === 'linkedWall'
+      ? 'Return to Room Features'
+      : `Exit ${descriptor.title} mode`;
     close.setAttribute('aria-label', close.title);
     headerActions.append(close);
     header.append(identity, headerActions);
@@ -365,9 +310,7 @@ export class ProductionModeHudSurface {
       type.value = current === 'knee' || current === 'full' ? current : saved;
       if (current !== 'knee' && current !== 'full') {
         queueMicrotask(() => {
-          if (this.tools.getActiveTool()?.id === 'roomWall') {
-            this.tools.setToolOption('wallType', type.value);
-          }
+          if (this.tools.getActiveTool()?.id === 'roomWall') this.tools.setToolOption('wallType', type.value);
         });
       }
       type.addEventListener('change', () => {
@@ -375,7 +318,7 @@ export class ProductionModeHudSurface {
         try {
           document.defaultView?.localStorage.setItem(ROOM_WALL_TYPE_KEY, next);
         } catch {
-          // Browser storage is a convenience; typed tool memory remains authoritative.
+          // Browser storage is optional; typed tool memory remains authoritative.
         }
         this.tools.setToolOption('wallType', next);
       });
@@ -399,9 +342,7 @@ export class ProductionModeHudSurface {
     if (!Number.isFinite(remembered)) {
       queueMicrotask(() => {
         const current = this.tools.getActiveTool();
-        if (current?.id === 'roomWall' || current?.id === 'linkedWall') {
-          this.tools.setToolOption('thickness', initial);
-        }
+        if (current?.id === 'roomWall' || current?.id === 'linkedWall') this.tools.setToolOption('thickness', initial);
       });
     }
     thickness.addEventListener('change', () => {
@@ -437,18 +378,8 @@ export class ProductionModeHudSurface {
     }
   }
 
-  private attachHudDrag(
-    hud: HTMLElement,
-    header: HTMLElement,
-    mount: HTMLElement,
-  ): void {
-    let drag: {
-      pointerId: number;
-      startX: number;
-      startY: number;
-      left: number;
-      top: number;
-    } | null = null;
+  private attachHudDrag(hud: HTMLElement, header: HTMLElement, mount: HTMLElement): void {
+    let drag: { pointerId: number; startX: number; startY: number; left: number; top: number } | null = null;
 
     header.addEventListener('pointerdown', (event) => {
       if (!(event instanceof PointerEvent) || event.button !== 0) return;
@@ -472,20 +403,8 @@ export class ProductionModeHudSurface {
       if (!(event instanceof PointerEvent) || !drag || event.pointerId !== drag.pointerId) return;
       const mountRect = mount.getBoundingClientRect();
       const hudRect = hud.getBoundingClientRect();
-      const left = Math.max(
-        0,
-        Math.min(
-          Math.max(0, mountRect.width - hudRect.width),
-          drag.left + event.clientX - drag.startX,
-        ),
-      );
-      const top = Math.max(
-        0,
-        Math.min(
-          Math.max(0, mountRect.height - hudRect.height),
-          drag.top + event.clientY - drag.startY,
-        ),
-      );
+      const left = Math.max(0, Math.min(Math.max(0, mountRect.width - hudRect.width), drag.left + event.clientX - drag.startX));
+      const top = Math.max(0, Math.min(Math.max(0, mountRect.height - hudRect.height), drag.top + event.clientY - drag.startY));
       hud.style.left = `${left}px`;
       hud.style.top = `${top}px`;
       event.preventDefault();
@@ -497,9 +416,7 @@ export class ProductionModeHudSurface {
       const top = Number.parseFloat(hud.style.top || '0');
       drag = null;
       hud.classList.remove('is-dragging');
-      if (Number.isFinite(left) && Number.isFinite(top)) {
-        this.tools.setHudPosition(left, top);
-      }
+      if (Number.isFinite(left) && Number.isFinite(top)) this.tools.setHudPosition(left, top);
       try {
         header.releasePointerCapture?.(event.pointerId);
       } catch {
@@ -516,15 +433,11 @@ export class ProductionModeHudSurface {
     this.closeRoomFeatureDialog();
 
     const state = this.store.getState();
-    const layout = state.project.layouts.find(
-      (item) => item.id === state.session.activeLayoutId,
-    );
+    const layout = state.project.layouts.find((item) => item.id === state.session.activeLayoutId);
     if (!layout || state.session.workspace !== 'design') return;
 
     const document = mount.ownerDocument;
-    const previousFocus = document.activeElement instanceof HTMLElement
-      ? document.activeElement
-      : null;
+    const previousFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     const overlay = document.createElement('div');
     overlay.className = 'lc-production-room-modal-overlay';
     overlay.dataset.productionRoomFeatureModal = '1';
@@ -584,8 +497,7 @@ export class ProductionModeHudSurface {
     countertopRow.append(countertop, countertopText);
 
     let labelEdited = false;
-    const selectedPreset = (): RoomFeaturePreset =>
-      ROOM_FEATURE_PRESETS.find((preset) => preset.value === type.value) ?? ROOM_FEATURE_PRESETS[0]!;
+    const selectedPreset = (): RoomFeaturePreset => ROOM_FEATURE_PRESETS.find((preset) => preset.value === type.value) ?? ROOM_FEATURE_PRESETS[0]!;
     const syncPreset = (): void => {
       const preset = selectedPreset();
       length.value = String(preset.length);
@@ -598,10 +510,7 @@ export class ProductionModeHudSurface {
     length.addEventListener('input', () => {
       if (!labelEdited) {
         const preset = selectedPreset();
-        labelInput.value = defaultRoomFeatureLabel(
-          preset,
-          numberValue(length.value, preset.length, 0.25),
-        );
+        labelInput.value = defaultRoomFeatureLabel(preset, numberValue(length.value, preset.length, 0.25));
       }
     });
     labelInput.addEventListener('input', () => {
@@ -628,17 +537,13 @@ export class ProductionModeHudSurface {
       const nextLength = numberValue(length.value, preset.length, 0.25);
       const nextDepth = numberValue(depth.value, preset.depth, 0.25);
       const current = this.store.getState();
-      const activeLayout = current.project.layouts.find(
-        (item) => item.id === current.session.activeLayoutId,
-      );
+      const activeLayout = current.project.layouts.find((item) => item.id === current.session.activeLayoutId);
       if (!activeLayout || current.session.workspace !== 'design') return;
       const pointer = current.session.interaction.pointer;
-      const x = pointer?.x ?? activeLayout.cw / 2;
-      const y = pointer?.y ?? activeLayout.ch / 2;
       const feature = createRoomFeature(this.createId('room-feature'), preset.value, {
         name: labelInput.value.trim() || defaultRoomFeatureLabel(preset, nextLength),
-        x,
-        y,
+        x: pointer?.x ?? activeLayout.cw / 2,
+        y: pointer?.y ?? activeLayout.ch / 2,
         length: nextLength,
         depth: nextDepth,
         receivesCountertop: countertop.checked,
