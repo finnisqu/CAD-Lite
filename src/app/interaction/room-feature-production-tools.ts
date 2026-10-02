@@ -118,7 +118,7 @@ function updatePreview(
       guideY: snap.guideY,
       snapX: snap.snapped ? snap.point.x : null,
       snapY: snap.snapped ? snap.point.y : null,
-    } as JsonObject;
+    };
   }
 
   const start = {
@@ -148,7 +148,7 @@ function updatePreview(
     guideY: snap.guideY,
     snapX: snap.snapped ? end.x : null,
     snapY: snap.snapped ? end.y : null,
-  } as JsonObject;
+  };
 }
 
 function featureFromPreview(
