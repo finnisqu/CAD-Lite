@@ -15,7 +15,7 @@ interface PdfViewport {
 }
 
 interface PdfPage {
-  getViewport(options: { scale: number }): PdfViewport;
+  getViewport(options: { scale: number; rotation?: number }): PdfViewport;
   render(options: {
     canvasContext: CanvasRenderingContext2D;
     viewport: PdfViewport;
@@ -85,14 +85,16 @@ async function renderPdfPage(
   pdf: PdfDocument,
   pageNumber: number,
   maxDimension: number,
+  rotation = 0,
 ): Promise<HTMLCanvasElement> {
   const page = await pdf.getPage(pageNumber);
-  const unit = page.getViewport({ scale: 1 });
+  const normalizedRotation = ((Math.round(rotation / 90) * 90) % 360 + 360) % 360;
+  const unit = page.getViewport({ scale: 1, rotation: normalizedRotation });
   const scale = Math.min(
-    3,
-    Math.max(0.1, maxDimension / Math.max(unit.width, unit.height, 1)),
+    6,
+    Math.max(0.25, maxDimension / Math.max(unit.width, unit.height, 1)),
   );
-  const viewport = page.getViewport({ scale });
+  const viewport = page.getViewport({ scale, rotation: normalizedRotation });
   const canvas = document.createElement('canvas');
   canvas.width = Math.max(1, Math.round(viewport.width));
   canvas.height = Math.max(1, Math.round(viewport.height));
@@ -135,45 +137,69 @@ export async function openFloorPlanPdfImport(
   count.textContent = `${pdf.numPages} page${pdf.numPages === 1 ? '' : 's'}`;
   top.append(select, count);
 
+  const controls = options.document.createElement('div');
+  controls.className = 'lc-plan-preview-controls';
+  let previewZoom = 1;
+  let rotation = 0;
+  const zoomRead = options.document.createElement('span');
+  zoomRead.className = 'lc-small lc-plan-muted lc-plan-zoom-read';
+
+  const previewWrap = options.document.createElement('div');
+  previewWrap.className = 'lc-plan-pdf-preview lc-plan-scroll-preview';
   const preview = options.document.createElement('canvas');
-  preview.className = 'lc-plan-pdf-preview';
-  preview.width = 900;
-  preview.height = 600;
+  preview.className = 'lc-plan-pdf-canvas';
   const status = options.document.createElement('div');
-  status.className = 'lc-small lc-plan-muted';
-  modal.body.append(top, preview, status);
+  status.className = 'lc-small lc-plan-muted lc-plan-pdf-status';
+  previewWrap.append(preview, status);
+
+  modal.body.append(top, controls, previewWrap);
 
   let renderToken = 0;
   const renderPreview = async (): Promise<void> => {
     const token = ++renderToken;
+    status.hidden = false;
     status.textContent = 'Rendering page…';
-    const pageCanvas = await renderPdfPage(
-      options.document,
-      pdf,
-      Number(select.value),
-      1200,
-    );
-    if (token !== renderToken) return;
-    const context = preview.getContext('2d');
-    if (!context) return;
-    context.fillStyle = '#f8fafc';
-    context.fillRect(0, 0, preview.width, preview.height);
-    const scale = Math.min(
-      preview.width / pageCanvas.width,
-      preview.height / pageCanvas.height,
-    );
-    const width = pageCanvas.width * scale;
-    const height = pageCanvas.height * scale;
-    context.drawImage(
-      pageCanvas,
-      (preview.width - width) / 2,
-      (preview.height - height) / 2,
-      width,
-      height,
-    );
-    status.textContent = `${pageCanvas.width} × ${pageCanvas.height} px preview`;
+    zoomRead.textContent = `${Math.round(previewZoom * 100)}% · ${rotation}°`;
+    try {
+      const pageCanvas = await renderPdfPage(
+        options.document,
+        pdf,
+        Number(select.value),
+        Math.round(900 * previewZoom),
+        rotation,
+      );
+      if (token !== renderToken) return;
+      preview.width = pageCanvas.width;
+      preview.height = pageCanvas.height;
+      preview.getContext('2d')?.drawImage(pageCanvas, 0, 0);
+      previewWrap.scrollTo?.({ left: 0, top: 0 });
+      status.hidden = true;
+    } catch (error) {
+      console.error(error);
+      if (token === renderToken) status.textContent = 'Could not render this page.';
+    }
   };
+
+  const zoomOut = createFloorPlanButton(options.document, 'Zoom −', () => {
+    previewZoom = Math.max(0.5, previewZoom - 0.25);
+    void renderPreview();
+  });
+  const zoomIn = createFloorPlanButton(options.document, 'Zoom +', () => {
+    previewZoom = Math.min(4, previewZoom + 0.25);
+    void renderPreview();
+  });
+  const zoomFit = createFloorPlanButton(options.document, 'Fit', () => {
+    previewZoom = 1;
+    void renderPreview();
+  });
+  const rotate = createFloorPlanButton(options.document, 'Rotate 90°', () => {
+    rotation = (rotation + 90) % 360;
+    void renderPreview();
+  });
+  controls.append(zoomOut, zoomIn, zoomFit, rotate, zoomRead);
+
   select.addEventListener('change', () => {
+    previewZoom = 1;
     void renderPreview();
   });
   void renderPreview();
@@ -187,17 +213,23 @@ export async function openFloorPlanPdfImport(
     () => {
       void (async () => {
         prepare.disabled = true;
+        status.hidden = false;
         status.textContent = 'Preparing full-resolution page…';
         try {
+          const pageNumber = Number(select.value);
           const pageCanvas = await renderPdfPage(
             options.document,
             pdf,
-            Number(select.value),
-            3200,
+            pageNumber,
+            3000,
+            rotation,
           );
-          const dataURL = pageCanvas.toDataURL('image/jpeg', 0.94);
+          const dataURL = pageCanvas.toDataURL('image/png');
           modal.close();
-          await options.onPrepared(dataURL, options.file.name);
+          await options.onPrepared(
+            dataURL,
+            `${options.file.name} · Page ${pageNumber}`,
+          );
         } catch (error) {
           console.error(error);
           prepare.disabled = false;
