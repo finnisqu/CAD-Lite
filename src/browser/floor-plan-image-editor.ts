@@ -20,10 +20,10 @@ interface EditorSnapshot {
 interface EditorControls {
   undo: HTMLButtonElement | null;
   redo: HTMLButtonElement | null;
-  focus: HTMLButtonElement | null;
   crop: HTMLButtonElement | null;
   level: HTMLButtonElement | null;
   erase: HTMLButtonElement | null;
+  resetCleanup: HTMLButtonElement | null;
   brushWrap: HTMLLabelElement | null;
 }
 
@@ -149,6 +149,24 @@ function rotateCanvas(source: HTMLCanvasElement, degrees: number): HTMLCanvasEle
   return canvas;
 }
 
+function flipCanvas(
+  source: HTMLCanvasElement,
+  flipX: boolean,
+  flipY: boolean,
+): HTMLCanvasElement {
+  const canvas = source.ownerDocument.createElement('canvas');
+  canvas.width = source.width;
+  canvas.height = source.height;
+  const context = canvas.getContext('2d');
+  if (!context) throw new Error('Canvas 2D context unavailable.');
+  context.fillStyle = '#ffffff';
+  context.fillRect(0, 0, canvas.width, canvas.height);
+  context.translate(flipX ? canvas.width : 0, flipY ? canvas.height : 0);
+  context.scale(flipX ? -1 : 1, flipY ? -1 : 1);
+  context.drawImage(source, 0, 0);
+  return canvas;
+}
+
 function preparedDataURL(canvas: HTMLCanvasElement): string {
   const webp = canvas.toDataURL('image/webp', 0.92);
   return webp.startsWith('data:image/webp')
@@ -161,13 +179,13 @@ export async function openFloorPlanImageEditor(
 ): Promise<void> {
   const image = await loadImage(options.document, options.dataURL);
   let work = imageToCanvas(image);
-  const initial = cloneCanvas(work);
   let crop = fullCrop(work);
   let cropFocused = false;
   let transformed = false;
   let mode: EditorMode = 'crop';
   let brushSize = 48;
   let previewZoom = 1;
+  let eraseBase: HTMLCanvasElement | null = null;
   let eraseHover: Point | null = null;
   let levelLine: { start: Point; end: Point } | null = null;
   let pointer:
@@ -178,10 +196,10 @@ export async function openFloorPlanImageEditor(
   const controls: EditorControls = {
     undo: null,
     redo: null,
-    focus: null,
     crop: null,
     level: null,
     erase: null,
+    resetCleanup: null,
     brushWrap: null,
   };
 
@@ -193,21 +211,29 @@ export async function openFloorPlanImageEditor(
   );
   options.onModal?.(modal);
 
-  const toolbar = options.document.createElement('div');
-  toolbar.className = 'lc-plan-editor-toolbar';
-  const secondary = options.document.createElement('div');
-  secondary.className = 'lc-plan-preview-controls';
+  const controlsPanel = options.document.createElement('div');
+  controlsPanel.className = 'lc-plan-editor-control-panel';
+  const actionBar = options.document.createElement('div');
+  actionBar.className = 'lc-plan-editor-actionbar';
+  const utilityBar = options.document.createElement('div');
+  utilityBar.className = 'lc-plan-editor-utilitybar';
+  const help = options.document.createElement('div');
+  help.className = 'lc-plan-help lc-plan-editor-help';
+  help.textContent =
+    'Crop to the plan area, level from a reference line, rotate or flip as needed, then use Eraser to clean unwanted plan content.';
+  controlsPanel.append(actionBar, utilityBar, help);
+
   const preview = options.document.createElement('canvas');
   preview.className = 'lc-plan-editor-preview';
   preview.width = 1100;
   preview.height = 700;
   const meta = options.document.createElement('div');
-  meta.className = 'lc-small lc-plan-muted';
-  modal.body.append(toolbar, secondary, preview, meta);
+  meta.className = 'lc-small lc-plan-muted lc-plan-editor-meta';
+  modal.body.append(controlsPanel, preview, meta);
 
   let map = { source: fullCrop(work), scale: 1, ox: 0, oy: 0 };
 
-  const commitCrop = (): void => {
+  const commitCrop = (): boolean => {
     const bounded = clampCrop(crop, work);
     const isFull =
       bounded.x < 0.5 &&
@@ -217,12 +243,13 @@ export async function openFloorPlanImageEditor(
     if (isFull) {
       crop = fullCrop(work);
       cropFocused = false;
-      return;
+      return false;
     }
     work = cropCanvas(work, bounded, 3200);
     crop = fullCrop(work);
     cropFocused = false;
     transformed = true;
+    return true;
   };
 
   const restore = (snapshot: EditorSnapshot): void => {
@@ -232,6 +259,7 @@ export async function openFloorPlanImageEditor(
     transformed = snapshot.transformed;
     pointer = null;
     levelLine = null;
+    eraseBase = null;
   };
 
   const syncHistoryButtons = (): void => {
@@ -283,14 +311,15 @@ export async function openFloorPlanImageEditor(
     if (mode === 'crop') {
       const bounded = clampCrop(crop, work);
       context.strokeStyle = '#2563eb';
+      context.fillStyle = 'rgba(37,99,235,.08)';
       context.lineWidth = 2;
       context.setLineDash([8, 5]);
-      context.strokeRect(
-        ox + (bounded.x - source.x) * scale,
-        oy + (bounded.y - source.y) * scale,
-        bounded.w * scale,
-        bounded.h * scale,
-      );
+      const rx = ox + (bounded.x - source.x) * scale;
+      const ry = oy + (bounded.y - source.y) * scale;
+      const rw = bounded.w * scale;
+      const rh = bounded.h * scale;
+      if (!cropFocused || pointer) context.fillRect(rx, ry, rw, rh);
+      context.strokeRect(rx, ry, rw, rh);
       context.setLineDash([]);
     }
 
@@ -329,10 +358,9 @@ export async function openFloorPlanImageEditor(
     meta.textContent =
       `${Math.round(crop.w)} × ${Math.round(crop.h)} px selected` +
       (transformed ? ' · image adjusted' : '') +
+      (eraseBase ? ' · cleanup applied' : '') +
       ` · preview ${Math.round(previewZoom * 100)}%`;
-    if (controls.focus) {
-      controls.focus.textContent = cropFocused ? 'Show Full' : 'Focus Crop';
-    }
+    if (controls.resetCleanup) controls.resetCleanup.disabled = !eraseBase;
   };
 
   const localPoint = (event: PointerEvent): Point => {
@@ -360,6 +388,7 @@ export async function openFloorPlanImageEditor(
   };
 
   const eraseSegment = (from: Point, to: Point): void => {
+    if (!eraseBase) eraseBase = cloneCanvas(work);
     const context = work.getContext('2d');
     if (!context) return;
     context.save();
@@ -391,35 +420,39 @@ export async function openFloorPlanImageEditor(
     render();
   };
 
-  const cropButton = createFloorPlanButton(options.document, 'Crop', () =>
-    setMode('crop'),
-  );
-  const levelButton = createFloorPlanButton(options.document, 'Level', () =>
-    setMode('level'),
-  );
-  const eraseButton = createFloorPlanButton(options.document, 'Erase', () =>
-    setMode('erase'),
-  );
-  controls.crop = cropButton;
-  controls.level = levelButton;
-  controls.erase = eraseButton;
+  const transformWork = (
+    transform: (source: HTMLCanvasElement) => HTMLCanvasElement,
+  ): void => {
+    commitCrop();
+    work = transform(work);
+    crop = fullCrop(work);
+    cropFocused = false;
+    levelLine = null;
+    eraseBase = null;
+    transformed = true;
+    pushHistory();
+    render();
+  };
 
-  const rotateLeft = createFloorPlanButton(options.document, '↶ 90°', () => {
-    commitCrop();
-    work = rotateCanvas(work, -90);
-    crop = fullCrop(work);
-    transformed = true;
-    pushHistory();
-    render();
-  });
-  const rotateRight = createFloorPlanButton(options.document, '↷ 90°', () => {
-    commitCrop();
-    work = rotateCanvas(work, 90);
-    crop = fullCrop(work);
-    transformed = true;
-    pushHistory();
-    render();
-  });
+  const group = (
+    titleText: string,
+    ...buttons: HTMLButtonElement[]
+  ): HTMLDivElement => {
+    const groupEl = options.document.createElement('div');
+    groupEl.className = 'lc-plan-tool-group';
+    const groupTitle = options.document.createElement('div');
+    groupTitle.className = 'lc-plan-tool-group-title';
+    groupTitle.textContent = titleText;
+    const row = options.document.createElement('div');
+    row.className = 'lc-plan-tool-group-row';
+    buttons.forEach((button) => {
+      button.classList.add('lc-plan-tool-btn');
+      row.appendChild(button);
+    });
+    groupEl.append(groupTitle, row);
+    return groupEl;
+  };
+
   const undo = createFloorPlanButton(options.document, 'Undo', () => {
     if (historyIndex <= 0) return;
     historyIndex -= 1;
@@ -436,25 +469,32 @@ export async function openFloorPlanImageEditor(
   });
   controls.undo = undo;
   controls.redo = redo;
-  const reset = createFloorPlanButton(options.document, 'Reset', () => {
-    work = cloneCanvas(initial);
+
+  const cropButton = createFloorPlanButton(options.document, 'Crop', () =>
+    setMode('crop'),
+  );
+  const resetCrop = createFloorPlanButton(options.document, 'Reset Crop', () => {
     crop = fullCrop(work);
     cropFocused = false;
-    transformed = false;
+    levelLine = null;
     pushHistory();
     render();
   });
-  toolbar.append(
-    cropButton,
-    levelButton,
-    eraseButton,
-    rotateLeft,
-    rotateRight,
-    undo,
-    redo,
-    reset,
+  const levelButton = createFloorPlanButton(options.document, 'Level', () =>
+    setMode('level'),
   );
-
+  const rotateLeft = createFloorPlanButton(options.document, '↶ 90°', () =>
+    transformWork((source) => rotateCanvas(source, -90)),
+  );
+  const rotateRight = createFloorPlanButton(options.document, '↷ 90°', () =>
+    transformWork((source) => rotateCanvas(source, 90)),
+  );
+  const flipHorizontal = createFloorPlanButton(options.document, 'Flip H', () =>
+    transformWork((source) => flipCanvas(source, true, false)),
+  );
+  const flipVertical = createFloorPlanButton(options.document, 'Flip V', () =>
+    transformWork((source) => flipCanvas(source, false, true)),
+  );
   const zoomOut = createFloorPlanButton(options.document, '−', () => {
     previewZoom = Math.max(0.5, previewZoom - 0.25);
     render();
@@ -463,20 +503,43 @@ export async function openFloorPlanImageEditor(
     previewZoom = Math.min(3, previewZoom + 0.25);
     render();
   });
-  const focus = createFloorPlanButton(options.document, 'Focus Crop', () => {
-    cropFocused = !cropFocused;
-    previewZoom = 1;
-    render();
-  });
-  controls.focus = focus;
+  const eraseButton = createFloorPlanButton(options.document, 'Eraser', () =>
+    setMode(mode === 'erase' ? 'crop' : 'erase'),
+  );
+  const resetCleanup = createFloorPlanButton(
+    options.document,
+    'Reset Cleanup',
+    () => {
+      if (!eraseBase) return;
+      work = cloneCanvas(eraseBase);
+      eraseBase = null;
+      pushHistory();
+      render();
+    },
+  );
+  controls.crop = cropButton;
+  controls.level = levelButton;
+  controls.erase = eraseButton;
+  controls.resetCleanup = resetCleanup;
+
+  actionBar.append(
+    group('History', undo, redo),
+    group('Crop', cropButton, resetCrop),
+    group('Level', levelButton),
+    group('Rotate', rotateLeft, rotateRight),
+    group('Flip', flipHorizontal, flipVertical),
+    group('Zoom', zoomOut, zoomIn),
+    group('Cleanup', eraseButton, resetCleanup),
+  );
+
   const brushWrap = options.document.createElement('label');
   brushWrap.className = 'lc-plan-brush-control lc-small';
   brushWrap.textContent = 'Brush';
   controls.brushWrap = brushWrap;
   const brush = options.document.createElement('input');
   brush.type = 'range';
-  brush.min = '12';
-  brush.max = '180';
+  brush.min = '8';
+  brush.max = '240';
   brush.step = '4';
   brush.value = String(brushSize);
   const brushValue = options.document.createElement('span');
@@ -487,7 +550,18 @@ export async function openFloorPlanImageEditor(
     render();
   });
   brushWrap.append(brush, brushValue);
-  secondary.append(zoomOut, zoomIn, focus, brushWrap);
+  const zoomRead = options.document.createElement('span');
+  zoomRead.className = 'lc-plan-zoom-read lc-plan-muted';
+  const syncUtilityRead = (): void => {
+    zoomRead.textContent = `Preview ${Math.round(previewZoom * 100)}%`;
+  };
+  utilityBar.append(brushWrap, zoomRead);
+
+  const renderWithUtility = render;
+  const renderAll = (): void => {
+    renderWithUtility();
+    syncUtilityRead();
+  };
 
   preview.addEventListener('pointerdown', (event) => {
     if (event.button !== 0) return;
@@ -501,14 +575,14 @@ export async function openFloorPlanImageEditor(
     preview.setPointerCapture?.(event.pointerId);
     if (mode === 'level') levelLine = { start: point, end: point };
     if (mode === 'erase') eraseSegment(point, point);
-    render();
+    renderAll();
   });
 
   preview.addEventListener('pointermove', (event) => {
     const point = localPoint(event);
     eraseHover = point;
     if (!pointer || pointer.id !== event.pointerId) {
-      if (mode === 'erase') render();
+      if (mode === 'erase') renderAll();
       return;
     }
     pointer.current = point;
@@ -528,12 +602,12 @@ export async function openFloorPlanImageEditor(
       eraseSegment(pointer.last, point);
       pointer.last = point;
     }
-    render();
+    renderAll();
   });
 
   preview.addEventListener('pointerleave', () => {
     eraseHover = null;
-    if (!pointer && mode === 'erase') render();
+    if (!pointer && mode === 'erase') renderAll();
   });
 
   const finishPointer = (event: PointerEvent): void => {
@@ -555,14 +629,14 @@ export async function openFloorPlanImageEditor(
         previewZoom = 1;
       }
       pushHistory();
-      render();
+      renderAll();
       return;
     }
 
     if (mode === 'erase') {
       transformed = true;
       pushHistory();
-      render();
+      renderAll();
       return;
     }
 
@@ -570,24 +644,20 @@ export async function openFloorPlanImageEditor(
     const dx = completed.current.x - completed.start.x;
     const dy = completed.current.y - completed.start.y;
     if (Math.hypot(dx, dy) < 12) {
-      render();
+      renderAll();
       return;
     }
     const angle = (Math.atan2(dy, dx) * 180) / Math.PI;
     const target = Math.round(angle / 90) * 90;
-    commitCrop();
-    work = rotateCanvas(work, target - angle);
-    crop = fullCrop(work);
-    cropFocused = false;
-    transformed = true;
-    pushHistory();
-    render();
+    transformWork((source) => rotateCanvas(source, target - angle));
+    renderAll();
   };
   preview.addEventListener('pointerup', finishPointer);
   preview.addEventListener('pointercancel', finishPointer);
 
   pushHistory();
   setMode('crop');
+  renderAll();
 
   modal.foot.append(
     createFloorPlanButton(options.document, 'Cancel', () => modal.close()),
