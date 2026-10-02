@@ -68,6 +68,17 @@ export {
 export type { ProductionRadiusSurfaceOptions } from './production-radius-surface';
 export { ProductionEdgePainterSurface } from './production-edge-painter-surface';
 export type { ProductionEdgePainterSurfaceOptions } from './production-edge-painter-surface';
+export {
+  ProductionModeHudSurface,
+  ROOM_FEATURE_PRESETS,
+  defaultRoomFeatureLabel,
+  productionModeHudDescriptor,
+} from './production-mode-hud-surface';
+export type {
+  ProductionModeHudDescriptor,
+  ProductionModeHudSurfaceOptions,
+  RoomFeaturePreset,
+} from './production-mode-hud-surface';
 export { ProductionShellSurface } from './production-shell-surface';
 export type { ProductionShellSurfaceOptions } from './production-shell-surface';
 export {
