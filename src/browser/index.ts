@@ -54,6 +54,11 @@ export {
   createSelectedSplashParentProjection,
 } from './production-splash-surface';
 export type { ProductionSplashSurfaceOptions } from './production-splash-surface';
+export {
+  ProductionRadiusSurface,
+  RADIUS_PLACEMENT_KEY,
+} from './production-radius-surface';
+export type { ProductionRadiusSurfaceOptions } from './production-radius-surface';
 export { ProductionShellSurface } from './production-shell-surface';
 export type { ProductionShellSurfaceOptions } from './production-shell-surface';
 export {
