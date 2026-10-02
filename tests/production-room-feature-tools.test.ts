@@ -5,6 +5,7 @@ import {
   CommandDispatcher,
   ToolController,
   applicationStateFromLegacyPayload,
+  createLinkedWallTargets,
   registerProductionRoomFeatureToolHandlers,
   setWorkspace,
   type ToolPointerInput,
@@ -32,8 +33,10 @@ function pointer(
 }
 
 function setup() {
+  const payload = structuredClone(v159ProjectFixture);
+  payload.active = 0;
   const store = new AppStore(
-    applicationStateFromLegacyPayload(structuredClone(v159ProjectFixture)),
+    applicationStateFromLegacyPayload(payload),
   );
   const commands = new CommandDispatcher(store);
   commands.execute(setWorkspace('design'));
@@ -72,27 +75,46 @@ describe('Batch 59 production Room Feature tool parity', () => {
     });
   });
 
-  it('keeps Linked Walls linked while honoring the shared Thickness option', () => {
+  it('uses Linked Walls as an add/erase edge brush with shared Thickness', () => {
     const { store, tools } = setup();
     const before = store.getState().project.layouts[0]?.roomFeatures.length ?? 0;
 
     expect(tools.activateLocked('linkedWall')).toBe(true);
     expect(tools.setToolOption('thickness', 6.25)).toBe(true);
 
-    tools.pointerDown(pointer(10, 10));
-    tools.pointerMove(pointer(10, 70));
-    tools.pointerUp(pointer(10, 70, 0));
+    const back = createLinkedWallTargets(store.getState(), 6.25).find(
+      (target) => target.anchorFeatureId === 'room-1' && target.edge === 'back',
+    );
+    if (!back) throw new Error('Expected linked-wall back-edge target');
+    const midpoint = {
+      x: (back.p1.x + back.p2.x) / 2,
+      y: (back.p1.y + back.p2.y) / 2,
+    };
 
-    const roomFeatures = store.getState().project.layouts[0]?.roomFeatures ?? [];
+    tools.pointerDown(pointer(midpoint.x, midpoint.y));
+
+    let roomFeatures = store.getState().project.layouts[0]?.roomFeatures ?? [];
     expect(roomFeatures).toHaveLength(before + 1);
     expect(roomFeatures.at(-1)).toMatchObject({
       kind: 'wall',
-      featureType: 'linked-wall',
-      name: 'Linked Wall',
-      wallType: 'linked',
+      featureType: 'wall',
+      name: 'Back Wall',
+      wallType: 'full',
       depth: 6.25,
-      length: 60,
-      rotation: 90,
+      length: 36,
+      rotation: 0,
+      attachment: {
+        kind: 'roomFeatureWall',
+        anchorFeatureId: 'room-1',
+        edge: 'back',
+        linked: true,
+      },
     });
+
+    expect(tools.setToolOption('brush', 'erase')).toBe(true);
+    tools.pointerDown(pointer(midpoint.x, midpoint.y));
+
+    roomFeatures = store.getState().project.layouts[0]?.roomFeatures ?? [];
+    expect(roomFeatures).toHaveLength(before);
   });
 });
