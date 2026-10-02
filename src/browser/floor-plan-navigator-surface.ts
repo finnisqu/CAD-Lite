@@ -150,9 +150,13 @@ export class FloorPlanNavigatorSurface {
       const workflow = document.createElement('div');
       workflow.className = 'lc-floor-plan-nav-actions lc-floor-plan-workflow-actions';
       if (this.onImport) {
-        workflow.append(
-          button('Replace', 'Replace Floor Plan from PDF or image', this.onImport),
+        const replace = button(
+          'Replace',
+          'Replace Floor Plan from PDF or image',
+          this.onImport,
         );
+        replace.disabled = plan.locked;
+        workflow.append(replace);
       }
       if (this.onPrepare) {
         const prepare = button(
@@ -215,6 +219,83 @@ export class FloorPlanNavigatorSurface {
       );
       root.appendChild(actions);
 
+      const geometry = document.createElement('div');
+      geometry.className = 'lc-floor-plan-geometry';
+
+      const marginRow = document.createElement('label');
+      marginRow.className = 'lc-plan-number-row';
+      const marginText = document.createElement('span');
+      marginText.textContent = 'Canvas Margin';
+      const marginInput = document.createElement('input');
+      marginInput.type = 'number';
+      marginInput.className = 'lc-input';
+      marginInput.min = '0';
+      marginInput.step = '0.25';
+      marginInput.value = String(plan.margin);
+      marginInput.disabled = plan.locked;
+      const marginUnit = document.createElement('span');
+      marginUnit.textContent = 'in';
+      marginInput.addEventListener('change', () => {
+        if (plan.locked) return;
+        this.commands.execute(
+          updateFloorPlan(layout.id, {
+            margin: Math.max(0, Number(marginInput.value) || 0),
+          }),
+        );
+      });
+      marginRow.append(marginText, marginInput, marginUnit);
+
+      const nudgeWrap = document.createElement('div');
+      nudgeWrap.className = 'lc-plan-nudge-wrap';
+      const nudgeLabel = document.createElement('div');
+      nudgeLabel.className = 'lc-small lc-plan-section-title';
+      nudgeLabel.textContent = 'Fine Align · 1/16"';
+      const nudgeGrid = document.createElement('div');
+      nudgeGrid.className = 'lc-plan-nudge-grid';
+      const nudge = (label: string, dx: number, dy: number): HTMLButtonElement => {
+        const control = button(label, `Move Floor Plan ${label} by 1/16 inch`, () => {
+          if (plan.locked) return;
+          const offsetX = Math.round((plan.offsetX + dx) * 16) / 16;
+          const offsetY = Math.round((plan.offsetY + dy) * 16) / 16;
+          this.commands.execute(updateFloorPlan(layout.id, { offsetX, offsetY }));
+        });
+        control.disabled = plan.locked;
+        return control;
+      };
+      const blankTopLeft = document.createElement('span');
+      const blankTopRight = document.createElement('span');
+      const blankBottomLeft = document.createElement('span');
+      const blankBottomRight = document.createElement('span');
+      const up = nudge('↑', 0, -1 / 16);
+      const left = nudge('←', -1 / 16, 0);
+      const right = nudge('→', 1 / 16, 0);
+      const down = nudge('↓', 0, 1 / 16);
+      const center = button('Center', 'Center Floor Plan on the canvas', () => {
+        if (plan.locked) return;
+        this.commands.execute(
+          updateFloorPlan(layout.id, { offsetX: 0, offsetY: 0 }),
+        );
+      });
+      center.disabled = plan.locked;
+      nudgeGrid.append(
+        blankTopLeft,
+        up,
+        blankTopRight,
+        left,
+        center,
+        right,
+        blankBottomLeft,
+        down,
+        blankBottomRight,
+      );
+      const offsetRead = document.createElement('div');
+      offsetRead.className = 'lc-small lc-plan-muted lc-plan-offset-read';
+      offsetRead.textContent =
+        `Offset X ${plan.offsetX.toFixed(4)}" · Y ${plan.offsetY.toFixed(4)}"`;
+      nudgeWrap.append(nudgeLabel, nudgeGrid, offsetRead);
+      geometry.append(marginRow, nudgeWrap);
+      root.appendChild(geometry);
+
       const options = document.createElement('div');
       options.className = 'lc-floor-plan-nav-options';
 
@@ -266,7 +347,7 @@ export class FloorPlanNavigatorSurface {
         const note = document.createElement('div');
         note.className = 'lc-small lc-plan-muted';
         note.textContent =
-          'Unlock to prepare, recalibrate, mirror, rotate, replace, or delete the plan.';
+          'Unlock to prepare, recalibrate, mirror, rotate, replace, align, or delete the plan.';
         root.appendChild(note);
       }
 
