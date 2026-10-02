@@ -53,6 +53,8 @@ export class ProductionPieceInteractionParitySurface {
   private anchorLayoutId: string | null = null;
   private lastPieceSelectionIndex = -1;
   private sinkDrag: SinkDragState | null = null;
+  private readonly openSinkByPiece = new Map<string, string>();
+  private readonly knownSinkIdsByPiece = new Map<string, string[]>();
 
   constructor(options: ProductionPieceInteractionParitySurfaceOptions) {
     this.root = options.root;
@@ -76,6 +78,11 @@ export class ProductionPieceInteractionParitySurface {
       { signal, capture: true },
     );
 
+    inspector.addEventListener(
+      'click',
+      (event) => this.onInspectorClick(event),
+      { signal },
+    );
     inspector.addEventListener(
       'dragstart',
       (event) => this.onSinkDragStart(event),
@@ -114,6 +121,8 @@ export class ProductionPieceInteractionParitySurface {
     this.observer = null;
     this.anchorLayoutId = null;
     this.lastPieceSelectionIndex = -1;
+    this.openSinkByPiece.clear();
+    this.knownSinkIdsByPiece.clear();
     this.clearSinkDrag();
   }
 
@@ -208,15 +217,62 @@ export class ProductionPieceInteractionParitySurface {
     );
   }
 
-  private decorateSinkRows(): void {
-    const rows = this.sinkRows();
-    if (rows.length < 2) return;
+  private onInspectorClick(event: MouseEvent): void {
+    const target = event.target;
+    if (!(target instanceof Element)) return;
+    if (target.closest('button,input,select,textarea,[data-sink-reorder-handle]')) {
+      return;
+    }
 
-    rows.forEach((row) => {
+    const header = target.closest<HTMLElement>('.lc-piece-sink-row__header');
+    const row = header?.closest<HTMLElement>('.lc-piece-sink-row');
+    if (!header || !row) return;
+
+    const context = this.selectedSinkContext();
+    const index = this.sinkRows().indexOf(row);
+    const sink = index >= 0 ? context?.piece.sinks[index] : null;
+    if (!context || !sink) return;
+
+    if (this.openSinkByPiece.get(context.piece.id) === sink.id) {
+      this.openSinkByPiece.delete(context.piece.id);
+    } else {
+      this.openSinkByPiece.set(context.piece.id, sink.id);
+    }
+    this.decorateSinkRows();
+  }
+
+  private decorateSinkRows(): void {
+    const context = this.selectedSinkContext();
+    const rows = this.sinkRows();
+    if (!context || !rows.length) return;
+
+    const pieceId = context.piece.id;
+    const sinkIds = context.piece.sinks.map((sink) => sink.id);
+    const previousIds = this.knownSinkIdsByPiece.get(pieceId);
+    if (previousIds && sinkIds.length > previousIds.length) {
+      const addedId = sinkIds.find((id) => !previousIds.includes(id));
+      if (addedId) this.openSinkByPiece.set(pieceId, addedId);
+    }
+    this.knownSinkIdsByPiece.set(pieceId, [...sinkIds]);
+
+    const currentOpenId = this.openSinkByPiece.get(pieceId);
+    if (currentOpenId && !sinkIds.includes(currentOpenId)) {
+      this.openSinkByPiece.delete(pieceId);
+    }
+    const openId = this.openSinkByPiece.get(pieceId) ?? null;
+
+    rows.forEach((row, index) => {
+      const sink = context.piece.sinks[index];
+      if (!sink) return;
+      row.dataset.sinkParityId = sink.id;
+      row.classList.toggle('is-expanded', sink.id === openId);
+
       const header = row.querySelector<HTMLElement>(
         '.lc-piece-sink-row__header',
       );
-      if (!header || header.querySelector('[data-sink-reorder-handle]')) return;
+      if (!header || rows.length < 2 || header.querySelector('[data-sink-reorder-handle]')) {
+        return;
+      }
 
       const handle = header.ownerDocument.createElement('button');
       handle.type = 'button';
