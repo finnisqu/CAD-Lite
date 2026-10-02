@@ -82,13 +82,13 @@ describe('Batch 59 production Mode HUD parity', () => {
 
     expect(
       productionRoomFeatureModalHost(
-        { fullscreenElement: null } as Pick<Document, 'fullscreenElement'>,
+        { fullscreenElement: null },
         modalRoot,
       ),
     ).toBe(modalRoot);
     expect(
       productionRoomFeatureModalHost(
-        { fullscreenElement: fullscreen } as Pick<Document, 'fullscreenElement'>,
+        { fullscreenElement: fullscreen },
         modalRoot,
       ),
     ).toBe(fullscreen);
