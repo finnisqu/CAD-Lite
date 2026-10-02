@@ -119,4 +119,5 @@ export type {
   RoomFeatureResizeSide,
   RoomFeatureSnapResult,
 } from './room-features';
+export { registerProductionRoomFeatureToolHandlers } from './room-feature-production-tools';
 export { RoomFeatureNudgeController } from './room-feature-nudge';
