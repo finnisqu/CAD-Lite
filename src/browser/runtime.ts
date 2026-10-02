@@ -14,8 +14,8 @@ import {
   deleteCanvasSelection,
   registerAnnotationToolHandlers,
   registerEdgePainterToolHandler,
+  registerProductionRoomFeatureToolHandlers,
   registerRadiusToolHandler,
-  registerRoomFeatureToolHandlers,
   registerSplashToolHandler,
   applicationStateFromLegacyPayload,
   type AutosaveManagerOptions,
@@ -141,7 +141,7 @@ export function mountCadLiteBrowserRuntime(
     (toolId, handler) => tools.register(toolId, handler),
     createId,
   );
-  const unregisterRoomFeatureTools = registerRoomFeatureToolHandlers(
+  const unregisterRoomFeatureTools = registerProductionRoomFeatureToolHandlers(
     (toolId, handler) => tools.register(toolId, handler),
     createId,
   );
