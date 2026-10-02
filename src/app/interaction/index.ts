@@ -120,4 +120,14 @@ export type {
   RoomFeatureSnapResult,
 } from './room-features';
 export { registerProductionRoomFeatureToolHandlers } from './room-feature-production-tools';
+export {
+  createLinkedWallBrushHandler,
+  createLinkedWallTargets,
+  hitTestLinkedWallTarget,
+} from './linked-wall-brush';
+export type {
+  LinkedWallBrushAction,
+  LinkedWallEdge,
+  LinkedWallTarget,
+} from './linked-wall-brush';
 export { RoomFeatureNudgeController } from './room-feature-nudge';
