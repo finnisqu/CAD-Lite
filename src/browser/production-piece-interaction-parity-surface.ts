@@ -5,6 +5,7 @@ import {
   type CommandDispatcher,
 } from '../app';
 import { createPieceGroupProjection } from '../domain/pieces';
+import { ProductionCutoutInteractionParitySurface } from './production-cutout-interaction-parity-surface';
 
 export interface ProductionPieceInteractionParitySurfaceOptions {
   root: ParentNode;
@@ -47,6 +48,7 @@ export class ProductionPieceInteractionParitySurface {
   private readonly root: ParentNode;
   private readonly store: AppStore;
   private readonly commands: CommandDispatcher;
+  private readonly cutoutParitySurface: ProductionCutoutInteractionParitySurface;
 
   private abort: AbortController | null = null;
   private observer: MutationObserver | null = null;
@@ -60,6 +62,7 @@ export class ProductionPieceInteractionParitySurface {
     this.root = options.root;
     this.store = options.store;
     this.commands = options.commands;
+    this.cutoutParitySurface = new ProductionCutoutInteractionParitySurface(options);
   }
 
   mount(): void {
@@ -112,9 +115,11 @@ export class ProductionPieceInteractionParitySurface {
       this.observer.observe(inspector, { childList: true, subtree: true });
     }
     this.decorateSinkRows();
+    this.cutoutParitySurface.mount();
   }
 
   unmount(): void {
+    this.cutoutParitySurface.unmount();
     this.abort?.abort();
     this.abort = null;
     this.observer?.disconnect();
