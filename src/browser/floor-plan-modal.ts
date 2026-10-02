@@ -5,6 +5,18 @@ export interface FloorPlanModal {
   readonly close: () => void;
 }
 
+function isEditableTarget(target: EventTarget | null): boolean {
+  if (!(target instanceof Element)) return false;
+  const element = target as HTMLElement;
+  const tag = element.tagName.toLowerCase();
+  return (
+    tag === 'input' ||
+    tag === 'textarea' ||
+    tag === 'select' ||
+    element.isContentEditable
+  );
+}
+
 export function createFloorPlanModal(
   document: Document,
   titleText: string,
@@ -13,6 +25,10 @@ export function createFloorPlanModal(
 ): FloorPlanModal {
   const overlay = document.createElement('div');
   overlay.className = 'lc-plan-modal-overlay';
+  const appRoot = document.querySelector<HTMLElement>('.lite-cad');
+  if (appRoot?.classList.contains('lc-theme-dark')) {
+    overlay.classList.add('lc-theme-dark');
+  }
 
   const dialog = document.createElement('div');
   dialog.className = `lc-plan-dialog ${className}`;
@@ -37,19 +53,43 @@ export function createFloorPlanModal(
   foot.className = 'lc-plan-dialog-foot';
   dialog.append(head, body, foot);
   overlay.appendChild(dialog);
-  document.body.appendChild(overlay);
 
+  const host = document.fullscreenElement ?? document.body;
+  host.appendChild(overlay);
+
+  const view = document.defaultView;
+  const previousActive = document.activeElement as HTMLElement | null;
   let closed = false;
+
   const close = (): void => {
     if (closed) return;
     closed = true;
+    view?.removeEventListener('keydown', blockCanvasKeys, true);
+    document.removeEventListener('keydown', onKey, true);
     overlay.remove();
+    if (previousActive?.isConnected) previousActive.focus?.();
     onClose?.();
   };
+
+  const blockCanvasKeys = (event: KeyboardEvent): void => {
+    if (event.key === 'Escape' || isEditableTarget(event.target)) return;
+    event.stopPropagation();
+    event.stopImmediatePropagation();
+  };
+
+  const onKey = (event: KeyboardEvent): void => {
+    if (event.key !== 'Escape') return;
+    event.preventDefault();
+    event.stopPropagation();
+    close();
+  };
+
   closeButton.addEventListener('click', () => close());
   overlay.addEventListener('pointerdown', (event) => {
     if (event.target === overlay) close();
   });
+  view?.addEventListener('keydown', blockCanvasKeys, true);
+  document.addEventListener('keydown', onKey, true);
 
   return { overlay, body, foot, close };
 }
