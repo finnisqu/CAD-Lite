@@ -4,6 +4,8 @@ import {
   ROOM_FEATURE_PRESETS,
   defaultRoomFeatureLabel,
   productionModeHudDescriptor,
+  productionRoomFeatureModalHost,
+  shouldBlockProductionRoomModalKey,
 } from '../src/browser';
 
 describe('Batch 59 production Mode HUD parity', () => {
@@ -72,5 +74,30 @@ describe('Batch 59 production Mode HUD parity', () => {
     const sinkBase = ROOM_FEATURE_PRESETS.find((preset) => preset.value === 'sinkBase');
     if (!sinkBase) throw new Error('Sink Base preset missing');
     expect(defaultRoomFeatureLabel(sinkBase, 42.5)).toBe('SB42.5');
+  });
+
+  it('hosts Room Feature modals inside fullscreen when available', () => {
+    const modalRoot = { id: 'modal-root' } as unknown as HTMLElement;
+    const fullscreen = { id: 'fullscreen-root' } as unknown as Element;
+
+    expect(
+      productionRoomFeatureModalHost(
+        { fullscreenElement: null } as Pick<Document, 'fullscreenElement'>,
+        modalRoot,
+      ),
+    ).toBe(modalRoot);
+    expect(
+      productionRoomFeatureModalHost(
+        { fullscreenElement: fullscreen } as Pick<Document, 'fullscreenElement'>,
+        modalRoot,
+      ),
+    ).toBe(fullscreen);
+  });
+
+  it('isolates canvas shortcuts while preserving Escape and text editing', () => {
+    expect(shouldBlockProductionRoomModalKey('Delete', false)).toBe(true);
+    expect(shouldBlockProductionRoomModalKey('p', false)).toBe(true);
+    expect(shouldBlockProductionRoomModalKey('Escape', false)).toBe(false);
+    expect(shouldBlockProductionRoomModalKey('Delete', true)).toBe(false);
   });
 });
