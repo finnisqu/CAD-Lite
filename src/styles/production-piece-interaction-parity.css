@@ -1,3 +1,19 @@
+.cad-lite-production-shell .lc-piece-sink-row > .lc-piece-sink-fields {
+  display: none;
+}
+
+.cad-lite-production-shell .lc-piece-sink-row.is-expanded > .lc-piece-sink-fields {
+  display: grid;
+}
+
+.cad-lite-production-shell .lc-piece-sink-row__header {
+  cursor: pointer;
+}
+
+.cad-lite-production-shell .lc-piece-sink-row.is-expanded > .lc-piece-sink-row__header {
+  background: var(--lc-surface-soft);
+}
+
 .cad-lite-production-shell .lc-sink-reorder-handle {
   display: inline-flex;
   flex: 0 0 auto;
