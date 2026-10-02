@@ -50,6 +50,13 @@ export type {
   ProductionPiecePropertiesSurfaceOptions,
 } from './production-piece-properties-surface';
 export {
+  ProductionPieceInteractionParitySurface,
+  mergePieceRangeSelection,
+} from './production-piece-interaction-parity-surface';
+export type {
+  ProductionPieceInteractionParitySurfaceOptions,
+} from './production-piece-interaction-parity-surface';
+export {
   ProductionSplashSurface,
   createSelectedSplashParentProjection,
 } from './production-splash-surface';
