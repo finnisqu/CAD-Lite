@@ -87,6 +87,24 @@ export type {
   RadiusToolOptions,
 } from './radius';
 
+export {
+  createEdgePainterTargets,
+  edgePainterPointHitsEligiblePiece,
+  edgePainterToolOptions,
+  hitTestEdgePainterTarget,
+  normalizeEdgePainterProfile,
+  registerEdgePainterToolHandler,
+  DEFAULT_EDGE_PAINTER_PROFILE,
+  EDGE_PAINTER_PROFILE_KEY,
+  EDGE_PAINTER_PROFILES,
+} from './edge-painter';
+export type {
+  EdgePainterBrushAction,
+  EdgePainterProfileOption,
+  EdgePainterTarget,
+  EdgePainterToolOptions,
+} from './edge-painter';
+
 export { AnnotationInteractionController } from './annotation-editing';
 export type { AnnotationEditPreview, AnnotationEndpoint } from './annotation-editing';
 
