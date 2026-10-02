@@ -68,6 +68,14 @@ function nonNegative(value: unknown, fallback = 0): number {
   return Math.max(0, round3(finiteNumber(value, fallback)));
 }
 
+/**
+ * Floor Plan fine alignment uses 1/16-inch increments in v1.5.99. Keeping four
+ * decimal places preserves 0.0625 exactly and prevents cumulative nudge drift.
+ */
+function alignmentOffset(value: unknown): number {
+  return Math.round(finiteNumber(value, 0) * 10000) / 10000;
+}
+
 export function normalizeFloorPlan(
   raw: unknown,
   index = 0,
@@ -102,8 +110,8 @@ export function normalizeFloorPlan(
     locked: booleanValue(source.locked, calibrated),
     includeInExport: booleanValue(source.includeInExport, false),
     margin: nonNegative(source.margin),
-    offsetX: round3(finiteNumber(source.offsetX, 0)),
-    offsetY: round3(finiteNumber(source.offsetY, 0)),
+    offsetX: alignmentOffset(source.offsetX),
+    offsetY: alignmentOffset(source.offsetY),
   };
 }
 
