@@ -1,0 +1,159 @@
+.cad-lite-production-shell .lc-production-edge-painter-hud {
+  position: absolute;
+  top: 12px;
+  left: 50%;
+  display: grid;
+  width: min(390px, calc(100% - 24px));
+  gap: 8px;
+  padding: 9px;
+  border: 1px solid var(--lc-border);
+  border-radius: 8px;
+  color: var(--lc-text);
+  background: color-mix(in srgb, var(--lc-panel) 96%, transparent);
+  box-shadow: 0 8px 28px rgb(0 0 0 / 18%);
+  transform: translateX(-50%);
+  backdrop-filter: blur(8px);
+  pointer-events: auto;
+  user-select: none;
+}
+
+.cad-lite-production-shell .lc-production-edge-painter-hud.is-user-moved {
+  transform: none;
+}
+
+.cad-lite-production-shell .lc-production-edge-painter-hud.is-dragging {
+  cursor: grabbing;
+}
+
+.cad-lite-production-shell .lc-production-edge-painter-hud__header {
+  display: flex;
+  min-height: 24px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  cursor: grab;
+}
+
+.cad-lite-production-shell .lc-production-edge-painter-hud__header strong {
+  font-size: 11px;
+  letter-spacing: .08em;
+}
+
+.cad-lite-production-shell .lc-production-edge-painter-hud__header-actions {
+  display: flex;
+  gap: 4px;
+}
+
+.cad-lite-production-shell .lc-production-edge-painter-hud__icon-btn,
+.cad-lite-production-shell .lc-production-edge-painter-hud__segmented button {
+  min-height: 26px;
+  border: 1px solid var(--lc-border);
+  border-radius: 5px;
+  color: var(--lc-text);
+  background: var(--lc-toolbar);
+  font: inherit;
+  font-size: 9px;
+  cursor: pointer;
+}
+
+.cad-lite-production-shell .lc-production-edge-painter-hud__icon-btn {
+  min-width: 30px;
+  padding: 3px 7px;
+}
+
+.cad-lite-production-shell .lc-production-edge-painter-hud__row,
+.cad-lite-production-shell .lc-production-edge-painter-hud__field {
+  display: grid;
+  grid-template-columns: 72px minmax(0, 1fr);
+  align-items: center;
+  gap: 8px;
+  color: var(--lc-muted);
+  font-size: 9px;
+}
+
+.cad-lite-production-shell .lc-production-edge-painter-hud__segmented {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 4px;
+}
+
+.cad-lite-production-shell .lc-production-edge-painter-hud__segmented button {
+  padding: 4px 7px;
+}
+
+.cad-lite-production-shell .lc-production-edge-painter-hud__segmented button.is-active {
+  border-color: var(--lc-selected-border);
+  background: color-mix(in srgb, var(--lc-selected-border) 15%, var(--lc-panel));
+}
+
+.cad-lite-production-shell .lc-production-edge-painter-hud__segmented button.is-danger.is-active {
+  border-color: color-mix(in srgb, var(--lc-danger) 50%, var(--lc-border));
+  color: var(--lc-danger);
+  background: var(--lc-danger-bg);
+}
+
+.cad-lite-production-shell .lc-production-edge-painter-hud__field select {
+  min-width: 0;
+  min-height: 27px;
+  padding: 3px 6px;
+  border: 1px solid var(--lc-border);
+  border-radius: 5px;
+  color: var(--lc-text);
+  background: var(--lc-panel);
+  font-size: 10px;
+}
+
+.cad-lite-production-shell .lc-production-edge-painter-hud__field select:disabled {
+  opacity: .55;
+}
+
+.cad-lite-production-shell .lc-production-edge-painter-hud__warning {
+  padding: 6px 7px;
+  border: 1px solid color-mix(in srgb, var(--lc-danger) 25%, var(--lc-border));
+  border-radius: 5px;
+  color: var(--lc-danger);
+  background: var(--lc-danger-bg);
+  font-size: 9px;
+  line-height: 1.35;
+}
+
+.cad-lite-production-shell .lc-production-edge-painter-hud__help {
+  overflow: hidden;
+  color: var(--lc-muted);
+  font-size: 8px;
+  line-height: 1.4;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cad-lite-production-shell .lc-production-edge-painter-target {
+  stroke: var(--lc-selected-border);
+  stroke-width: 3;
+  stroke-linecap: round;
+  opacity: .88;
+}
+
+.cad-lite-production-shell .lc-production-edge-painter-target.is-profiled {
+  stroke-width: 4;
+}
+
+.cad-lite-production-shell .lc-production-edge-painter-target.is-erasing {
+  stroke: var(--lc-danger);
+  opacity: .78;
+}
+
+.cad-lite-production-shell .lc-production-edge-painter-target__hit {
+  cursor: crosshair;
+}
+
+@media (max-width: 720px) {
+  .cad-lite-production-shell .lc-production-edge-painter-hud {
+    width: calc(100% - 16px);
+    top: 8px;
+  }
+
+  .cad-lite-production-shell .lc-production-edge-painter-hud__row,
+  .cad-lite-production-shell .lc-production-edge-painter-hud__field {
+    grid-template-columns: 64px minmax(0, 1fr);
+  }
+}
