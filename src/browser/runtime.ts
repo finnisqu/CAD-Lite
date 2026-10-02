@@ -13,6 +13,7 @@ import {
   ToolController,
   deleteCanvasSelection,
   registerAnnotationToolHandlers,
+  registerEdgePainterToolHandler,
   registerRadiusToolHandler,
   registerRoomFeatureToolHandlers,
   registerSplashToolHandler,
@@ -33,6 +34,7 @@ import { FloorPlanNavigatorSurface } from './floor-plan-navigator-surface';
 import { FloorPlanPreparationSurface } from './floor-plan-preparation-surface';
 import { MaterialSurface } from './material-surface';
 import { PieceCanvasSurface } from './piece-canvas-surface';
+import { ProductionEdgePainterSurface } from './production-edge-painter-surface';
 import { ProductionInspectorSurface } from './production-inspector-surface';
 import { ProductionPiecePropertiesSurface } from './production-piece-properties-surface';
 import { ProductionRadiusSurface } from './production-radius-surface';
@@ -72,6 +74,7 @@ export interface CadLiteBrowserRuntime {
   productionPiecePropertiesSurface: ProductionPiecePropertiesSurface;
   productionSplashSurface: ProductionSplashSurface;
   productionRadiusSurface: ProductionRadiusSurface;
+  productionEdgePainterSurface: ProductionEdgePainterSurface;
   productionInspectorSurface: ProductionInspectorSurface;
   productionShellSurface: ProductionShellSurface;
   productionViewportSurface: ProductionViewportSurface;
@@ -146,6 +149,9 @@ export function mountCadLiteBrowserRuntime(
     (toolId, handler) => tools.register(toolId, handler),
     createId,
   );
+  const unregisterEdgePainterTool = registerEdgePainterToolHandler(
+    (toolId, handler) => tools.register(toolId, handler),
+  );
   const pieceInteractions = new PieceInteractionController(store, commands);
   const annotationInteractions = new AnnotationInteractionController(store, commands);
   const roomFeatureInteractions = new RoomFeatureInteractionController(
@@ -212,6 +218,11 @@ export function mountCadLiteBrowserRuntime(
     tools,
   });
   const productionRadiusSurface = new ProductionRadiusSurface({
+    root,
+    store,
+    tools,
+  });
+  const productionEdgePainterSurface = new ProductionEdgePainterSurface({
     root,
     store,
     tools,
@@ -303,6 +314,7 @@ export function mountCadLiteBrowserRuntime(
   productionPiecePropertiesSurface.mount();
   productionSplashSurface.mount();
   productionRadiusSurface.mount();
+  productionEdgePainterSurface.mount();
   productionInspectorSurface.mount();
   productionShellSurface.mount();
   productionViewportSurface.mount();
@@ -335,6 +347,7 @@ export function mountCadLiteBrowserRuntime(
     productionPiecePropertiesSurface,
     productionSplashSurface,
     productionRadiusSurface,
+    productionEdgePainterSurface,
     productionInspectorSurface,
     productionShellSurface,
     productionViewportSurface,
@@ -359,12 +372,14 @@ export function mountCadLiteBrowserRuntime(
       roomFeatureNudge.cancel();
       unregisterAnnotationTools.forEach((unregister) => unregister());
       unregisterRoomFeatureTools.forEach((unregister) => unregister());
+      unregisterEdgePainterTool();
       unregisterRadiusTool();
       unregisterSplashTool();
       startupRecoverySurface.unmount();
       productionViewportSurface.unmount();
       productionShellSurface.unmount();
       productionInspectorSurface.unmount();
+      productionEdgePainterSurface.unmount();
       productionRadiusSurface.unmount();
       productionSplashSurface.unmount();
       productionPiecePropertiesSurface.unmount();
