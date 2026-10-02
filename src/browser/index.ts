@@ -73,6 +73,8 @@ export {
   ROOM_FEATURE_PRESETS,
   defaultRoomFeatureLabel,
   productionModeHudDescriptor,
+  productionRoomFeatureModalHost,
+  shouldBlockProductionRoomModalKey,
 } from './production-mode-hud-surface';
 export type {
   ProductionModeHudDescriptor,
