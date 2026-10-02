@@ -13,6 +13,7 @@ import {
   ToolController,
   deleteCanvasSelection,
   registerAnnotationToolHandlers,
+  registerRadiusToolHandler,
   registerRoomFeatureToolHandlers,
   registerSplashToolHandler,
   applicationStateFromLegacyPayload,
@@ -34,6 +35,7 @@ import { MaterialSurface } from './material-surface';
 import { PieceCanvasSurface } from './piece-canvas-surface';
 import { ProductionInspectorSurface } from './production-inspector-surface';
 import { ProductionPiecePropertiesSurface } from './production-piece-properties-surface';
+import { ProductionRadiusSurface } from './production-radius-surface';
 import { ProductionSplashSurface } from './production-splash-surface';
 import { ProductionShellSurface } from './production-shell-surface';
 import { ProductionViewportSurface } from './production-viewport-surface';
@@ -69,6 +71,7 @@ export interface CadLiteBrowserRuntime {
   viewPreferencesSurface: ViewPreferencesSurface;
   productionPiecePropertiesSurface: ProductionPiecePropertiesSurface;
   productionSplashSurface: ProductionSplashSurface;
+  productionRadiusSurface: ProductionRadiusSurface;
   productionInspectorSurface: ProductionInspectorSurface;
   productionShellSurface: ProductionShellSurface;
   productionViewportSurface: ProductionViewportSurface;
@@ -139,6 +142,10 @@ export function mountCadLiteBrowserRuntime(
     (toolId, handler) => tools.register(toolId, handler),
     createId,
   );
+  const unregisterRadiusTool = registerRadiusToolHandler(
+    (toolId, handler) => tools.register(toolId, handler),
+    createId,
+  );
   const pieceInteractions = new PieceInteractionController(store, commands);
   const annotationInteractions = new AnnotationInteractionController(store, commands);
   const roomFeatureInteractions = new RoomFeatureInteractionController(
@@ -200,6 +207,11 @@ export function mountCadLiteBrowserRuntime(
   const productionPiecePropertiesSurface =
     new ProductionPiecePropertiesSurface({ root, store, commands });
   const productionSplashSurface = new ProductionSplashSurface({
+    root,
+    store,
+    tools,
+  });
+  const productionRadiusSurface = new ProductionRadiusSurface({
     root,
     store,
     tools,
@@ -290,6 +302,7 @@ export function mountCadLiteBrowserRuntime(
   slabNavigatorSurface.mount();
   productionPiecePropertiesSurface.mount();
   productionSplashSurface.mount();
+  productionRadiusSurface.mount();
   productionInspectorSurface.mount();
   productionShellSurface.mount();
   productionViewportSurface.mount();
@@ -321,6 +334,7 @@ export function mountCadLiteBrowserRuntime(
     viewPreferencesSurface,
     productionPiecePropertiesSurface,
     productionSplashSurface,
+    productionRadiusSurface,
     productionInspectorSurface,
     productionShellSurface,
     productionViewportSurface,
@@ -345,11 +359,13 @@ export function mountCadLiteBrowserRuntime(
       roomFeatureNudge.cancel();
       unregisterAnnotationTools.forEach((unregister) => unregister());
       unregisterRoomFeatureTools.forEach((unregister) => unregister());
+      unregisterRadiusTool();
       unregisterSplashTool();
       startupRecoverySurface.unmount();
       productionViewportSurface.unmount();
       productionShellSurface.unmount();
       productionInspectorSurface.unmount();
+      productionRadiusSurface.unmount();
       productionSplashSurface.unmount();
       productionPiecePropertiesSurface.unmount();
       slabNavigatorSurface.unmount();
