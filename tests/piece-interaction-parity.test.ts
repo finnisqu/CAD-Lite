@@ -5,9 +5,13 @@ import {
   CommandDispatcher,
   HistoryManager,
   applicationStateFromLegacyPayload,
+  reorderPieceCutout,
   reorderPieceSink,
 } from '../src/app';
-import { movePieceSinkToIndex } from '../src/domain/pieces';
+import {
+  movePieceCutoutToIndex,
+  movePieceSinkToIndex,
+} from '../src/domain/pieces';
 import { mergePieceRangeSelection } from '../src/browser/production-piece-interaction-parity-surface';
 
 function payload() {
@@ -40,7 +44,50 @@ function payload() {
               { id: 'sink-b', name: 'B', w: 18, h: 13 },
               { id: 'sink-c', name: 'C', w: 18, h: 13 },
             ],
-            cutouts: [],
+            cutouts: [
+              {
+                id: 'cutout-a',
+                name: 'A',
+                kind: 'rectangle',
+                cx: 10,
+                cy: 10,
+                w: 6,
+                h: 4,
+                diameter: null,
+                cornerR: 0,
+                rotation: 0,
+                insideFinish: 'unpolished',
+                fabricationSplitCutoutId: null,
+              },
+              {
+                id: 'cutout-b',
+                name: 'B',
+                kind: 'circle',
+                cx: 20,
+                cy: 10,
+                w: 2,
+                h: 2,
+                diameter: 2,
+                cornerR: 1,
+                rotation: 0,
+                insideFinish: 'unpolished',
+                fabricationSplitCutoutId: null,
+              },
+              {
+                id: 'cutout-c',
+                name: 'C',
+                kind: 'oval',
+                cx: 30,
+                cy: 10,
+                w: 6,
+                h: 4,
+                diameter: null,
+                cornerR: 0,
+                rotation: 0,
+                insideFinish: 'polished',
+                fabricationSplitCutoutId: null,
+              },
+            ],
             pieceSeams: [],
           },
           { id: 'piece-b', name: 'B', areaId: 'area', x: 65, y: 0, w: 20, h: 25 },
@@ -134,6 +181,64 @@ describe('production-significant Sink ordering', () => {
         (sink) => sink.id,
       ),
     ).toEqual(['sink-a', 'sink-b', 'sink-c']);
+    history.stop();
+  });
+});
+
+describe('production-significant Cutout ordering', () => {
+  it('moves a Cutout to the requested array index without changing its data', () => {
+    const state = applicationStateFromLegacyPayload(payload());
+    const piece = state.project.layouts[0]?.pieces[0];
+    if (!piece) throw new Error('Missing Piece');
+    const original = structuredClone(piece.cutouts[0]);
+
+    const moved = movePieceCutoutToIndex(piece, 'cutout-a', 2);
+
+    expect(moved?.cutouts.map((cutout) => cutout.id)).toEqual([
+      'cutout-b',
+      'cutout-c',
+      'cutout-a',
+    ]);
+    expect(moved?.cutouts[2]).toEqual(original);
+    expect(movePieceCutoutToIndex(piece, 'missing', 1)).toBeNull();
+    expect(movePieceCutoutToIndex(piece, 'cutout-a', 0)).toBe(piece);
+  });
+
+  it('records reorder as one undoable command and restores order on undo', () => {
+    const store = new AppStore(applicationStateFromLegacyPayload(payload()));
+    const commands = new CommandDispatcher(store);
+    const history = new HistoryManager(store);
+    history.start();
+
+    expect(
+      commands.execute(
+        reorderPieceCutout('layout', 'piece-a', 'cutout-a', 2),
+      ),
+    ).not.toBeNull();
+    expect(
+      store.getState().project.layouts[0]?.pieces[0]?.cutouts.map(
+        (cutout) => cutout.id,
+      ),
+    ).toEqual(['cutout-b', 'cutout-c', 'cutout-a']);
+    expect(history.getStatus()).toMatchObject({
+      size: 2,
+      undoLabel: 'Reorder cutout',
+    });
+
+    const historySize = history.getStatus().size;
+    expect(
+      commands.execute(
+        reorderPieceCutout('layout', 'piece-a', 'cutout-a', 2),
+      ),
+    ).toBeNull();
+    expect(history.getStatus().size).toBe(historySize);
+
+    history.undo();
+    expect(
+      store.getState().project.layouts[0]?.pieces[0]?.cutouts.map(
+        (cutout) => cutout.id,
+      ),
+    ).toEqual(['cutout-a', 'cutout-b', 'cutout-c']);
     history.stop();
   });
 });
