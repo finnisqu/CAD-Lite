@@ -108,6 +108,7 @@ export {
   removeLinkedSplash,
 } from './piece-splashes';
 export { reorderPieceSink } from './piece-sink-order';
+export { reorderPieceCutout } from './piece-cutout-order';
 
 export {
   addPiece,
