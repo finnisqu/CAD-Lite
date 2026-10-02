@@ -351,6 +351,34 @@ export function duplicatePieceSink(
   return { ...piece, sinks };
 }
 
+/**
+ * Reorder one Sink without changing its identity or geometry. Sink array order is
+ * production-significant: it controls displayed numbering and automatic
+ * centerline-dimension lane priority.
+ */
+export function movePieceSinkToIndex(
+  piece: Piece,
+  sinkId: string,
+  targetIndex: number,
+): Piece | null {
+  const fromIndex = piece.sinks.findIndex((sink) => sink.id === sinkId);
+  if (fromIndex < 0 || !Number.isFinite(targetIndex) || !piece.sinks.length) {
+    return null;
+  }
+
+  const toIndex = Math.max(
+    0,
+    Math.min(piece.sinks.length - 1, Math.trunc(targetIndex)),
+  );
+  if (toIndex === fromIndex) return piece;
+
+  const sinks = [...piece.sinks];
+  const [moved] = sinks.splice(fromIndex, 1);
+  if (!moved) return null;
+  sinks.splice(toIndex, 0, moved);
+  return { ...piece, sinks };
+}
+
 export function mirrorPieceSink(
   piece: Piece,
   source: PieceSink,
