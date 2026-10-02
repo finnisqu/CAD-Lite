@@ -65,7 +65,7 @@ function rotationDelta(a: number, b: number): number {
 function attachment(feature: RoomFeature): Record<string, unknown> | null {
   const raw = feature.attachment;
   return raw && !Array.isArray(raw) && typeof raw === 'object'
-    ? (raw as Record<string, unknown>)
+    ? raw
     : null;
 }
 
