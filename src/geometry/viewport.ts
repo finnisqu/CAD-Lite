@@ -7,6 +7,17 @@ export interface ClientRectLike {
   height: number;
 }
 
+export function normalizeViewportScale(scale: unknown): number {
+  return Math.max(0.001, Math.abs(Number(scale) || 1));
+}
+
+export function screenDistanceToWorld(
+  distance: number,
+  scale: unknown,
+): number {
+  return distance / normalizeViewportScale(scale);
+}
+
 /**
  * Project a point from client coordinates into an arbitrary viewport rectangle.
  *
@@ -47,7 +58,9 @@ export function anchoredViewportScrollOffset(
   oldScale: number,
   newScale: number,
 ): number {
-  const safeOldScale = Math.max(0.001, Math.abs(oldScale || 1));
-  const worldCoordinate = (scrollOffset + localPointer) / safeOldScale;
+  const worldCoordinate = screenDistanceToWorld(
+    scrollOffset + localPointer,
+    oldScale,
+  );
   return Math.max(0, worldCoordinate * newScale - localPointer);
 }

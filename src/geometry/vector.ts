@@ -1,3 +1,4 @@
+import { quantizeToIncrement } from '../core/numeric';
 import type { Point } from './types';
 
 export function rotateVector(x: number, y: number, degrees: unknown): Point {
@@ -24,9 +25,7 @@ export function signedAngleDeltaDegrees(value: number): number {
 }
 
 export function snapAngleToIncrement(angle: number, increment: number): number {
-  const step = Math.abs(Number(increment) || 0);
-  if (step <= 0) return angle;
-  return Math.round(angle / step) * step;
+  return quantizeToIncrement(angle, increment);
 }
 
 export function projectVectorOntoAxes(

@@ -1,12 +1,26 @@
 import { describe, expect, it } from 'vitest';
 
-import { clamp, format3, normalizeDegrees, round3 } from '../src/core/numeric';
+import {
+  clamp,
+  format3,
+  normalizeDegrees,
+  quantizeToIncrement,
+  round3,
+} from '../src/core/numeric';
 
 describe('numeric compatibility helpers', () => {
   it('clamps values to the inclusive range', () => {
     expect(clamp(5, 0, 10)).toBe(5);
     expect(clamp(-2, 0, 10)).toBe(0);
     expect(clamp(12, 0, 10)).toBe(10);
+  });
+
+  it('quantizes values to caller-provided increments', () => {
+    expect(quantizeToIncrement(23.11, 1 / 8)).toBe(23.125);
+    expect(quantizeToIncrement(7.24, 0.5)).toBe(7);
+    expect(quantizeToIncrement(7.26, -0.5)).toBe(7.5);
+    expect(quantizeToIncrement(7.26, 0)).toBe(7.26);
+    expect(quantizeToIncrement(7.26, Number.NaN)).toBe(7.26);
   });
 
   it('preserves v1.5.99 three-decimal rounding semantics', () => {

@@ -4,9 +4,25 @@ import {
   anchoredViewportScrollOffset,
   clientPointToViewportPoint,
   nextViewportScale,
+  normalizeViewportScale,
+  screenDistanceToWorld,
 } from '../src/geometry';
 
 describe('viewport geometry', () => {
+  it('normalizes viewport scales consistently', () => {
+    expect(normalizeViewportScale(8)).toBe(8);
+    expect(normalizeViewportScale(-8)).toBe(8);
+    expect(normalizeViewportScale(0.0001)).toBe(0.001);
+    expect(normalizeViewportScale(0)).toBe(1);
+    expect(normalizeViewportScale(Number.NaN)).toBe(1);
+  });
+
+  it('converts screen-space distances into world-space distances', () => {
+    expect(screenDistanceToWorld(4, 8)).toBe(0.5);
+    expect(screenDistanceToWorld(2, 8)).toBe(0.25);
+    expect(screenDistanceToWorld(4, -8)).toBe(0.5);
+  });
+
   it('steps a viewport scale within caller-provided bounds', () => {
     expect(nextViewportScale(6, 1, 0.5, 1, 24)).toBe(6.5);
     expect(nextViewportScale(6, -1, 0.5, 1, 24)).toBe(5.5);

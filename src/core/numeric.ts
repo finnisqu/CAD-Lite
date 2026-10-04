@@ -8,6 +8,12 @@ export function clamp(value: number, min: number, max: number): number {
   return Math.max(min, Math.min(max, value));
 }
 
+export function quantizeToIncrement(value: number, increment: number): number {
+  const step = Math.abs(Number(increment) || 0);
+  if (step <= 0) return value;
+  return Math.round(value / step) * step;
+}
+
 export function round3(value: unknown): number {
   return Math.round((Number(value) || 0) * 1000) / 1000;
 }
