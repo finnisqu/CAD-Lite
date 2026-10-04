@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vitest';
 
 import {
   axisAlignedRectsOverlap,
+  constrainDrawPoint,
+  constrainPointToAxes,
   convexPolygonsOverlap,
   pointAngleDegrees,
   pointSegmentDistance,
@@ -18,6 +20,24 @@ import {
 } from '../src/geometry';
 
 describe('core geometry', () => {
+  it('shares forced and weak orthogonal point constraints', () => {
+    expect(
+      constrainPointToAxes({ x: 0, y: 0 }, { x: 12, y: 4 }, true),
+    ).toEqual({ point: { x: 12, y: 0 }, axis: 'horizontal' });
+    expect(
+      constrainPointToAxes({ x: 0, y: 0 }, { x: 12, y: 0.5 }),
+    ).toEqual({ point: { x: 12, y: 0 }, axis: 'horizontal' });
+    expect(
+      constrainPointToAxes({ x: 0, y: 0 }, { x: 1, y: 12 }),
+    ).toEqual({ point: { x: 1, y: 12 }, axis: null });
+    expect(
+      constrainPointToAxes({ x: 0, y: 0 }, { x: 1, y: 12 }, false, 5),
+    ).toEqual({ point: { x: 0, y: 12 }, axis: 'vertical' });
+    expect(
+      constrainDrawPoint({ x: 0, y: 0 }, { x: 12, y: 0.5 }),
+    ).toEqual({ x: 12, y: 0 });
+  });
+
   it('rotates vectors with the v1.5.99 convention', () => {
     const rotated = rotateVector(1, 0, 90);
     expect(rotated.x).toBeCloseTo(0, 10);
