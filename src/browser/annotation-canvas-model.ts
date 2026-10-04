@@ -5,7 +5,7 @@ import {
   type DimensionAnnotation,
   type DrawingLine,
 } from '../domain/annotations';
-import type { Point } from '../geometry';
+import { distancePointToSegment, type Point } from '../geometry';
 
 export interface CanvasDimensionProjection extends DimensionAnnotation {
   selected: boolean;
@@ -28,21 +28,6 @@ export interface AnnotationCanvasProjection {
   dimensions: CanvasDimensionProjection[];
   lines: CanvasLineProjection[];
   notes: CanvasNoteProjection[];
-}
-
-function distanceToSegment(point: Point, a: Point, b: Point): number {
-  const dx = b.x - a.x;
-  const dy = b.y - a.y;
-  const length2 = dx * dx + dy * dy;
-  if (length2 <= 1e-12) return Math.hypot(point.x - a.x, point.y - a.y);
-  const t = Math.max(
-    0,
-    Math.min(1, ((point.x - a.x) * dx + (point.y - a.y) * dy) / length2),
-  );
-  return Math.hypot(
-    point.x - (a.x + dx * t),
-    point.y - (a.y + dy * t),
-  );
 }
 
 function annotationEditPreview(
@@ -196,7 +181,7 @@ export function hitTestAnnotations(
     const line = projection.lines[index];
     if (
       line &&
-      distanceToSegment(
+      distancePointToSegment(
         point,
         { x: line.x1, y: line.y1 },
         { x: line.x2, y: line.y2 },
@@ -210,7 +195,7 @@ export function hitTestAnnotations(
     const dimension = projection.dimensions[index];
     if (
       dimension &&
-      distanceToSegment(
+      distancePointToSegment(
         point,
         { x: dimension.displayX1, y: dimension.displayY1 },
         { x: dimension.displayX2, y: dimension.displayY2 },

@@ -1,4 +1,5 @@
 export * from './constraints';
+export * from './hit-testing';
 export * from './polygon';
 export * from './rectangle';
 export * from './snapping';

@@ -9,7 +9,8 @@ import {
   type RoomWallType,
 } from '../domain/room-features';
 import {
-  rotateVector,
+  rotatePointAround,
+  rotatedRectBounds,
   roundedRectContainsPoint,
   roundedRectPathCorners,
   type Point,
@@ -60,28 +61,6 @@ function categoryVisible(
   return true;
 }
 
-function rotatedBounds(
-  feature: Pick<RoomFeature, 'x' | 'y' | 'length' | 'depth' | 'rotation'>,
-): XYWHRect {
-  const radians = feature.rotation * Math.PI / 180;
-  const width =
-    Math.abs(feature.length * Math.cos(radians)) +
-    Math.abs(feature.depth * Math.sin(radians));
-  const height =
-    Math.abs(feature.length * Math.sin(radians)) +
-    Math.abs(feature.depth * Math.cos(radians));
-  const center = {
-    x: feature.x + feature.length / 2,
-    y: feature.y + feature.depth / 2,
-  };
-  return {
-    x: center.x - width / 2,
-    y: center.y - height / 2,
-    w: width,
-    h: height,
-  };
-}
-
 export function projectRoomFeatureForCanvas(
   feature: RoomFeature,
   selected: boolean,
@@ -116,7 +95,7 @@ export function projectRoomFeatureForCanvas(
     depth: feature.depth,
     rotation: feature.rotation,
     center,
-    bounds: rotatedBounds(feature),
+    bounds: rotatedRectBounds(localRect, feature.rotation),
     localRect,
     path: roundedRectPathCorners(localRect, {
       tl: corner,
@@ -291,15 +270,7 @@ export function hitTestRoomFeatures(
       continue;
     }
 
-    const offset = rotateVector(
-      point.x - item.center.x,
-      point.y - item.center.y,
-      -item.rotation,
-    );
-    const local = {
-      x: item.center.x + offset.x,
-      y: item.center.y + offset.y,
-    };
+    const local = rotatePointAround(point, item.center, -item.rotation);
 
     if (
       roundedRectContainsPoint(
