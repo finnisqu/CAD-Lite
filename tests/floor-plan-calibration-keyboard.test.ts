@@ -28,6 +28,24 @@ describe('Floor Plan square calibration keyboard parity', () => {
     expect(square).toEqual({ x: 10, y: 17.5, size: 24 });
   });
 
+  it('preserves the production 16 px/in fallback for unusable scales', () => {
+    const zeroScale = nudgeFloorPlanCalibrationSquare(
+      { x: 10, y: 20, size: 24 },
+      'ArrowRight',
+      false,
+      { width: 300, height: 200, scale: 0 },
+    );
+    const tinyScale = nudgeFloorPlanCalibrationSquare(
+      { x: 10, y: 20, size: 24 },
+      'ArrowDown',
+      true,
+      { width: 300, height: 200, scale: 0.0000001 },
+    );
+
+    expect(zeroScale).toEqual({ x: 10.0625, y: 20, size: 24 });
+    expect(tinyScale).toEqual({ x: 10, y: 20.625, size: 24 });
+  });
+
   it('clamps the calibration square inside the DESIGN canvas', () => {
     const right = nudgeFloorPlanCalibrationSquare(
       { x: 75.9, y: 10, size: 24 },

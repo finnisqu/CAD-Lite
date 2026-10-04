@@ -41,20 +41,6 @@ export function nextProductionCanvasScale(
   );
 }
 
-export function anchoredProductionScroll(
-  scrollOffset: number,
-  localPointer: number,
-  oldScale: number,
-  newScale: number,
-): number {
-  return anchoredViewportScrollOffset(
-    scrollOffset,
-    localPointer,
-    oldScale,
-    newScale,
-  );
-}
-
 export function resolveProductionTheme(
   mode: ProductionThemeMode,
   systemDark: boolean,
@@ -283,13 +269,13 @@ export class ProductionViewportSurface {
     const rect = wrap.getBoundingClientRect();
     const localX = event.clientX - rect.left;
     const localY = event.clientY - rect.top;
-    const nextLeft = anchoredProductionScroll(
+    const nextLeft = anchoredViewportScrollOffset(
       wrap.scrollLeft,
       localX,
       oldScale,
       nextScale,
     );
-    const nextTop = anchoredProductionScroll(
+    const nextTop = anchoredViewportScrollOffset(
       wrap.scrollTop,
       localY,
       oldScale,

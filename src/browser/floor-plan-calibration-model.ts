@@ -1,4 +1,5 @@
 import { clamp } from '../core/numeric';
+import { screenDistanceToWorld } from '../geometry';
 
 export type FloorPlanCalibrationArrowKey =
   | 'ArrowLeft'
@@ -17,6 +18,8 @@ export interface FloorPlanCalibrationCanvas {
   height: number;
   scale: number;
 }
+
+const FLOOR_PLAN_CALIBRATION_FALLBACK_SCALE = 16;
 
 export function isFloorPlanCalibrationArrowKey(
   key: string,
@@ -41,7 +44,9 @@ export function nudgeFloorPlanCalibrationSquare(
 ): FloorPlanCalibrationSquare {
   const pxStep = shiftKey ? 10 : 1;
   const scale = Math.abs(canvas.scale);
-  const step = scale > 0.000001 ? pxStep / scale : 0.0625 * pxStep;
+  const effectiveScale =
+    scale > 0.000001 ? scale : FLOOR_PLAN_CALIBRATION_FALLBACK_SCALE;
+  const step = screenDistanceToWorld(pxStep, effectiveScale);
   let x = square.x;
   let y = square.y;
 

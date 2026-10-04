@@ -98,7 +98,6 @@ export { ProductionShellSurface } from './production-shell-surface';
 export type { ProductionShellSurfaceOptions } from './production-shell-surface';
 export {
   ProductionViewportSurface,
-  anchoredProductionScroll,
   nextProductionCanvasScale,
   resolveProductionTheme,
   PRODUCTION_WHEEL_COMMIT_MS,

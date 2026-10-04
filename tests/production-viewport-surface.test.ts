@@ -8,7 +8,6 @@ import {
   updateLayoutViewport,
 } from '../src/app';
 import {
-  anchoredProductionScroll,
   nextProductionCanvasScale,
   resolveProductionTheme,
 } from '../src/browser';
@@ -23,22 +22,6 @@ describe('production viewport helpers', () => {
   it('clamps zoom to the v1.5.99 production range', () => {
     expect(nextProductionCanvasScale(24, 1)).toBe(24);
     expect(nextProductionCanvasScale(1, -1)).toBe(1);
-  });
-
-  it('keeps the same world coordinate beneath the pointer while zooming', () => {
-    const scroll = 100;
-    const pointer = 50;
-    const oldScale = 6;
-    const newScale = 6.5;
-    const nextScroll = anchoredProductionScroll(
-      scroll,
-      pointer,
-      oldScale,
-      newScale,
-    );
-
-    expect((scroll + pointer) / oldScale).toBe(25);
-    expect((nextScroll + pointer) / newScale).toBe(25);
   });
 
   it('coalesces preview zooms into one undoable final history entry', () => {
