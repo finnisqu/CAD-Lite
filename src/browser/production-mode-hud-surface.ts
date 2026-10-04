@@ -90,7 +90,19 @@ export function shouldBlockProductionRoomModalKey(
   key: string,
   editableTarget: boolean,
 ): boolean {
-  return key !== 'Escape' && !editableTarget;
+  return key !== 'Escape' && key !== 'Tab' && !editableTarget;
+}
+
+export function productionRoomModalTabTarget(
+  currentIndex: number,
+  focusableCount: number,
+  shiftKey: boolean,
+): number | null {
+  if (focusableCount <= 0) return null;
+  if (currentIndex < 0) return shiftKey ? focusableCount - 1 : 0;
+  if (shiftKey && currentIndex === 0) return focusableCount - 1;
+  if (!shiftKey && currentIndex === focusableCount - 1) return 0;
+  return null;
 }
 
 export function defaultRoomFeatureLabel(
@@ -593,17 +605,39 @@ export class ProductionModeHudSurface {
       event.stopPropagation();
       event.stopImmediatePropagation();
     };
-    const onEscape = (event: KeyboardEvent): void => {
-      if (event.key !== 'Escape') return;
+    const onDialogKeyDown = (event: KeyboardEvent): void => {
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        event.stopPropagation();
+        this.closeRoomFeatureDialog();
+        return;
+      }
+      if (event.key !== 'Tab') return;
+
+      const focusable = Array.from(
+        dialog.querySelectorAll<HTMLElement>(
+          'button:not([disabled]),input:not([disabled]),select:not([disabled]),textarea:not([disabled]),a[href],[tabindex]:not([tabindex="-1"])',
+        ),
+      ).filter((element) => !element.hidden && element.getAttribute('aria-hidden') !== 'true');
+      const currentIndex = focusable.indexOf(
+        document.activeElement as HTMLElement,
+      );
+      const targetIndex = productionRoomModalTabTarget(
+        currentIndex,
+        focusable.length,
+        event.shiftKey,
+      );
+      if (targetIndex === null) return;
+
       event.preventDefault();
       event.stopPropagation();
-      this.closeRoomFeatureDialog();
+      focusable[targetIndex]?.focus();
     };
     view?.addEventListener('keydown', blockCanvasKeys, true);
-    document.addEventListener('keydown', onEscape, true);
+    document.addEventListener('keydown', onDialogKeyDown, true);
     this.modalCleanup = () => {
       view?.removeEventListener('keydown', blockCanvasKeys, true);
-      document.removeEventListener('keydown', onEscape, true);
+      document.removeEventListener('keydown', onDialogKeyDown, true);
       if (previousFocus?.isConnected) previousFocus.focus?.();
     };
 
