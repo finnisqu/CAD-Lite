@@ -5,6 +5,10 @@ import {
   type AppStore,
   type CommandDispatcher,
 } from '../app';
+import {
+  anchoredViewportScrollOffset,
+  nextViewportScale,
+} from '../geometry';
 
 export const PRODUCTION_ZOOM_STEP = 0.5;
 export const PRODUCTION_THEME_KEY = 'litecad:theme';
@@ -28,10 +32,12 @@ export function nextProductionCanvasScale(
   current: number,
   direction: -1 | 1,
 ): number {
-  const value = Number.isFinite(current) ? current : MIN_CANVAS_SCALE;
-  return Math.max(
+  return nextViewportScale(
+    current,
+    direction,
+    PRODUCTION_ZOOM_STEP,
     MIN_CANVAS_SCALE,
-    Math.min(MAX_CANVAS_SCALE, value + direction * PRODUCTION_ZOOM_STEP),
+    MAX_CANVAS_SCALE,
   );
 }
 
@@ -41,9 +47,12 @@ export function anchoredProductionScroll(
   oldScale: number,
   newScale: number,
 ): number {
-  const safeOldScale = Math.max(0.001, Math.abs(oldScale || 1));
-  const worldCoordinate = (scrollOffset + localPointer) / safeOldScale;
-  return Math.max(0, worldCoordinate * newScale - localPointer);
+  return anchoredViewportScrollOffset(
+    scrollOffset,
+    localPointer,
+    oldScale,
+    newScale,
+  );
 }
 
 export function resolveProductionTheme(

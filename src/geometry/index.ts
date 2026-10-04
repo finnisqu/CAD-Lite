@@ -4,3 +4,4 @@ export * from './rectangle';
 export * from './snapping';
 export * from './types';
 export * from './vector';
+export * from './viewport';
