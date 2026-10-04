@@ -1,6 +1,5 @@
 import { clamp, normalizeDegrees, round3 } from '../../core/numeric';
 import { rotateVector, rotatedRectBoundingSize } from '../../geometry';
-import type { Workspace } from '../../persistence';
 import type { Layout } from '../project/types';
 import { cloneJson } from '../types';
 import { pieceGeometry, piecePose } from './factory';
@@ -23,6 +22,7 @@ import type {
   PieceSeam,
   PieceSeamReference,
   PieceSide,
+  PieceWorkspace,
 } from './types';
 
 export type PieceMirrorAxis = 'h' | 'v';
@@ -91,7 +91,7 @@ function expandDesignMoveFamily(
 export function pieceRotationFamilyIds(
   layout: Layout,
   requested: readonly string[],
-  workspace: Workspace,
+  workspace: PieceWorkspace,
 ): string[] {
   const ids =
     workspace === 'design'
@@ -108,7 +108,7 @@ export function pieceRotationFamilyIds(
 function boundsForIds(
   layout: Layout,
   ids: readonly string[],
-  workspace: Workspace,
+  workspace: PieceWorkspace,
 ): {
   minX: number;
   minY: number;
@@ -133,7 +133,7 @@ function boundsForIds(
 export function pieceTransformGroupCenter(
   layout: Layout,
   ids: readonly string[],
-  workspace: Workspace,
+  workspace: PieceWorkspace,
 ): { x: number; y: number } | null {
   const bounds = boundsForIds(layout, ids, workspace);
   if (!bounds) return null;
@@ -145,7 +145,7 @@ export function pieceTransformGroupCenter(
 
 function rigidCanvasCorrection(
   layout: Layout,
-  workspace: Workspace,
+  workspace: PieceWorkspace,
   boxes: readonly {
     x: number;
     y: number;
@@ -183,7 +183,7 @@ function rigidCanvasCorrection(
 export function rotatePieceGroup(
   layout: Layout,
   requested: readonly string[],
-  workspace: Workspace,
+  workspace: PieceWorkspace,
   deltaDegrees: number,
 ): PiecePoseUpdate[] {
   if (!Number.isFinite(deltaDegrees)) return [];
@@ -240,7 +240,7 @@ export function rotatePieceGroup(
 export function nudgePieceGroup(
   layout: Layout,
   requested: readonly string[],
-  workspace: Workspace,
+  workspace: PieceWorkspace,
   dx: number,
   dy: number,
 ): PiecePoseUpdate[] {

@@ -1,6 +1,7 @@
 import type { JsonObject } from '../types';
 
 export type PiecePose = { x: number; y: number; rotation: number };
+export type PieceWorkspace = 'design' | 'slab';
 export type PieceSide = 'top' | 'right' | 'bottom' | 'left';
 export type PieceSeamOrientation = 'vertical' | 'horizontal';
 export type PieceSeamReference = PieceSide;

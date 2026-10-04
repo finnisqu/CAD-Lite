@@ -2,6 +2,7 @@ import {
   AnnotationInteractionController,
   AppStore,
   ApplicationEffects,
+  ApplicationStatePreview,
   CanvasSelectionActions,
   CommandDispatcher,
   PieceInteractionController,
@@ -122,6 +123,7 @@ export function mountCadLiteBrowserRuntime(
     applicationStateFromLegacyPayload(options.initialPayload),
   );
   const commands = new CommandDispatcher(store);
+  const statePreview = new ApplicationStatePreview(store);
   const selection = new SelectionController(store, commands);
   const tools = new ToolController(store, commands);
   let runtimeIdCounter = 0;
@@ -245,6 +247,7 @@ export function mountCadLiteBrowserRuntime(
   const productionOutputSurface = new ProductionOutputSurface({
     root,
     store,
+    preview: statePreview,
     ...(options.today ? { today: options.today } : {}),
   });
   const productionInspectorSurface = new ProductionInspectorSurface({ root });

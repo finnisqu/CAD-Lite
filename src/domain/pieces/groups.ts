@@ -1,5 +1,4 @@
-import type { Workspace } from '../../persistence';
-import type { Piece } from './types';
+import type { Piece, PieceWorkspace } from './types';
 import { isBacksplashPiece } from './relationships';
 import { piecePoseBounds } from './geometry';
 
@@ -194,7 +193,7 @@ export function createPieceGroupProjection(
 export function selectedPieceGroupId(
   pieces: readonly Piece[],
   selectedIds: readonly string[],
-  workspace: Workspace,
+  workspace: PieceWorkspace,
 ): string | null {
   if (workspace === 'slab' || selectedIds.length < 2) return null;
   const selected = new Set(selectedIds);

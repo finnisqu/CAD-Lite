@@ -1,5 +1,5 @@
 import type { Layout } from '../project/types';
-import type { Piece, PieceGeometry, PiecePose } from './types';
+import type { Piece, PieceGeometry, PiecePose, PieceWorkspace } from './types';
 
 export function pieceGeometry(piece: Piece): PieceGeometry {
   return {
@@ -8,7 +8,7 @@ export function pieceGeometry(piece: Piece): PieceGeometry {
   };
 }
 
-export function piecePose(piece: Piece, workspace: 'design' | 'slab'): PiecePose {
+export function piecePose(piece: Piece, workspace: PieceWorkspace): PiecePose {
   return workspace === 'slab'
     ? { ...piece.slabPlacement }
     : { x: piece.x, y: piece.y, rotation: piece.rotation };

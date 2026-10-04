@@ -1,4 +1,3 @@
-import type { JsonObject } from '../domain/types';
 import {
   CAD_LITE_SCHEMA_VERSION,
   migrateCadLiteFile,
@@ -46,21 +45,4 @@ export function cadLiteFileFromApplicationState(
       preferences: state.preferences,
     },
   });
-}
-
-export interface LegacyRuntimeBridge {
-  read(): JsonObject;
-  write(payload: JsonObject): void;
-}
-
-/**
- * Temporary integration seam for the future v1.5.99 runtime migration.
- *
- * Batch 5 defines the contract only. No production runtime is wired to it yet.
- */
-export function createLegacyRuntimeBridge(
-  read: () => JsonObject,
-  write: (payload: JsonObject) => void,
-): LegacyRuntimeBridge {
-  return { read, write };
 }

@@ -1,4 +1,4 @@
-import type { AppStore, ApplicationState } from '../app';
+import type { ApplicationStatePreview, AppStore } from '../app';
 import {
   createProductionOutputMetadata,
   productionOutputFilename,
@@ -14,6 +14,7 @@ const SVG_NS = 'http://www.w3.org/2000/svg';
 export interface ProductionOutputSurfaceOptions {
   root: ParentNode;
   store: AppStore;
+  preview: ApplicationStatePreview;
   today?: () => string;
 }
 
@@ -281,13 +282,13 @@ async function addPdfPage(
 /**
  * Restores the v1.5.99 production output family without owning CAD state.
  * Project JSON remains owned by ProjectFileSurface. This surface prepares
- * deterministic output from the typed canvas and uses temporary system-state
- * swaps only for the legacy multi-layout PDF flow; those swaps explicitly skip
- * history and persistence through AppStore.replaceState().
+ * deterministic output from the typed canvas; the app-owned preview scope
+ * owns temporary state swaps for legacy multi-layout PDF rendering.
  */
 export class ProductionOutputSurface {
   private readonly root: ParentNode;
   private readonly store: AppStore;
+  private readonly preview: ApplicationStatePreview;
   private readonly today: () => string;
   private abort: AbortController | null = null;
   private status: HTMLElement | null = null;
@@ -297,6 +298,7 @@ export class ProductionOutputSurface {
   constructor(options: ProductionOutputSurfaceOptions) {
     this.root = options.root;
     this.store = options.store;
+    this.preview = options.preview;
     this.today = options.today ?? defaultToday;
   }
 
@@ -463,45 +465,41 @@ export class ProductionOutputSurface {
     if (!firstMetadata) throw new Error('There are no layouts to export.');
 
     const JsPdf = await ensureJsPdf(document);
-    let pdf: JsPdfDocument | null = null;
-    const restoreState: ApplicationState = {
-      project: initial.project,
-      session: initial.session,
-      preferences: initial.preferences,
-    };
+    const pdf = await this.preview
+      .run(async ({ replace }) => {
+        let previewPdf: JsPdfDocument | null = null;
 
-    try {
-      for (const layout of layouts) {
-        const outputState = productionOutputStateForLayout(initial, layout.id);
-        this.store.replaceState(outputState, 'Prepare layout for output');
-        await nextRenderedFrame(document);
+        for (const layout of layouts) {
+          const outputState = productionOutputStateForLayout(initial, layout.id);
+          replace(outputState, 'Prepare layout for output');
+          await nextRenderedFrame(document);
 
-        const metadata = createProductionOutputMetadata(
-          initial,
-          layout.id,
-          this.today(),
-        );
-        if (!metadata) continue;
-        const frame = serializeSvg(this.currentSvg());
-        const orientation = frame.width > frame.height ? 'landscape' : 'portrait';
+          const metadata = createProductionOutputMetadata(
+            initial,
+            layout.id,
+            this.today(),
+          );
+          if (!metadata) continue;
+          const frame = serializeSvg(this.currentSvg());
+          const orientation = frame.width > frame.height ? 'landscape' : 'portrait';
 
-        if (!pdf) {
-          pdf = new JsPdf({
-            orientation,
-            unit: 'pt',
-            format: 'letter',
-            compress: true,
-            putOnlyUsedFonts: true,
-          });
-        } else {
-          pdf.addPage('letter', orientation);
+          if (!previewPdf) {
+            previewPdf = new JsPdf({
+              orientation,
+              unit: 'pt',
+              format: 'letter',
+              compress: true,
+              putOnlyUsedFonts: true,
+            });
+          } else {
+            previewPdf.addPage('letter', orientation);
+          }
+          await addPdfPage(document, previewPdf, frame, metadata);
         }
-        await addPdfPage(document, pdf, frame, metadata);
-      }
-    } finally {
-      this.store.replaceState(restoreState, 'Restore view after output');
-      await nextRenderedFrame(document);
-    }
+
+        return previewPdf;
+      })
+      .finally(() => nextRenderedFrame(document));
 
     if (!pdf) throw new Error('No layouts could be exported.');
     pdf.save(productionOutputFilename(firstMetadata, 'pdf-all'));

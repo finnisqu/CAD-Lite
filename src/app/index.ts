@@ -2,9 +2,7 @@ export {
   applicationStateFromCadLiteFile,
   applicationStateFromLegacyPayload,
   cadLiteFileFromApplicationState,
-  createLegacyRuntimeBridge,
 } from './bridge';
-export type { LegacyRuntimeBridge } from './bridge';
 
 export * from './commands';
 export * from './effects';
@@ -25,6 +23,10 @@ export type {
   ProjectLifecycleOptions,
   ProjectReplacementResult,
 } from './project-lifecycle';
+export {
+  ApplicationStatePreview,
+} from './state-preview';
+export type { ApplicationStatePreviewScope } from './state-preview';
 export {
   StartupRecovery,
 } from './startup-recovery';

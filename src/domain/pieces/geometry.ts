@@ -9,7 +9,6 @@ import {
   type Size,
   type XYWHRect,
 } from '../../geometry';
-import type { Workspace } from '../../persistence';
 import type { Layout } from '../project/types';
 import { slabSurfaceBounds } from '../slabs';
 import { pieceGeometry, piecePose } from './factory';
@@ -18,6 +17,7 @@ import type {
   Piece,
   PieceGeometry,
   PiecePose,
+  PieceWorkspace,
 } from './types';
 
 export const DEFAULT_SLAB_CANVAS_WIDTH = 150;
@@ -44,7 +44,7 @@ export function pieceBoundsFromGeometryPose(
 
 export function piecePoseBounds(
   piece: Piece,
-  workspace: Workspace,
+  workspace: PieceWorkspace,
 ): XYWHRect {
   return pieceBoundsFromGeometryPose(
     pieceGeometry(piece),
@@ -110,7 +110,7 @@ function finiteExtra(value: unknown): number {
 
 export function pieceWorkspaceCanvasSize(
   layout: Layout,
-  workspace: Workspace,
+  workspace: PieceWorkspace,
 ): Size {
   if (workspace === 'design') {
     return { w: layout.cw, h: layout.ch };
@@ -168,7 +168,7 @@ export function pieceWorkspaceCanvasSize(
 
 export function clampPiecePoseToWorkspace(
   layout: Layout,
-  workspace: Workspace,
+  workspace: PieceWorkspace,
   geometry: PieceGeometry,
   pose: PiecePose,
 ): PiecePose {
