@@ -15,6 +15,10 @@ import {
   pieceRotatedCornersFromGeometryPose,
 } from '../../domain/pieces';
 import type { ReadonlyApplicationState } from '../state';
+import {
+  constrainPointToAxes,
+  screenDistanceToWorld,
+} from '../../geometry';
 import type {
   ToolHandler,
   ToolHandlerContext,
@@ -55,7 +59,7 @@ function nearestPieceSnap(
   const layout = activeLayout(state);
   if (!layout || !state.preferences.pieceSnap) return null;
 
-  const tolerance = 8 / Math.max(0.001, Math.abs(layout.scale || 1));
+  const tolerance = screenDistanceToWorld(8, layout.scale);
   let best: AnnotationPoint | null = null;
   let bestDistance = tolerance;
 
@@ -138,32 +142,17 @@ export function constrainAnnotationPoint(
   shift: boolean,
   weakDegrees = 3,
 ): { point: AnnotationPoint; guideX: number | null; guideY: number | null } {
-  const dx = end.x - start.x;
-  const dy = end.y - start.y;
-  if (shift) {
-    return Math.abs(dx) >= Math.abs(dy)
-      ? { point: { x: end.x, y: start.y }, guideX: null, guideY: start.y }
-      : { point: { x: start.x, y: end.y }, guideX: start.x, guideY: null };
-  }
-
-  const angle = Math.abs(Math.atan2(dy, dx) * 180 / Math.PI);
-  const horizontalError = Math.min(angle, Math.abs(180 - angle));
-  const verticalError = Math.abs(90 - angle);
-  if (horizontalError <= weakDegrees) {
-    return {
-      point: { x: end.x, y: start.y },
-      guideX: null,
-      guideY: start.y,
-    };
-  }
-  if (verticalError <= weakDegrees) {
-    return {
-      point: { x: start.x, y: end.y },
-      guideX: start.x,
-      guideY: null,
-    };
-  }
-  return { point: end, guideX: null, guideY: null };
+  const constrained = constrainPointToAxes(
+    start,
+    end,
+    shift,
+    weakDegrees,
+  );
+  return {
+    point: constrained.point,
+    guideX: constrained.axis === 'vertical' ? start.x : null,
+    guideY: constrained.axis === 'horizontal' ? start.y : null,
+  };
 }
 
 function constrain(
