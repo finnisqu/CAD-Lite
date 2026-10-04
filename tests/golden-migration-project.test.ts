@@ -24,9 +24,9 @@ import {
   migrateCadLiteFile,
 } from '../src/persistence';
 import {
-  v159ProjectFixture,
-  v159SnapshotFixture,
-} from './fixtures/v159-project';
+  v159GoldenProjectFixture as v159ProjectFixture,
+  v159GoldenSnapshotFixture as v159SnapshotFixture,
+} from './fixtures/v159-golden-project';
 
 class MemoryStorage implements AutosaveStorage {
   readonly values = new Map<string, string>();
