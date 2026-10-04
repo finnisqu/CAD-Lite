@@ -37,6 +37,7 @@ import { PieceCanvasSurface } from './piece-canvas-surface';
 import { ProductionEdgePainterSurface } from './production-edge-painter-surface';
 import { ProductionInspectorSurface } from './production-inspector-surface';
 import { ProductionModeHudSurface } from './production-mode-hud-surface';
+import { ProductionOutputSurface } from './production-output-surface';
 import { ProductionPieceInteractionParitySurface } from './production-piece-interaction-parity-surface';
 import { ProductionPiecePropertiesSurface } from './production-piece-properties-surface';
 import { ProductionRadiusSurface } from './production-radius-surface';
@@ -79,6 +80,7 @@ export interface CadLiteBrowserRuntime {
   productionRadiusSurface: ProductionRadiusSurface;
   productionEdgePainterSurface: ProductionEdgePainterSurface;
   productionModeHudSurface: ProductionModeHudSurface;
+  productionOutputSurface: ProductionOutputSurface;
   productionInspectorSurface: ProductionInspectorSurface;
   productionShellSurface: ProductionShellSurface;
   productionViewportSurface: ProductionViewportSurface;
@@ -240,6 +242,11 @@ export function mountCadLiteBrowserRuntime(
     tools,
     createId,
   });
+  const productionOutputSurface = new ProductionOutputSurface({
+    root,
+    store,
+    ...(options.today ? { today: options.today } : {}),
+  });
   const productionInspectorSurface = new ProductionInspectorSurface({ root });
   const productionShellSurface = new ProductionShellSurface({
     root,
@@ -330,6 +337,7 @@ export function mountCadLiteBrowserRuntime(
   productionRadiusSurface.mount();
   productionEdgePainterSurface.mount();
   productionModeHudSurface.mount();
+  productionOutputSurface.mount();
   productionInspectorSurface.mount();
   productionShellSurface.mount();
   productionViewportSurface.mount();
@@ -365,6 +373,7 @@ export function mountCadLiteBrowserRuntime(
     productionRadiusSurface,
     productionEdgePainterSurface,
     productionModeHudSurface,
+    productionOutputSurface,
     productionInspectorSurface,
     productionShellSurface,
     productionViewportSurface,
@@ -396,6 +405,7 @@ export function mountCadLiteBrowserRuntime(
       productionViewportSurface.unmount();
       productionShellSurface.unmount();
       productionInspectorSurface.unmount();
+      productionOutputSurface.unmount();
       productionModeHudSurface.unmount();
       productionEdgePainterSurface.unmount();
       productionRadiusSurface.unmount();

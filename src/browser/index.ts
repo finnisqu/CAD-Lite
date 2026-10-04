@@ -81,6 +81,19 @@ export type {
   ProductionModeHudSurfaceOptions,
   RoomFeaturePreset,
 } from './production-mode-hud-surface';
+export {
+  createProductionOutputMetadata,
+  productionOutputFilename,
+  productionOutputStateForLayout,
+  productionPdfPlacement,
+} from './production-output-model';
+export type {
+  ProductionOutputFormat,
+  ProductionOutputMetadata,
+  ProductionPdfPlacement,
+} from './production-output-model';
+export { ProductionOutputSurface } from './production-output-surface';
+export type { ProductionOutputSurfaceOptions } from './production-output-surface';
 export { ProductionShellSurface } from './production-shell-surface';
 export type { ProductionShellSurfaceOptions } from './production-shell-surface';
 export {
