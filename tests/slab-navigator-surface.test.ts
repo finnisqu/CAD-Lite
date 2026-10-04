@@ -9,6 +9,7 @@ import {
   setWorkspace,
 } from '../src/app';
 import { createSlabNavigatorProjection } from '../src/browser';
+import { isSlabNavigatorActivationKey } from '../src/browser/slab-navigator-surface';
 import { v159ProjectFixture } from './fixtures/v159-project';
 
 function setup() {
@@ -48,5 +49,13 @@ describe('slab navigator projection', () => {
       }),
     ]);
     expect(projection.items[0]?.dimensions).toContain('×');
+  });
+
+  it('uses the standard button activation keys for focusable slab rows', () => {
+    expect(isSlabNavigatorActivationKey('Enter')).toBe(true);
+    expect(isSlabNavigatorActivationKey(' ')).toBe(true);
+    expect(isSlabNavigatorActivationKey('Escape')).toBe(false);
+    expect(isSlabNavigatorActivationKey('ArrowDown')).toBe(false);
+    expect(isSlabNavigatorActivationKey('Spacebar')).toBe(false);
   });
 });

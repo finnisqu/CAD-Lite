@@ -56,6 +56,10 @@ export function createSlabNavigatorProjection(
   };
 }
 
+export function isSlabNavigatorActivationKey(key: string): boolean {
+  return key === 'Enter' || key === ' ';
+}
+
 function defaultConfirm(message: string): boolean {
   if (typeof window === 'undefined') return true;
   return window.confirm(message);
@@ -95,6 +99,11 @@ export class SlabNavigatorSurface {
     this.mountElement.addEventListener(
       'click',
       (event) => this.onClick(event),
+      { signal },
+    );
+    this.mountElement.addEventListener(
+      'keydown',
+      (event) => this.onKeyDown(event),
       { signal },
     );
     this.unsubscribe = this.effects.invalidation.subscribe((batch) =>
@@ -146,6 +155,8 @@ export class SlabNavigatorSurface {
       row.dataset.slabId = item.id;
       row.setAttribute('role', 'button');
       row.setAttribute('tabindex', '0');
+      row.setAttribute('aria-label', `Select ${item.name || 'slab'}`);
+      row.setAttribute('aria-pressed', String(item.selected));
 
       const text = document.createElement('div');
       text.className = 'lc-slab-nav-text';
@@ -189,6 +200,30 @@ export class SlabNavigatorSurface {
     ) {
       this.render();
     }
+  }
+
+  private onKeyDown(event: KeyboardEvent): void {
+    const target = event.target instanceof HTMLElement ? event.target : null;
+    const row = target?.closest<HTMLElement>('[data-slab-id]');
+    const slabId = row?.dataset.slabId;
+    if (
+      !row ||
+      !slabId ||
+      target !== row ||
+      !isSlabNavigatorActivationKey(event.key)
+    ) {
+      return;
+    }
+
+    const state = this.store.getState();
+    const layout = state.project.layouts.find(
+      (item) => item.id === state.session.activeLayoutId,
+    );
+    const slab = layout?.overlays.find((item) => item.id === slabId);
+    if (!layout || !slab || state.session.workspace !== 'slab') return;
+
+    event.preventDefault();
+    this.commands.execute(setSelection({ kind: 'slab', id: slab.id }));
   }
 
   private onClick(event: Event): void {

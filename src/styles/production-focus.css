@@ -1,0 +1,15 @@
+.cad-lite-production-shell button:focus-visible,
+.cad-lite-production-shell input:focus-visible,
+.cad-lite-production-shell textarea:focus-visible,
+.cad-lite-production-shell select:focus-visible,
+.cad-lite-production-shell [role="button"][tabindex="0"]:focus-visible {
+  outline: 2px solid var(--lc-selected-border);
+  outline-offset: 2px;
+}
+
+/* production-shell.css intentionally suppresses the annotation-name outline
+   while focused for inline editing. Restore a visible keyboard-only ring. */
+.cad-lite-production-shell .lc-annotation-nav-name:focus-visible {
+  outline: 2px solid var(--lc-selected-border);
+  outline-offset: 2px;
+}
