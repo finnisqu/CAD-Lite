@@ -12,6 +12,7 @@ describe('architecture scaffold', () => {
       architectureVersion: CAD_LITE_ARCHITECTURE_VERSION,
       behaviorBaseline: CAD_LITE_BEHAVIOR_BASELINE,
     });
+    expect(CAD_LITE_ARCHITECTURE_VERSION).toBe('1.6.0');
     expect(CAD_LITE_BEHAVIOR_BASELINE).toBe('v1.5.99');
   });
 });

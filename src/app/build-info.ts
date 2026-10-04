@@ -1,4 +1,4 @@
-export const CAD_LITE_ARCHITECTURE_VERSION = '1.6.0-dev.0' as const;
+export const CAD_LITE_ARCHITECTURE_VERSION = '1.6.0' as const;
 export const CAD_LITE_BEHAVIOR_BASELINE = 'v1.5.99' as const;
 
 export interface BuildInfo {

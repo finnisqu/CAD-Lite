@@ -1,6 +1,6 @@
 {
   "name": "cad-lite",
-  "version": "1.6.0-dev.0",
+  "version": "1.6.0",
   "private": true,
   "type": "module",
   "description": "CAD Lite architecture foundation and build tooling.",

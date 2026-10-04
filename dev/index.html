@@ -10,6 +10,16 @@
       <header class="cad-lite-architecture-harness__toolbar">
         <strong>CAD Lite v1.6 Architecture Harness</strong>
         <div class="cad-lite-architecture-harness__history">
+          <button id="lc-new-project" type="button">New</button>
+          <button id="lc-import-project" type="button">Import</button>
+          <button id="lc-export-project" type="button">Export</button>
+          <input
+            id="lc-project-file-input"
+            type="file"
+            accept=".json,.cadlite,application/json"
+            hidden
+          />
+          <span id="lc-file-status" aria-live="polite"></span>
           <button id="lc-undo" type="button">Undo</button>
           <button id="lc-redo" type="button">Redo</button>
           <span id="lc-save-status" aria-live="polite"></span>
