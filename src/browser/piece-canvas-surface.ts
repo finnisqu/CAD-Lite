@@ -19,7 +19,7 @@ import {
   isBacksplashPiece,
   pieceRotationFamilyIds,
 } from '../domain/pieces';
-import { rotateVector } from '../geometry';
+import { clientPointToViewportPoint, rotateVector } from '../geometry';
 import {
   createPieceCanvasProjection,
   hitTestPieceCanvas,
@@ -340,17 +340,22 @@ export class PieceCanvasSurface {
   ): ToolPointerInput | null {
     const svg = this.svg;
     if (!svg) return null;
-    const rect = svg.getBoundingClientRect();
-    if (rect.width <= 0 || rect.height <= 0) return null;
+    const point = clientPointToViewportPoint(
+      { x: event.clientX, y: event.clientY },
+      svg.getBoundingClientRect(),
+      {
+        x: 0,
+        y: 0,
+        w: projection.canvas.width,
+        h: projection.canvas.height,
+      },
+    );
+    if (!point) return null;
 
     return {
       pointerId: event.pointerId,
-      x:
-        ((event.clientX - rect.left) / rect.width) *
-        projection.canvas.width,
-      y:
-        ((event.clientY - rect.top) / rect.height) *
-        projection.canvas.height,
+      x: point.x,
+      y: point.y,
       button: event.button,
       buttons: event.buttons,
       modifiers: {
