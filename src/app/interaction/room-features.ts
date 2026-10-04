@@ -8,7 +8,15 @@ import {
 import { piecePoseBounds } from '../../domain/pieces';
 import type { Layout } from '../../domain/project';
 import type { JsonObject, JsonValue } from '../../domain/types';
-import { rotateVector } from '../../geometry';
+import {
+  constrainPointToAxes,
+  distanceBetween,
+  normalizeViewportScale,
+  pointAngleDegrees,
+  rotateVector,
+  screenDistanceToWorld,
+  snapAngleToIncrement,
+} from '../../geometry';
 import {
   addRoomFeature,
   updateRoomFeature,
@@ -88,7 +96,7 @@ export function resolveRoomFeaturePointer(
     return { point: raw, guideX: null, guideY: null, snapped: false };
   }
 
-  const tolerance = 8 / Math.max(0.001, Math.abs(layout.scale || 1));
+  const tolerance = screenDistanceToWorld(8, layout.scale);
   const xs: number[] = [];
   const ys: number[] = [];
 
@@ -142,27 +150,6 @@ export function resolveRoomFeaturePointer(
   }
 
   return { point: raw, guideX: null, guideY: null, snapped: false };
-}
-
-function weakStraightPoint(
-  start: { x: number; y: number },
-  end: { x: number; y: number },
-  shift: boolean,
-): { x: number; y: number } {
-  const dx = end.x - start.x;
-  const dy = end.y - start.y;
-  if (shift) {
-    return Math.abs(dx) >= Math.abs(dy)
-      ? { x: end.x, y: start.y }
-      : { x: start.x, y: end.y };
-  }
-
-  const angle = Math.abs(Math.atan2(dy, dx) * 180 / Math.PI);
-  const horizontal = Math.min(angle, Math.abs(180 - angle));
-  const vertical = Math.abs(90 - angle);
-  if (horizontal <= 3) return { x: end.x, y: start.y };
-  if (vertical <= 3) return { x: start.x, y: end.y };
-  return end;
 }
 
 function createPreview(
@@ -233,11 +220,11 @@ function updateCreatePreview(
     x: Number(current.startX) || 0,
     y: Number(current.startY) || 0,
   };
-  const end = weakStraightPoint(start, snap.point, input.modifiers.shift);
+  const end = constrainPointToAxes(start, snap.point, input.modifiers.shift, 3).point;
   const dx = end.x - start.x;
   const dy = end.y - start.y;
   const length = Math.max(0.25, Math.hypot(dx, dy));
-  const rotation = normalizeDegrees(Math.atan2(dy, dx) * 180 / Math.PI);
+  const rotation = normalizeDegrees(pointAngleDegrees(start, end));
   const center = {
     x: start.x + dx / 2,
     y: start.y + dy / 2,
@@ -306,7 +293,7 @@ function placementHandler(
 
       if (
         tool !== 'roomFeatures' &&
-        Number(preview.length) < 2 / Math.max(0.001, Math.abs(layout.scale || 1))
+        Number(preview.length) < screenDistanceToWorld(2, layout.scale)
       ) {
         const startX = Number(preview.startX) || input.x;
         const startY = Number(preview.startY) || input.y;
@@ -462,7 +449,7 @@ export class RoomFeatureInteractionController {
       id,
       pointerId: input.pointerId,
       start: { x: input.x, y: input.y },
-      scale: Math.max(0.001, Math.abs(layout.scale || 1)),
+      scale: normalizeViewportScale(layout.scale),
       moved: false,
       preview: null,
       original: { x: feature.x, y: feature.y },
@@ -499,7 +486,7 @@ export class RoomFeatureInteractionController {
       id,
       pointerId: input.pointerId,
       start: { x: input.x, y: input.y },
-      scale: Math.max(0.001, Math.abs(layout.scale || 1)),
+      scale: normalizeViewportScale(layout.scale),
       moved: false,
       preview: null,
       side,
@@ -543,12 +530,14 @@ export class RoomFeatureInteractionController {
       id,
       pointerId: input.pointerId,
       start: { x: input.x, y: input.y },
-      scale: Math.max(0.001, Math.abs(layout.scale || 1)),
+      scale: normalizeViewportScale(layout.scale),
       moved: false,
       preview: null,
       center,
-      startPointerAngle:
-        Math.atan2(input.y - center.y, input.x - center.x) * 180 / Math.PI,
+      startPointerAngle: pointAngleDegrees(center, {
+        x: input.x,
+        y: input.y,
+      }),
       originalRotation: feature.rotation,
     };
     this.commands.execute(pointerInteraction(this.store.getState(), this.session, input, null));
@@ -564,8 +553,8 @@ export class RoomFeatureInteractionController {
 
     session.preview = preview;
     session.moved =
-      Math.hypot(input.x - session.start.x, input.y - session.start.y) >
-      2 / session.scale;
+      distanceBetween(session.start, { x: input.x, y: input.y }) >
+      screenDistanceToWorld(2, session.scale);
     this.commands.execute(pointerInteraction(state, session, input, preview));
     return true;
   }
@@ -639,18 +628,17 @@ export class RoomFeatureInteractionController {
     }
 
     if (session.kind === 'rotate') {
-      const angle =
-        Math.atan2(
-          input.y - session.center.y,
-          input.x - session.center.x,
-        ) * 180 / Math.PI;
+      const angle = pointAngleDegrees(session.center, {
+        x: input.x,
+        y: input.y,
+      });
       let rotation =
         session.originalRotation + angle - session.startPointerAngle;
+      const cardinal = snapAngleToIncrement(rotation, 90);
       if (input.modifiers.shift) {
-        rotation = Math.round(rotation / 90) * 90;
-      } else if (!input.modifiers.alt) {
-        const cardinal = Math.round(rotation / 90) * 90;
-        if (Math.abs(rotation - cardinal) <= 5) rotation = cardinal;
+        rotation = cardinal;
+      } else if (!input.modifiers.alt && Math.abs(rotation - cardinal) <= 5) {
+        rotation = cardinal;
       }
       return {
         kind: 'room-feature-edit',

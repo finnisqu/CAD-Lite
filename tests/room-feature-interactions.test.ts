@@ -221,6 +221,34 @@ describe('Batch 24 direct Room Feature editing', () => {
     expect(store.getState().project.layouts[0]!.roomFeatures[0]?.rotation).toBe(90);
   });
 
+  it('soft-snaps rotation to a cardinal angle within five degrees', () => {
+    const { store, interaction } = setup();
+    const feature = store.getState().project.layouts[0]!.roomFeatures[0]!;
+    const center = {
+      x: feature.x + feature.length / 2,
+      y: feature.y + feature.depth / 2,
+    };
+
+    interaction.beginRotate(feature.id, pointer(center.x + 20, center.y));
+    const radians = 86 * Math.PI / 180;
+    const end = pointer(
+      center.x + Math.cos(radians) * 30,
+      center.y + Math.sin(radians) * 30,
+      {
+        modifiers: {
+          shift: false,
+          alt: false,
+          ctrl: false,
+          meta: false,
+        },
+      },
+    );
+    interaction.pointerMove(end);
+    interaction.pointerUp({ ...end, buttons: 0 });
+
+    expect(store.getState().project.layouts[0]!.roomFeatures[0]?.rotation).toBe(90);
+  });
+
   it('cancels an edit without mutating persisted geometry', () => {
     const { store, interaction } = setup();
     const before = structuredClone(
