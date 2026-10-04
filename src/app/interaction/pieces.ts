@@ -55,6 +55,10 @@ import type {
   Selection,
 } from '../state';
 import type { AppStore } from '../store';
+import {
+  clearPointerInteraction,
+  interactionWithPointer,
+} from './pointer-session';
 import type {
   InteractionState,
   ToolPointerInput,
@@ -1283,33 +1287,18 @@ function pointerState(
   input: ToolPointerInput,
   preview: PieceInteractionPreview | null,
 ): InteractionState {
-  return {
-    ...interaction,
-    pointer: {
-      pointerId: input.pointerId,
-      startX: session.start.x,
-      startY: session.start.y,
-      x: input.x,
-      y: input.y,
-      buttons: input.buttons,
-      modifiers: { ...input.modifiers },
-    },
-    preview: previewJson(preview),
-  };
+  return interactionWithPointer(
+    interaction,
+    session.start,
+    input,
+    previewJson(preview),
+  );
 }
 
 function clearPointerState(
   interaction: InteractionState,
 ): InteractionState {
-  if (!interaction.pointer && interaction.preview === null) {
-    return interaction;
-  }
-
-  return {
-    ...interaction,
-    pointer: null,
-    preview: null,
-  };
+  return clearPointerInteraction(interaction);
 }
 
 function transformPatches(
