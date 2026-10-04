@@ -20,6 +20,10 @@ import {
 import type { CommandDispatcher } from '../commands/dispatcher';
 import type { ReadonlyApplicationState } from '../state';
 import type { AppStore } from '../store';
+import {
+  clearPointerInteraction,
+  interactionWithPointer,
+} from './pointer-session';
 import type {
   ToolHandler,
   ToolHandlerContext,
@@ -391,11 +395,9 @@ function previewJson(preview: RoomFeatureEditPreview | null): JsonValue {
 }
 
 function clearInteraction(state: ReadonlyApplicationState) {
-  return replaceInteractionState({
-    ...state.session.interaction,
-    pointer: null,
-    preview: null,
-  });
+  return replaceInteractionState(
+    clearPointerInteraction(state.session.interaction),
+  );
 }
 
 function pointerInteraction(
@@ -404,19 +406,14 @@ function pointerInteraction(
   input: ToolPointerInput,
   preview: RoomFeatureEditPreview | null,
 ) {
-  return replaceInteractionState({
-    ...state.session.interaction,
-    pointer: {
-      pointerId: input.pointerId,
-      startX: session.start.x,
-      startY: session.start.y,
-      x: input.x,
-      y: input.y,
-      buttons: input.buttons,
-      modifiers: { ...input.modifiers },
-    },
-    preview: previewJson(preview),
-  });
+  return replaceInteractionState(
+    interactionWithPointer(
+      state.session.interaction,
+      session.start,
+      input,
+      previewJson(preview),
+    ),
+  );
 }
 
 export class RoomFeatureInteractionController {
