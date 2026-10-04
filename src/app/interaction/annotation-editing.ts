@@ -8,6 +8,11 @@ import type {
 import type { Layout } from '../../domain/project';
 import type { JsonObject, JsonValue } from '../../domain/types';
 import {
+  distanceBetween,
+  normalizeViewportScale,
+  screenDistanceToWorld,
+} from '../../geometry';
+import {
   updateCanvasNote,
   updateDimension,
   updateDrawingLine,
@@ -110,7 +115,7 @@ function nearbyAnnotationAxes(
     return { point, guideX: null, guideY: null };
   }
 
-  const tolerance = 6 / Math.max(0.001, Math.abs(layout.scale || 1));
+  const tolerance = screenDistanceToWorld(6, layout.scale);
   const anchors: AnnotationPoint[] = [];
   layout.dims.forEach((item) => {
     if (item.id === excludeId) return;
@@ -260,7 +265,7 @@ export class AnnotationInteractionController {
       layoutId: layout.id,
       pointerId: input.pointerId,
       start: { x: input.x, y: input.y },
-      scale: Math.max(0.001, Math.abs(layout.scale || 1)),
+      scale: normalizeViewportScale(layout.scale),
       moved: false,
       preview: null,
       id,
@@ -291,7 +296,7 @@ export class AnnotationInteractionController {
       layoutId: layout.id,
       pointerId: input.pointerId,
       start: { x: input.x, y: input.y },
-      scale: Math.max(0.001, Math.abs(layout.scale || 1)),
+      scale: normalizeViewportScale(layout.scale),
       moved: false,
       preview: null,
       id,
@@ -333,7 +338,7 @@ export class AnnotationInteractionController {
       layoutId: layout.id,
       pointerId: input.pointerId,
       start: { x: input.x, y: input.y },
-      scale: Math.max(0.001, Math.abs(layout.scale || 1)),
+      scale: normalizeViewportScale(layout.scale),
       moved: false,
       preview: null,
       id,
@@ -359,7 +364,7 @@ export class AnnotationInteractionController {
       layoutId: layout.id,
       pointerId: input.pointerId,
       start: { x: input.x, y: input.y },
-      scale: Math.max(0.001, Math.abs(layout.scale || 1)),
+      scale: normalizeViewportScale(layout.scale),
       moved: false,
       preview: null,
       id,
@@ -383,8 +388,8 @@ export class AnnotationInteractionController {
 
     session.preview = preview;
     session.moved =
-      Math.hypot(input.x - session.start.x, input.y - session.start.y) >
-      2 / session.scale;
+      distanceBetween(session.start, { x: input.x, y: input.y }) >
+      screenDistanceToWorld(2, session.scale);
 
     this.commands.execute(
       replaceInteractionState(
