@@ -72,7 +72,7 @@ function defaultToday(): string {
 }
 
 function outputWindow(document: Document): OutputWindow | null {
-  return document.defaultView as OutputWindow | null;
+  return document.defaultView;
 }
 
 function asError(value: unknown): Error {
@@ -408,7 +408,7 @@ export class ProductionOutputSurface {
     return metadata;
   }
 
-  private async exportSvg(): Promise<void> {
+  private exportSvg(): Promise<void> {
     const document = this.document();
     const metadata = this.currentMetadata();
     const frame = serializeSvg(this.currentSvg());
@@ -418,6 +418,7 @@ export class ProductionOutputSurface {
       new Blob([frame.source], { type: 'image/svg+xml;charset=utf-8' }),
     );
     this.setStatus('SVG exported.');
+    return Promise.resolve();
   }
 
   private async exportPng(): Promise<void> {
