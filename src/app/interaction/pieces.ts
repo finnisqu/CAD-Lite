@@ -1,4 +1,4 @@
-import { clamp, round3 } from '../../core/numeric';
+import { clamp, quantizeToIncrement, round3 } from '../../core/numeric';
 import {
   fabricationAssemblyIds,
   isBacksplashPiece,
@@ -22,10 +22,13 @@ import type { Layout } from '../../domain/project';
 import { slabUsableBounds } from '../../domain/slabs';
 import type { JsonObject, JsonValue } from '../../domain/types';
 import {
+  distanceBetween,
+  normalizeViewportScale,
   pointAngleDegrees,
   projectVectorOntoAxes,
   resolveSmartSnapAxes,
   rotateVector,
+  screenDistanceToWorld,
   signedAngleDeltaDegrees,
   SMART_SNAP_PRIORITY,
   SMART_SNAP_TOLERANCE,
@@ -58,6 +61,11 @@ import type {
 } from './types';
 
 export type PieceResizeSide = PieceSide;
+
+const DEFAULT_DRAG_THRESHOLD_PX = 4;
+const SLAB_MOVE_DRAG_THRESHOLD_PX = 2;
+const MIN_PIECE_DIMENSION = 0.25;
+const FRIENDLY_RESIZE_INCREMENT = 1 / 8;
 
 export interface PiecePointerSelectionPlan {
   selection: Selection;
@@ -356,7 +364,7 @@ export function createPieceMoveSession(
     workspace,
     pointerId: input.pointerId,
     start: { x: input.x, y: input.y },
-    scale: Math.max(0.001, Math.abs(layout.scale || 1)),
+    scale: normalizeViewportScale(layout.scale),
     moved: false,
     clickedId,
     drillInId,
@@ -846,7 +854,7 @@ export function createPieceResizeSession(
     workspace: 'design',
     pointerId: input.pointerId,
     start: { x: input.x, y: input.y },
-    scale: Math.max(0.001, Math.abs(layout.scale || 1)),
+    scale: normalizeViewportScale(layout.scale),
     moved: false,
     pieceId,
     side,
@@ -977,12 +985,18 @@ function resizeCenterAndSize(
   if (session.side === 'bottom') height += local.y;
   if (session.side === 'top') height -= local.y;
 
-  width = Math.max(0.25, width);
-  height = Math.max(0.25, height);
+  width = Math.max(MIN_PIECE_DIMENSION, width);
+  height = Math.max(MIN_PIECE_DIMENSION, height);
 
   if (!input.modifiers.shift && !input.modifiers.alt) {
-    width = Math.max(0.25, Math.round(width * 8) / 8);
-    height = Math.max(0.25, Math.round(height * 8) / 8);
+    width = Math.max(
+      MIN_PIECE_DIMENSION,
+      quantizeToIncrement(width, FRIENDLY_RESIZE_INCREMENT),
+    );
+    height = Math.max(
+      MIN_PIECE_DIMENSION,
+      quantizeToIncrement(height, FRIENDLY_RESIZE_INCREMENT),
+    );
   }
 
   return {
@@ -1030,9 +1044,15 @@ export function previewPieceResize(
       session.side === 'left' ||
       session.side === 'right'
     ) {
-      next.width = Math.max(0.25, next.width + snap.d);
+      next.width = Math.max(
+        MIN_PIECE_DIMENSION,
+        next.width + snap.d,
+      );
     } else {
-      next.height = Math.max(0.25, next.height + snap.d);
+      next.height = Math.max(
+        MIN_PIECE_DIMENSION,
+        next.height + snap.d,
+      );
     }
 
     geometry = resizePieceGeometry(
@@ -1122,7 +1142,7 @@ export function createPieceRotateSession(
     workspace,
     pointerId: input.pointerId,
     start: { x: input.x, y: input.y },
-    scale: Math.max(0.001, Math.abs(layout.scale || 1)),
+    scale: normalizeViewportScale(layout.scale),
     moved: false,
     ids,
     center,
@@ -1502,7 +1522,7 @@ export class PieceInteractionController {
       workspace: state.session.workspace,
       pointerId: input.pointerId,
       start: { x: input.x, y: input.y },
-      scale: Math.max(0.001, Math.abs(layout?.scale || 1)),
+      scale: normalizeViewportScale(layout?.scale),
       moved: false,
     };
     this.session = session;
@@ -1523,14 +1543,18 @@ export class PieceInteractionController {
     const session = this.session;
     if (!session || session.pointerId !== input.pointerId) return false;
 
-    const threshold =
-      (session.kind === 'move' && session.workspace === 'slab'
-        ? 2
-        : 4) / session.scale;
-    const distance = Math.hypot(
-      input.x - session.start.x,
-      input.y - session.start.y,
+    const thresholdPixels =
+      session.kind === 'move' && session.workspace === 'slab'
+        ? SLAB_MOVE_DRAG_THRESHOLD_PX
+        : DEFAULT_DRAG_THRESHOLD_PX;
+    const threshold = screenDistanceToWorld(
+      thresholdPixels,
+      session.scale,
     );
+    const distance = distanceBetween(session.start, {
+      x: input.x,
+      y: input.y,
+    });
 
     if (session.kind === 'blank') {
       session.moved = session.moved || distance > threshold;
@@ -1596,13 +1620,13 @@ export class PieceInteractionController {
     );
 
     if (session.kind === 'blank') {
-      const threshold = 4 / session.scale;
+      const threshold = screenDistanceToWorld(
+        DEFAULT_DRAG_THRESHOLD_PX,
+        session.scale,
+      );
       const moved =
         session.moved ||
-        Math.hypot(
-          input.x - session.start.x,
-          input.y - session.start.y,
-        ) > threshold;
+        distanceBetween(session.start, { x: input.x, y: input.y }) > threshold;
       if (!moved) {
         return (
           this.commands.executeTransaction(
