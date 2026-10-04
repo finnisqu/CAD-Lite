@@ -4,6 +4,7 @@ import {
   distancePointToSegment,
   rotatePointAround,
   rotatedRectBounds,
+  xywhRectContainsPoint,
 } from '../src/geometry';
 
 describe('canvas hit-test geometry', () => {
@@ -32,6 +33,14 @@ describe('canvas hit-test geometry', () => {
         { x: 0, y: 0 },
       ),
     ).toBe(5);
+  });
+
+  it('keeps XYWH point containment exact and boundary-inclusive', () => {
+    const rect = { x: 10, y: 20, w: 40, h: 10 };
+    expect(xywhRectContainsPoint(rect, { x: 10, y: 20 })).toBe(true);
+    expect(xywhRectContainsPoint(rect, { x: 50, y: 30 })).toBe(true);
+    expect(xywhRectContainsPoint(rect, { x: 9.9999, y: 20 })).toBe(false);
+    expect(xywhRectContainsPoint(rect, { x: 50.0001, y: 30 })).toBe(false);
   });
 
   it('rotates a point around an arbitrary center', () => {

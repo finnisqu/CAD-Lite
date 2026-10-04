@@ -28,6 +28,21 @@ export function distancePointToSegment(
 }
 
 /**
+ * Exact inclusive point containment for an axis-aligned XYWH rectangle.
+ */
+export function xywhRectContainsPoint(
+  rect: XYWHRect,
+  point: Point,
+): boolean {
+  return (
+    point.x >= rect.x &&
+    point.x <= rect.x + rect.w &&
+    point.y >= rect.y &&
+    point.y <= rect.y + rect.h
+  );
+}
+
+/**
  * Rotate a point around an arbitrary center without mutating either input.
  */
 export function rotatePointAround(

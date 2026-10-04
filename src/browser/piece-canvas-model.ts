@@ -23,9 +23,10 @@ import {
   slabUsableBounds,
 } from '../domain/slabs';
 import {
-  rotateVector,
+  rotatePointAround,
   roundedRectContainsPoint,
   roundedRectPathCorners,
+  xywhRectContainsPoint,
   type Point,
   type XYWHRect,
 } from '../geometry';
@@ -592,24 +593,13 @@ export function hitTestPieceCanvas(
   for (let index = projection.pieces.length - 1; index >= 0; index -= 1) {
     const piece = projection.pieces[index];
     if (!piece) continue;
-    if (
-      point.x < piece.bounds.x ||
-      point.x > piece.bounds.x + piece.bounds.w ||
-      point.y < piece.bounds.y ||
-      point.y > piece.bounds.y + piece.bounds.h
-    ) {
-      continue;
-    }
+    if (!xywhRectContainsPoint(piece.bounds, point)) continue;
 
-    const offset = rotateVector(
-      point.x - piece.center.x,
-      point.y - piece.center.y,
+    const localPoint = rotatePointAround(
+      point,
+      piece.center,
       -piece.renderRotation,
     );
-    const localPoint = {
-      x: piece.center.x + offset.x,
-      y: piece.center.y + offset.y,
-    };
 
     if (
       roundedRectContainsPoint(
@@ -634,14 +624,7 @@ export function hitTestSlabCanvas(
   for (let index = projection.slabs.length - 1; index >= 0; index -= 1) {
     const slab = projection.slabs[index];
     if (!slab?.visible) continue;
-    if (
-      point.x >= slab.bounds.x &&
-      point.x <= slab.bounds.x + slab.bounds.w &&
-      point.y >= slab.bounds.y &&
-      point.y <= slab.bounds.y + slab.bounds.h
-    ) {
-      return slab;
-    }
+    if (xywhRectContainsPoint(slab.bounds, point)) return slab;
   }
   return null;
 }
