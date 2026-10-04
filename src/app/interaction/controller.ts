@@ -10,11 +10,11 @@ import {
   toolSupportsLock,
   toolSupportsMomentary,
 } from './definitions';
+import { pointerSessionFromInput } from './pointer-session';
 import { resetActiveInteraction } from './state';
 import type {
   ActiveToolSession,
   InteractionState,
-  PointerModifiers,
   ToolHandler,
   ToolHandlerContext,
   ToolId,
@@ -35,15 +35,6 @@ const DESIGN_SHORTCUTS: Readonly<Record<string, ToolId>> = {
 
 function normalizeKey(key: string): string {
   return key.toLowerCase();
-}
-
-function modifiers(input: ToolPointerInput): PointerModifiers {
-  return {
-    shift: input.modifiers.shift,
-    alt: input.modifiers.alt,
-    ctrl: input.modifiers.ctrl,
-    meta: input.modifiers.meta,
-  };
 }
 
 function sameToolFamily(a: ToolId, b: ToolId): boolean {
@@ -393,15 +384,13 @@ export class ToolController {
     const currentPointer = interaction.pointer;
     const pointer = endPointer
       ? null
-      : {
-          pointerId: input.pointerId,
-          startX: beginPointer || !currentPointer ? input.x : currentPointer.startX,
-          startY: beginPointer || !currentPointer ? input.y : currentPointer.startY,
-          x: input.x,
-          y: input.y,
-          buttons: input.buttons,
-          modifiers: modifiers(input),
-        };
+      : pointerSessionFromInput(
+          {
+            x: beginPointer || !currentPointer ? input.x : currentPointer.startX,
+            y: beginPointer || !currentPointer ? input.y : currentPointer.startY,
+          },
+          input,
+        );
 
     let next: InteractionState = {
       ...interaction,

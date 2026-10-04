@@ -20,6 +20,10 @@ import {
   constrainAnnotationPoint,
   resolveAnnotationPointer,
 } from './annotations';
+import {
+  clearPointerInteraction,
+  interactionWithPointer,
+} from './pointer-session';
 import type { ToolPointerInput } from './types';
 
 export type AnnotationEndpoint = 'start' | 'end';
@@ -203,14 +207,6 @@ function previewJson(preview: AnnotationEditPreview | null): JsonValue {
   };
 }
 
-function clearInteraction(state: ReadonlyApplicationState) {
-  return replaceInteractionState({
-    ...state.session.interaction,
-    pointer: null,
-    preview: null,
-  });
-}
-
 export class AnnotationInteractionController {
   private session: AnnotationSession | null = null;
 
@@ -390,21 +386,15 @@ export class AnnotationInteractionController {
       Math.hypot(input.x - session.start.x, input.y - session.start.y) >
       2 / session.scale;
 
-    const interaction = state.session.interaction;
     this.commands.execute(
-      replaceInteractionState({
-        ...interaction,
-        pointer: {
-          pointerId: input.pointerId,
-          startX: session.start.x,
-          startY: session.start.y,
-          x: input.x,
-          y: input.y,
-          buttons: input.buttons,
-          modifiers: { ...input.modifiers },
-        },
-        preview: previewJson(preview),
-      }),
+      replaceInteractionState(
+        interactionWithPointer(
+          state.session.interaction,
+          session.start,
+          input,
+          previewJson(preview),
+        ),
+      ),
     );
     return true;
   }
@@ -415,7 +405,9 @@ export class AnnotationInteractionController {
     this.session = null;
 
     const state = this.store.getState();
-    const cleanup = clearInteraction(state);
+    const cleanup = replaceInteractionState(
+      clearPointerInteraction(state.session.interaction),
+    );
     if (!session.moved || !session.preview) {
       return this.commands.execute(cleanup) !== null;
     }
@@ -454,28 +446,22 @@ export class AnnotationInteractionController {
   cancel(): boolean {
     if (!this.session) return false;
     this.session = null;
-    return this.commands.execute(clearInteraction(this.store.getState())) !== null;
+    const interaction = clearPointerInteraction(
+      this.store.getState().session.interaction,
+    );
+    return this.commands.execute(replaceInteractionState(interaction)) !== null;
   }
 
   private beginPointerState(input: ToolPointerInput): void {
     const session = this.session;
     if (!session) return;
-    const state = this.store.getState();
-    this.commands.execute(
-      replaceInteractionState({
-        ...state.session.interaction,
-        pointer: {
-          pointerId: input.pointerId,
-          startX: session.start.x,
-          startY: session.start.y,
-          x: input.x,
-          y: input.y,
-          buttons: input.buttons,
-          modifiers: { ...input.modifiers },
-        },
-        preview: null,
-      }),
+    const interaction = interactionWithPointer(
+      this.store.getState().session.interaction,
+      session.start,
+      input,
+      null,
     );
+    this.commands.execute(replaceInteractionState(interaction));
   }
 
   private previewFor(
