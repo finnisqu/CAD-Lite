@@ -10,7 +10,37 @@ export interface ProductionShellSurfaceOptions {
   deleteSelection: () => boolean;
 }
 
+export type ProductionShellPanelKind = 'menu' | 'nav';
+
 const NAV_SECTION_STORAGE_KEY = 'cadlite:v1.6-production-shell:nav-sections';
+
+function disclosureIdToken(value: string): string {
+  return (
+    value
+      .trim()
+      .replace(/([a-z0-9])([A-Z])/g, '$1-$2')
+      .replace(/[^a-zA-Z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '')
+      .toLowerCase() || 'section'
+  );
+}
+
+export function productionShellPanelId(
+  kind: ProductionShellPanelKind,
+  key: string,
+): string {
+  return `cad-lite-production-shell-${kind}-${disclosureIdToken(key)}-panel`;
+}
+
+export function nextProductionShellCollapsedSections(
+  current: ReadonlySet<string>,
+  key: string,
+): Set<string> {
+  const next = new Set(current);
+  if (next.has(key)) next.delete(key);
+  else next.add(key);
+  return next;
+}
 
 function ownerDocument(root: ParentNode): Document | null {
   if (typeof Document !== 'undefined' && root instanceof Document) return root;
@@ -127,12 +157,16 @@ export class ProductionShellSurface {
       });
     };
 
-    menus.forEach((menu) => {
+    menus.forEach((menu, index) => {
       const button = menu.querySelector<HTMLButtonElement>(
         '[data-cad-lite-menu-button]',
       );
       const panel = menu.querySelector<HTMLElement>('[data-cad-lite-menu-panel]');
       if (!button || !panel) return;
+
+      const key = button.textContent?.trim() || button.id || String(index + 1);
+      if (!panel.id) panel.id = productionShellPanelId('menu', key);
+      button.setAttribute('aria-controls', panel.id);
 
       setOpen(menu, false);
       button.addEventListener(
@@ -190,7 +224,7 @@ export class ProductionShellSurface {
     bindEdit('#lc-edit-select-all', () => this.actions.selectAllPieces());
     bindEdit('#lc-edit-deselect', () => this.selection.clear());
 
-    const collapsedSections = loadCollapsedSections(document);
+    let collapsedSections = loadCollapsedSections(document);
     const navSections = Array.from(
       shell.querySelectorAll<HTMLElement>('[data-cad-lite-nav-section]'),
     );
@@ -205,6 +239,11 @@ export class ProductionShellSurface {
         '[data-cad-lite-section-body]',
       );
       if (!toggle || !body) return;
+      const key = section.dataset.cadLiteNavSection;
+      if (key) {
+        if (!body.id) body.id = productionShellPanelId('nav', key);
+        toggle.setAttribute('aria-controls', body.id);
+      }
       body.hidden = collapsed;
       toggle.setAttribute('aria-expanded', String(!collapsed));
       section.classList.toggle('is-collapsed', collapsed);
@@ -220,10 +259,11 @@ export class ProductionShellSurface {
       toggle.addEventListener(
         'click',
         () => {
-          const collapsed = !section.classList.contains('is-collapsed');
-          if (collapsed) collapsedSections.add(key);
-          else collapsedSections.delete(key);
-          setSectionCollapsed(section, collapsed);
+          collapsedSections = nextProductionShellCollapsedSections(
+            collapsedSections,
+            key,
+          );
+          setSectionCollapsed(section, collapsedSections.has(key));
           saveCollapsedSections(document, collapsedSections);
         },
         { signal },

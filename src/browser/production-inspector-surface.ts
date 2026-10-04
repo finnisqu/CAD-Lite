@@ -9,6 +9,8 @@ export type ProductionPieceInspectorSection =
   | 'seams'
   | 'fabricationSeams';
 
+export type ProductionInspectorDisclosureKind = 'piece' | 'context';
+
 export interface ProductionInspectorSurfaceOptions {
   root: ParentNode;
 }
@@ -62,6 +64,29 @@ const PIECE_SECTION_CONFIGS: readonly PieceSectionConfig[] = [
   },
 ];
 
+function disclosureIdToken(value: string): string {
+  return (
+    value
+      .trim()
+      .replace(/([a-z0-9])([A-Z])/g, '$1-$2')
+      .replace(/[^a-zA-Z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '')
+      .toLowerCase() || 'section'
+  );
+}
+
+export function productionInspectorPanelId(
+  kind: ProductionInspectorDisclosureKind,
+  key: string,
+  index = 0,
+): string {
+  const suffix = index > 0 ? `-${String(index + 1)}` : '';
+  return (
+    `cad-lite-production-inspector-${kind}-${disclosureIdToken(key)}` +
+    `-panel${suffix}`
+  );
+}
+
 export function nextProductionInspectorSection(
   current: ProductionPieceInspectorSection | null,
   requested: ProductionPieceInspectorSection,
@@ -89,6 +114,24 @@ function directChildrenAfter(
   return children.slice(index + 1).filter(
     (candidate): candidate is HTMLElement => candidate instanceof HTMLElement,
   );
+}
+
+function linkDisclosure(
+  toggle: HTMLElement,
+  bodies: readonly HTMLElement[],
+  kind: ProductionInspectorDisclosureKind,
+  key: string,
+): void {
+  const ids = bodies.map((body, index) => {
+    if (!body.id) body.id = productionInspectorPanelId(kind, key, index);
+    return body.id;
+  });
+
+  if (ids.length > 0) {
+    toggle.setAttribute('aria-controls', ids.join(' '));
+  } else {
+    toggle.removeAttribute('aria-controls');
+  }
 }
 
 /**
@@ -217,6 +260,7 @@ export class ProductionInspectorSurface {
         if (!heading) return;
         const key = contextKey(root);
         const open = this.contextOpen.get(key) ?? true;
+        const controlled = directChildrenAfter(root, heading);
 
         root.classList.add('lc-production-inspector-context');
         root.classList.toggle('is-production-collapsed', !open);
@@ -227,8 +271,9 @@ export class ProductionInspectorSurface {
         heading.setAttribute('tabindex', '0');
         heading.setAttribute('aria-expanded', String(open));
         heading.title = open ? 'Collapse section' : 'Expand section';
+        linkDisclosure(heading, controlled, 'context', key);
 
-        directChildrenAfter(root, heading).forEach((child) => {
+        controlled.forEach((child) => {
           child.hidden = !open;
         });
       });
@@ -295,6 +340,7 @@ export class ProductionInspectorSurface {
     heading.setAttribute('tabindex', '0');
     heading.setAttribute('aria-expanded', String(open));
     heading.title = open ? 'Collapse Piece Info' : 'Expand Piece Info';
+    linkDisclosure(heading, [body], 'piece', 'pieceInfo');
     body.hidden = !open;
   }
 
@@ -307,6 +353,7 @@ export class ProductionInspectorSurface {
         const header = section.querySelector<HTMLElement>(config.headerSelector);
         if (!header) return;
         const open = this.pieceSection === config.key;
+        const controlled = directChildrenAfter(section, header);
 
         section.classList.add('lc-production-inspector-section');
         section.classList.toggle('is-open', open);
@@ -323,8 +370,9 @@ export class ProductionInspectorSurface {
         header.setAttribute('tabindex', '0');
         header.setAttribute('aria-expanded', String(open));
         header.title = open ? 'Collapse section' : 'Expand section';
+        linkDisclosure(header, controlled, 'piece', config.key);
 
-        directChildrenAfter(section, header).forEach((child) => {
+        controlled.forEach((child) => {
           child.hidden = !open;
         });
       });

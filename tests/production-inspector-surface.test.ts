@@ -4,6 +4,7 @@ import {
   nextProductionInspectorSection,
   type ProductionPieceInspectorSection,
 } from '../src/browser';
+import { productionInspectorPanelId } from '../src/browser/production-inspector-surface';
 
 describe('production Inspector accordion state', () => {
   it('opens a requested Piece Inspector section exclusively', () => {
@@ -31,6 +32,21 @@ describe('production Inspector accordion state', () => {
     const current: ProductionPieceInspectorSection | null = null;
     expect(nextProductionInspectorSection(current, 'pieceInfo')).toBe(
       'pieceInfo',
+    );
+  });
+
+  it('builds stable disclosure panel ids across Inspector rerenders', () => {
+    expect(productionInspectorPanelId('piece', 'pieceInfo')).toBe(
+      'cad-lite-production-inspector-piece-piece-info-panel',
+    );
+    expect(productionInspectorPanelId('piece', 'edgeOptions')).toBe(
+      'cad-lite-production-inspector-piece-edge-options-panel',
+    );
+    expect(productionInspectorPanelId('context', 'pieceGroup')).toBe(
+      'cad-lite-production-inspector-context-piece-group-panel',
+    );
+    expect(productionInspectorPanelId('piece', 'sinks', 1)).toBe(
+      'cad-lite-production-inspector-piece-sinks-panel-2',
     );
   });
 });
