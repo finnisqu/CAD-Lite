@@ -5,6 +5,9 @@ export interface FloorPlanModal {
   readonly close: () => void;
 }
 
+const FLOOR_PLAN_MODAL_FOCUSABLE =
+  'button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [href], [tabindex]:not([tabindex="-1"])';
+
 function isEditableTarget(target: EventTarget | null): boolean {
   if (!(target instanceof Element)) return false;
   const element = target as HTMLElement;
@@ -17,12 +20,29 @@ function isEditableTarget(target: EventTarget | null): boolean {
   );
 }
 
+export function shouldBlockFloorPlanModalKey(key: string): boolean {
+  return key !== 'Escape' && key !== 'Tab';
+}
+
+export function floorPlanModalTabTargetIndex(
+  activeIndex: number,
+  focusableCount: number,
+  shiftKey: boolean,
+): number | null {
+  if (focusableCount <= 0) return null;
+  if (activeIndex < 0) return shiftKey ? focusableCount - 1 : 0;
+  if (!shiftKey && activeIndex === focusableCount - 1) return 0;
+  if (shiftKey && activeIndex === 0) return focusableCount - 1;
+  return null;
+}
+
 export function createFloorPlanModal(
   document: Document,
   titleText: string,
   className: string,
   onClose?: () => void,
 ): FloorPlanModal {
+  const previousActive = document.activeElement as HTMLElement | null;
   const overlay = document.createElement('div');
   overlay.className = 'lc-plan-modal-overlay';
   const appRoot = document.querySelector<HTMLElement>('.lite-cad');
@@ -58,7 +78,6 @@ export function createFloorPlanModal(
   host.appendChild(overlay);
 
   const view = document.defaultView;
-  const previousActive = document.activeElement as HTMLElement | null;
   let closed = false;
 
   const close = (): void => {
@@ -72,16 +91,41 @@ export function createFloorPlanModal(
   };
 
   const blockCanvasKeys = (event: KeyboardEvent): void => {
-    if (event.key === 'Escape' || isEditableTarget(event.target)) return;
+    if (
+      !shouldBlockFloorPlanModalKey(event.key) ||
+      isEditableTarget(event.target)
+    ) {
+      return;
+    }
     event.stopPropagation();
     event.stopImmediatePropagation();
   };
 
   const onKey = (event: KeyboardEvent): void => {
-    if (event.key !== 'Escape') return;
+    if (event.key === 'Escape') {
+      event.preventDefault();
+      event.stopPropagation();
+      close();
+      return;
+    }
+    if (event.key !== 'Tab') return;
+
+    const focusable = Array.from(
+      dialog.querySelectorAll<HTMLElement>(FLOOR_PLAN_MODAL_FOCUSABLE),
+    );
+    const activeIndex = focusable.indexOf(
+      document.activeElement as HTMLElement,
+    );
+    const targetIndex = floorPlanModalTabTargetIndex(
+      activeIndex,
+      focusable.length,
+      event.shiftKey,
+    );
+    if (targetIndex === null) return;
+
     event.preventDefault();
     event.stopPropagation();
-    close();
+    focusable[targetIndex]?.focus({ preventScroll: true });
   };
 
   closeButton.addEventListener('click', () => close());
@@ -90,6 +134,7 @@ export function createFloorPlanModal(
   });
   view?.addEventListener('keydown', blockCanvasKeys, true);
   document.addEventListener('keydown', onKey, true);
+  closeButton.focus({ preventScroll: true });
 
   return { overlay, body, foot, close };
 }
