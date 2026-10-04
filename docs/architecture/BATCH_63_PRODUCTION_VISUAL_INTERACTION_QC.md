@@ -1,13 +1,14 @@
 # Batch 63 — Production Visual / Interaction QC
 
-Status: **implementation complete; validate in Architecture CI**
+Status: **complete**
 
 ## Branch state
 
 - Architecture branch: `architecture/v1.6-foundation`
 - Batch 63 starting head: `7087c24c723b3ce085e439e1f00faf1cfdcd07b6` (Batch 62 completion)
+- Batch 63 validated implementation head: `e17f6fe1066d574520024a2da3ed64c7ed7d8cf5`
 - Frozen production baseline: `main` at `77728eed327f144b0b1c5d4b9562747d8d62074e` (`v1.5.99`)
-- Production is not modified by this batch.
+- Production was not modified.
 
 ## Goal
 
@@ -83,7 +84,7 @@ The stylesheet is imported last so the keyboard-only focus treatment is not acci
 
 `tests/slab-navigator-surface.test.ts` now explicitly locks the standard keyboard activation-key contract in addition to the existing DESIGN-hidden and SLAB-selection projections.
 
-The expected suite count after this batch is **416 tests across 69 test files** before any unrelated future additions.
+Validated suite count after this batch: **416 tests across 69 test files**.
 
 ## Files changed
 
@@ -95,15 +96,21 @@ The expected suite count after this batch is **416 tests across 69 test files** 
 
 ## Validation
 
-Run Architecture CI at the Batch 63 commit and require:
+Validated at implementation head `e17f6fe1066d574520024a2da3ed64c7ed7d8cf5` in Architecture CI run `37177039124`:
 
-- TypeScript typecheck
-- ESLint
-- all Vitest tests
-- Vite production build
-- browser-ready artifact verification
+- TypeScript typecheck: pass
+- ESLint: pass
+- Vitest: **69 test files / 416 tests passed**
+- SLAB Navigator tests: **3 / 3 passed**
+- Vite production build: pass
+- Browser-ready artifact verification: pass
 
-Do not treat Batch 63 as complete until that run is green.
+## Deliberate boundaries
+
+- Batch 63 does not modify production `main`.
+- Batch 63 does not claim pixel-level screenshot acceptance because no rendered-browser comparison surface was available in this environment.
+- The Batch 62 golden migration fixture remains stable.
+- No new domain behavior or ownership layer was introduced.
 
 ## Next recommended slice — Batch 64
 
