@@ -7,12 +7,14 @@ import {
   pointSegmentDistance,
   polygonCenter,
   polygonDistance,
+  projectVectorOntoAxes,
   rectContainsPoint,
   rectContainsPolygon,
   rotateVector,
   rotatedRectBoundingSize,
   signedAngleDeltaDegrees,
   snapAngleToIncrement,
+  translatePointAlongAxes,
 } from '../src/geometry';
 
 describe('core geometry', () => {
@@ -41,6 +43,31 @@ describe('core geometry', () => {
     expect(snapAngleToIncrement(46, 90)).toBe(90);
     expect(snapAngleToIncrement(-46, 90)).toBe(-90);
     expect(snapAngleToIncrement(37, 0)).toBe(37);
+  });
+
+  it('projects world vectors onto rotated local axes', () => {
+    const u = rotateVector(1, 0, 90);
+    const v = rotateVector(0, 1, 90);
+    const local = projectVectorOntoAxes({ x: 0, y: 12 }, u, v);
+
+    expect(local.x).toBeCloseTo(12, 10);
+    expect(local.y).toBeCloseTo(0, 10);
+    expect(
+      projectVectorOntoAxes(
+        { x: -4, y: 7 },
+        { x: 1, y: 0 },
+        { x: 0, y: 1 },
+      ),
+    ).toEqual({ x: -4, y: 7 });
+  });
+
+  it('translates points along rotated local axes', () => {
+    const u = rotateVector(1, 0, 90);
+    const v = rotateVector(0, 1, 90);
+    const moved = translatePointAlongAxes({ x: 10, y: 20 }, u, v, 5, -3);
+
+    expect(moved.x).toBeCloseTo(13, 10);
+    expect(moved.y).toBeCloseTo(25, 10);
   });
 
   it('calculates rotated rectangle bounding-box size', () => {

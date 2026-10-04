@@ -28,3 +28,27 @@ export function snapAngleToIncrement(angle: number, increment: number): number {
   if (step <= 0) return angle;
   return Math.round(angle / step) * step;
 }
+
+export function projectVectorOntoAxes(
+  vector: Point,
+  u: Point,
+  v: Point,
+): Point {
+  return {
+    x: vector.x * u.x + vector.y * u.y,
+    y: vector.x * v.x + vector.y * v.y,
+  };
+}
+
+export function translatePointAlongAxes(
+  point: Point,
+  u: Point,
+  v: Point,
+  offsetU: number,
+  offsetV: number,
+): Point {
+  return {
+    x: point.x + u.x * offsetU + v.x * offsetV,
+    y: point.y + u.y * offsetU + v.y * offsetV,
+  };
+}

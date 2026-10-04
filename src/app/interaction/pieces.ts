@@ -23,6 +23,7 @@ import { slabUsableBounds } from '../../domain/slabs';
 import type { JsonObject, JsonValue } from '../../domain/types';
 import {
   pointAngleDegrees,
+  projectVectorOntoAxes,
   resolveSmartSnapAxes,
   rotateVector,
   signedAngleDeltaDegrees,
@@ -33,6 +34,7 @@ import {
   smartSnapBoxAnchors,
   smartSnapGridAxis,
   snapAngleToIncrement,
+  translatePointAlongAxes,
   type SmartSnapCandidate,
 } from '../../geometry';
 import type { Workspace } from '../../persistence';
@@ -922,34 +924,11 @@ function resizeSnap(
   return best;
 }
 
-function resizeCenterAndSize(
+function resizeCenterForSize(
   session: ResizeSession,
-  input: ToolPointerInput,
-): {
-  width: number;
-  height: number;
-  center: { x: number; y: number };
-} {
-  const dx = input.x - session.start.x;
-  const dy = input.y - session.start.y;
-  const du = dx * session.u.x + dy * session.u.y;
-  const dv = dx * session.v.x + dy * session.v.y;
-  let width = session.geometry.width;
-  let height = session.geometry.height;
-
-  if (session.side === 'right') width += du;
-  if (session.side === 'left') width -= du;
-  if (session.side === 'bottom') height += dv;
-  if (session.side === 'top') height -= dv;
-
-  width = Math.max(0.25, width);
-  height = Math.max(0.25, height);
-
-  if (!input.modifiers.shift && !input.modifiers.alt) {
-    width = Math.max(0.25, Math.round(width * 8) / 8);
-    height = Math.max(0.25, Math.round(height * 8) / 8);
-  }
-
+  width: number,
+  height: number,
+): { x: number; y: number } {
   let shiftU = 0;
   let shiftV = 0;
   if (session.side === 'right') {
@@ -965,19 +944,51 @@ function resizeCenterAndSize(
     shiftV = -(height - session.geometry.height) / 2;
   }
 
+  return translatePointAlongAxes(
+    session.center,
+    session.u,
+    session.v,
+    shiftU,
+    shiftV,
+  );
+}
+
+function resizeCenterAndSize(
+  session: ResizeSession,
+  input: ToolPointerInput,
+): {
+  width: number;
+  height: number;
+  center: { x: number; y: number };
+} {
+  const local = projectVectorOntoAxes(
+    {
+      x: input.x - session.start.x,
+      y: input.y - session.start.y,
+    },
+    session.u,
+    session.v,
+  );
+  let width = session.geometry.width;
+  let height = session.geometry.height;
+
+  if (session.side === 'right') width += local.x;
+  if (session.side === 'left') width -= local.x;
+  if (session.side === 'bottom') height += local.y;
+  if (session.side === 'top') height -= local.y;
+
+  width = Math.max(0.25, width);
+  height = Math.max(0.25, height);
+
+  if (!input.modifiers.shift && !input.modifiers.alt) {
+    width = Math.max(0.25, Math.round(width * 8) / 8);
+    height = Math.max(0.25, Math.round(height * 8) / 8);
+  }
+
   return {
     width,
     height,
-    center: {
-      x:
-        session.center.x +
-        session.u.x * shiftU +
-        session.v.x * shiftV,
-      y:
-        session.center.y +
-        session.u.y * shiftU +
-        session.v.y * shiftV,
-    },
+    center: resizeCenterForSize(session, width, height),
   };
 }
 
@@ -1029,31 +1040,11 @@ export function previewPieceResize(
       next.width,
       next.height,
     );
-
-    let shiftU = 0;
-    let shiftV = 0;
-    if (session.side === 'right') {
-      shiftU = (geometry.width - session.geometry.width) / 2;
-    }
-    if (session.side === 'left') {
-      shiftU = -(geometry.width - session.geometry.width) / 2;
-    }
-    if (session.side === 'bottom') {
-      shiftV = (geometry.height - session.geometry.height) / 2;
-    }
-    if (session.side === 'top') {
-      shiftV = -(geometry.height - session.geometry.height) / 2;
-    }
-    next.center = {
-      x:
-        session.center.x +
-        session.u.x * shiftU +
-        session.v.x * shiftV,
-      y:
-        session.center.y +
-        session.u.y * shiftU +
-        session.v.y * shiftV,
-    };
+    next.center = resizeCenterForSize(
+      session,
+      geometry.width,
+      geometry.height,
+    );
   }
 
   geometry = {
