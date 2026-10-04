@@ -1,0 +1,453 @@
+name: Batch 75 staging
+
+on:
+  push:
+    branches:
+      - batch75-staging-20261004
+    paths:
+      - .github/workflows/batch75-staging.yml
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Pin npm
+        run: npm install --global npm@11.20.0
+      - name: Apply Batch 75 migration
+        shell: bash
+        run: |
+          python <<'PY'
+          from pathlib import Path
+
+          # Shared orthogonal constraint geometry.
+          constraints_path = Path('src/geometry/constraints.ts')
+          constraints_path.write_text("""import type { Point } from './types';
+
+const AUTO_STRAIGHT_ANGLE_DEGREES = 3;
+
+export type OrthogonalConstraintAxis = 'horizontal' | 'vertical' | null;
+
+export interface OrthogonalConstraintResult {
+  point: Point;
+  axis: OrthogonalConstraintAxis;
+}
+
+/**
+ * Constrain a point to the nearest orthogonal axis.
+ *
+ * force=true preserves the strong Shift behavior. Otherwise the point only
+ * straightens when it falls within weakDegrees of horizontal or vertical.
+ */
+export function constrainPointToAxes(
+  start: Point,
+  end: Point,
+  force = false,
+  weakDegrees = AUTO_STRAIGHT_ANGLE_DEGREES,
+): OrthogonalConstraintResult {
+  const dx = end.x - start.x;
+  const dy = end.y - start.y;
+
+  if (force) {
+    return Math.abs(dx) >= Math.abs(dy)
+      ? {
+          point: { x: end.x, y: start.y },
+          axis: 'horizontal',
+        }
+      : {
+          point: { x: start.x, y: end.y },
+          axis: 'vertical',
+        };
+  }
+
+  const angle = Math.abs(Math.atan2(dy, dx) * 180 / Math.PI);
+  const horizontalError = Math.min(angle, Math.abs(180 - angle));
+  const verticalError = Math.abs(90 - angle);
+  if (horizontalError <= weakDegrees) {
+    return {
+      point: { x: end.x, y: start.y },
+      axis: 'horizontal',
+    };
+  }
+  if (verticalError <= weakDegrees) {
+    return {
+      point: { x: start.x, y: end.y },
+      axis: 'vertical',
+    };
+  }
+
+  return { point: end, axis: null };
+}
+
+/**
+ * Behavioral equivalent of v1.5.99 constrainDrawPoint().
+ *
+ * Automatic straightening is intentionally gentle at 3 degrees. force=true
+ * preserves the existing Shift behavior and constrains to the nearest axis.
+ */
+export function constrainDrawPoint(start: Point | null, end: Point, force = false): Point {
+  if (!start) return end;
+
+  const dx = end.x - start.x;
+  const dy = end.y - start.y;
+  const absX = Math.abs(dx);
+  const absY = Math.abs(dy);
+
+  if (absX < 0.001 && absY < 0.001) return end;
+
+  return constrainPointToAxes(
+    start,
+    end,
+    force,
+    AUTO_STRAIGHT_ANGLE_DEGREES,
+  ).point;
+}
+""")
+
+          # Annotation creation: reuse shared axis constraints and viewport tolerance.
+          annotations_path = Path('src/app/interaction/annotations.ts')
+          annotations = annotations_path.read_text()
+          old = """import type { ReadonlyApplicationState } from '../state';
+          import type {
+          """
+          new = """import type { ReadonlyApplicationState } from '../state';
+          import {
+            constrainPointToAxes,
+            screenDistanceToWorld,
+          } from '../../geometry';
+          import type {
+          """
+          assert old in annotations
+          annotations = annotations.replace(old, new, 1)
+          old = "const tolerance = 8 / Math.max(0.001, Math.abs(layout.scale || 1));"
+          assert old in annotations
+          annotations = annotations.replace(
+            old,
+            "const tolerance = screenDistanceToWorld(8, layout.scale);",
+            1,
+          )
+          old = """export function constrainAnnotationPoint(
+            start: AnnotationPoint,
+            end: AnnotationPoint,
+            shift: boolean,
+            weakDegrees = 3,
+          ): { point: AnnotationPoint; guideX: number | null; guideY: number | null } {
+            const dx = end.x - start.x;
+            const dy = end.y - start.y;
+            if (shift) {
+              return Math.abs(dx) >= Math.abs(dy)
+                ? { point: { x: end.x, y: start.y }, guideX: null, guideY: start.y }
+                : { point: { x: start.x, y: end.y }, guideX: start.x, guideY: null };
+            }
+
+            const angle = Math.abs(Math.atan2(dy, dx) * 180 / Math.PI);
+            const horizontalError = Math.min(angle, Math.abs(180 - angle));
+            const verticalError = Math.abs(90 - angle);
+            if (horizontalError <= weakDegrees) {
+              return {
+                point: { x: end.x, y: start.y },
+                guideX: null,
+                guideY: start.y,
+              };
+            }
+            if (verticalError <= weakDegrees) {
+              return {
+                point: { x: start.x, y: end.y },
+                guideX: start.x,
+                guideY: null,
+              };
+            }
+            return { point: end, guideX: null, guideY: null };
+          }
+          """
+          new = """export function constrainAnnotationPoint(
+            start: AnnotationPoint,
+            end: AnnotationPoint,
+            shift: boolean,
+            weakDegrees = 3,
+          ): { point: AnnotationPoint; guideX: number | null; guideY: number | null } {
+            const constrained = constrainPointToAxes(
+              start,
+              end,
+              shift,
+              weakDegrees,
+            );
+            return {
+              point: constrained.point,
+              guideX: constrained.axis === 'vertical' ? start.x : null,
+              guideY: constrained.axis === 'horizontal' ? start.y : null,
+            };
+          }
+          """
+          assert old in annotations
+          annotations = annotations.replace(old, new, 1)
+          annotations_path.write_text(annotations)
+
+          # Annotation editing: reuse scale normalization and screen/world distance.
+          edit_path = Path('src/app/interaction/annotation-editing.ts')
+          edit = edit_path.read_text()
+          old = """import type { JsonObject, JsonValue } from '../../domain/types';
+          import {
+            updateCanvasNote,
+          """
+          new = """import type { JsonObject, JsonValue } from '../../domain/types';
+          import {
+            distanceBetween,
+            normalizeViewportScale,
+            screenDistanceToWorld,
+          } from '../../geometry';
+          import {
+            updateCanvasNote,
+          """
+          assert old in edit
+          edit = edit.replace(old, new, 1)
+          old = "const tolerance = 6 / Math.max(0.001, Math.abs(layout.scale || 1));"
+          assert old in edit
+          edit = edit.replace(
+            old,
+            "const tolerance = screenDistanceToWorld(6, layout.scale);",
+            1,
+          )
+          old = "scale: Math.max(0.001, Math.abs(layout.scale || 1)),"
+          assert edit.count(old) == 4, edit.count(old)
+          edit = edit.replace(old, "scale: normalizeViewportScale(layout.scale),")
+          old = """    session.moved =
+              Math.hypot(input.x - session.start.x, input.y - session.start.y) >
+              2 / session.scale;
+          """
+          new = """    session.moved =
+              distanceBetween(session.start, { x: input.x, y: input.y }) >
+              screenDistanceToWorld(2, session.scale);
+          """
+          assert old in edit
+          edit = edit.replace(old, new, 1)
+          edit_path.write_text(edit)
+
+          # Room features: reuse axis constraints, viewport numerics, and angle geometry.
+          room_path = Path('src/app/interaction/room-features.ts')
+          room = room_path.read_text()
+          old = "import { rotateVector } from '../../geometry';"
+          new = """import {
+            constrainPointToAxes,
+            distanceBetween,
+            normalizeViewportScale,
+            pointAngleDegrees,
+            rotateVector,
+            screenDistanceToWorld,
+            snapAngleToIncrement,
+          } from '../../geometry';"""
+          assert old in room
+          room = room.replace(old, new, 1)
+          old = "const tolerance = 8 / Math.max(0.001, Math.abs(layout.scale || 1));"
+          assert old in room
+          room = room.replace(
+            old,
+            "const tolerance = screenDistanceToWorld(8, layout.scale);",
+            1,
+          )
+          old = """function weakStraightPoint(
+            start: { x: number; y: number },
+            end: { x: number; y: number },
+            shift: boolean,
+          ): { x: number; y: number } {
+            const dx = end.x - start.x;
+            const dy = end.y - start.y;
+            if (shift) {
+              return Math.abs(dx) >= Math.abs(dy)
+                ? { x: end.x, y: start.y }
+                : { x: start.x, y: end.y };
+            }
+
+            const angle = Math.abs(Math.atan2(dy, dx) * 180 / Math.PI);
+            const horizontal = Math.min(angle, Math.abs(180 - angle));
+            const vertical = Math.abs(90 - angle);
+            if (horizontal <= 3) return { x: end.x, y: start.y };
+            if (vertical <= 3) return { x: start.x, y: end.y };
+            return end;
+          }
+
+          """
+          assert old in room
+          room = room.replace(old, '', 1)
+          old = "const end = weakStraightPoint(start, snap.point, input.modifiers.shift);"
+          assert old in room
+          room = room.replace(
+            old,
+            "const end = constrainPointToAxes(start, snap.point, input.modifiers.shift, 3).point;",
+            1,
+          )
+          old = "Number(preview.length) < 2 / Math.max(0.001, Math.abs(layout.scale || 1))"
+          assert old in room
+          room = room.replace(
+            old,
+            "Number(preview.length) < screenDistanceToWorld(2, layout.scale)",
+            1,
+          )
+          old = "scale: Math.max(0.001, Math.abs(layout.scale || 1)),"
+          assert room.count(old) == 3, room.count(old)
+          room = room.replace(old, "scale: normalizeViewportScale(layout.scale),")
+          old = """      startPointerAngle:
+                Math.atan2(input.y - center.y, input.x - center.x) * 180 / Math.PI,
+          """
+          new = """      startPointerAngle: pointAngleDegrees(center, {
+                x: input.x,
+                y: input.y,
+              }),
+          """
+          assert old in room
+          room = room.replace(old, new, 1)
+          old = """    session.moved =
+              Math.hypot(input.x - session.start.x, input.y - session.start.y) >
+              2 / session.scale;
+          """
+          new = """    session.moved =
+              distanceBetween(session.start, { x: input.x, y: input.y }) >
+              screenDistanceToWorld(2, session.scale);
+          """
+          assert old in room
+          room = room.replace(old, new, 1)
+          old = """      const angle =
+                Math.atan2(
+                  input.y - session.center.y,
+                  input.x - session.center.x,
+                ) * 180 / Math.PI;
+              let rotation =
+                session.originalRotation + angle - session.startPointerAngle;
+              if (input.modifiers.shift) {
+                rotation = Math.round(rotation / 90) * 90;
+              } else if (!input.modifiers.alt) {
+                const cardinal = Math.round(rotation / 90) * 90;
+                if (Math.abs(rotation - cardinal) <= 5) rotation = cardinal;
+              }
+          """
+          new = """      const angle = pointAngleDegrees(session.center, {
+                x: input.x,
+                y: input.y,
+              });
+              let rotation =
+                session.originalRotation + angle - session.startPointerAngle;
+              if (input.modifiers.shift) {
+                rotation = snapAngleToIncrement(rotation, 90);
+              } else if (!input.modifiers.alt) {
+                const cardinal = snapAngleToIncrement(rotation, 90);
+                if (Math.abs(rotation - cardinal) <= 5) rotation = cardinal;
+              }
+          """
+          assert old in room
+          room = room.replace(old, new, 1)
+          room_path.write_text(room)
+
+          # Focused geometry coverage for the newly shared constraint primitive.
+          test_path = Path('tests/geometry.test.ts')
+          test = test_path.read_text()
+          old = """import {
+            axisAlignedRectsOverlap,
+          """
+          new = """import {
+            axisAlignedRectsOverlap,
+            constrainDrawPoint,
+            constrainPointToAxes,
+          """
+          assert old in test
+          test = test.replace(old, new, 1)
+          marker = "describe('core geometry', () => {\n"
+          assert marker in test
+          addition = """describe('core geometry', () => {
+            it('shares forced and weak orthogonal point constraints', () => {
+              expect(
+                constrainPointToAxes({ x: 0, y: 0 }, { x: 12, y: 4 }, true),
+              ).toEqual({
+                point: { x: 12, y: 0 },
+                axis: 'horizontal',
+              });
+              expect(
+                constrainPointToAxes({ x: 0, y: 0 }, { x: 12, y: 0.5 }),
+              ).toEqual({
+                point: { x: 12, y: 0 },
+                axis: 'horizontal',
+              });
+              expect(
+                constrainPointToAxes({ x: 0, y: 0 }, { x: 1, y: 12 }),
+              ).toEqual({
+                point: { x: 1, y: 12 },
+                axis: null,
+              });
+              expect(
+                constrainPointToAxes({ x: 0, y: 0 }, { x: 1, y: 12 }, false, 5),
+              ).toEqual({
+                point: { x: 0, y: 12 },
+                axis: 'vertical',
+              });
+              expect(
+                constrainDrawPoint({ x: 0, y: 0 }, { x: 12, y: 0.5 }),
+              ).toEqual({ x: 12, y: 0 });
+            });
+          """
+          test = test.replace(marker, addition, 1)
+          test_path.write_text(test)
+
+          doc = Path('docs/architecture/BATCH_75_DIRECT_MANIPULATION_GEOMETRY_MIGRATION.md')
+          doc.write_text("""# Batch 75 — Direct Manipulation Geometry Migration
+
+## Scope
+
+Batch 75 moves the next reusable numeric/constraint math out of annotation and room-feature interaction code and onto the geometry foundations established in Batches 64–72.
+
+The batch is behavior-preserving. CAD-specific policies remain local: snap target selection, 6 px/8 px tolerances, the 2 px drag threshold, 3° weak straightening, 5° soft rotation snap, 90° cardinal increment, minimum sizes, modifiers, command construction, history, persistence, and saved project schema.
+
+## Shared orthogonal constraint
+
+`src/geometry/constraints.ts` now exposes `constrainPointToAxes()`, a pure helper that returns both the constrained point and whether the result is horizontal or vertical. Existing `constrainDrawPoint()` delegates to it while retaining its v1.5.99 near-zero behavior.
+
+Annotation segment creation/editing and room-wall creation now share the same orthogonal constraint math instead of independently implementing Shift forcing and 3° weak straightening.
+
+## Viewport numeric consumers
+
+Annotation snapping/edit sessions and room-feature snapping/edit sessions now use the existing viewport helpers:
+
+- `normalizeViewportScale()` for session scale normalization;
+- `screenDistanceToWorld()` for screen-pixel tolerances and drag thresholds;
+- `distanceBetween()` for pointer travel.
+
+The screen-pixel policy values themselves remain application-owned.
+
+## Room-feature rotation
+
+Room-feature editing now uses the existing geometry angle helpers:
+
+- `pointAngleDegrees()` for pointer angles;
+- `snapAngleToIncrement()` for 90° forced and soft cardinal snapping.
+
+The modifier policy remains unchanged: Shift forces the 90° snap; Alt bypasses the normal 5° soft snap.
+
+## Architecture boundary
+
+This batch does not move room-feature resize rules or annotation snap-target selection into geometry. Those behaviors encode application/domain policy rather than reusable numeric primitives.
+
+## Regression coverage
+
+`tests/geometry.test.ts` now locks forced, weak, configurable weak-angle, and legacy `constrainDrawPoint()` behavior. Existing annotation and room-feature interaction suites continue to validate the migrated consumers end-to-end.
+
+## Next seam
+
+Batch 76 should inspect persistence/history/compatibility boundaries now that the major geometry and interaction foundations are centralized. In particular, verify that transient interaction/preview state cannot leak into saved project payloads and that migration/round-trip tests cover the current v1.6 domain graph before broader bridge cleanup.
+""")
+          PY
+      - name: Install locked dependencies
+        run: npm ci
+      - name: Validate Batch 75
+        run: npm run check
+      - name: Commit staged migration
+        shell: bash
+        run: |
+          git config user.name "Finnis Quick"
+          git config user.email "100631962+finnisqu@users.noreply.github.com"
+          git add src/geometry/constraints.ts src/app/interaction/annotations.ts src/app/interaction/annotation-editing.ts src/app/interaction/room-features.ts tests/geometry.test.ts docs/architecture/BATCH_75_DIRECT_MANIPULATION_GEOMETRY_MIGRATION.md
+          git commit -m "refactor: migrate direct manipulation geometry for Batch 75"
+          git push origin HEAD:batch75-staging-20261004
