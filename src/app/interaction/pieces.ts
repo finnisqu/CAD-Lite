@@ -22,14 +22,17 @@ import type { Layout } from '../../domain/project';
 import { slabUsableBounds } from '../../domain/slabs';
 import type { JsonObject, JsonValue } from '../../domain/types';
 import {
+  pointAngleDegrees,
   resolveSmartSnapAxes,
   rotateVector,
+  signedAngleDeltaDegrees,
   SMART_SNAP_PRIORITY,
   SMART_SNAP_TOLERANCE,
   smartSnapAxisPairs,
   smartSnapBetter,
   smartSnapBoxAnchors,
   smartSnapGridAxis,
+  snapAngleToIncrement,
   type SmartSnapCandidate,
 } from '../../geometry';
 import type { Workspace } from '../../persistence';
@@ -1132,35 +1135,25 @@ export function createPieceRotateSession(
     moved: false,
     ids,
     center,
-    startPointer:
-      Math.atan2(input.y - center.y, input.x - center.x) *
-      180 / Math.PI,
+    startPointer: pointAngleDegrees(center, { x: input.x, y: input.y }),
     startPrimaryRotation: primaryPose.rotation,
     preview: null,
   };
-}
-
-function signedAngleDelta(value: number): number {
-  return ((value + 540) % 360) - 180;
 }
 
 function resolvedRotationDelta(
   session: RotateSession,
   input: ToolPointerInput,
 ): number {
-  const current =
-    Math.atan2(
-      input.y - session.center.y,
-      input.x - session.center.x,
-    ) * 180 / Math.PI;
-  let delta = signedAngleDelta(current - session.startPointer);
+  const current = pointAngleDegrees(session.center, { x: input.x, y: input.y });
+  let delta = signedAngleDeltaDegrees(current - session.startPointer);
   let angle = session.startPrimaryRotation + delta;
 
   if (input.modifiers.shift) {
-    angle = Math.round(angle / 90) * 90;
+    angle = snapAngleToIncrement(angle, 90);
     delta = angle - session.startPrimaryRotation;
   } else if (!input.modifiers.alt) {
-    const snapAngle = Math.round(angle / 90) * 90;
+    const snapAngle = snapAngleToIncrement(angle, 90);
     if (Math.abs(angle - snapAngle) <= 5) {
       angle = snapAngle;
       delta = angle - session.startPrimaryRotation;

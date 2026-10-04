@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import {
   axisAlignedRectsOverlap,
   convexPolygonsOverlap,
+  pointAngleDegrees,
   pointSegmentDistance,
   polygonCenter,
   polygonDistance,
@@ -10,6 +11,8 @@ import {
   rectContainsPolygon,
   rotateVector,
   rotatedRectBoundingSize,
+  signedAngleDeltaDegrees,
+  snapAngleToIncrement,
 } from '../src/geometry';
 
 describe('core geometry', () => {
@@ -17,6 +20,27 @@ describe('core geometry', () => {
     const rotated = rotateVector(1, 0, 90);
     expect(rotated.x).toBeCloseTo(0, 10);
     expect(rotated.y).toBeCloseTo(1, 10);
+  });
+
+  it('calculates point angles in degrees', () => {
+    expect(pointAngleDegrees({ x: 10, y: 20 }, { x: 20, y: 20 })).toBeCloseTo(0, 10);
+    expect(pointAngleDegrees({ x: 10, y: 20 }, { x: 10, y: 30 })).toBeCloseTo(90, 10);
+    expect(pointAngleDegrees({ x: 10, y: 20 }, { x: 0, y: 20 })).toBeCloseTo(180, 10);
+    expect(pointAngleDegrees({ x: 10, y: 20 }, { x: 10, y: 10 })).toBeCloseTo(-90, 10);
+  });
+
+  it('normalizes signed angle deltas with the existing rotation convention', () => {
+    expect(signedAngleDeltaDegrees(0)).toBe(0);
+    expect(signedAngleDeltaDegrees(181)).toBe(-179);
+    expect(signedAngleDeltaDegrees(-181)).toBe(179);
+    expect(signedAngleDeltaDegrees(359)).toBe(-1);
+  });
+
+  it('snaps angles to a supplied increment', () => {
+    expect(snapAngleToIncrement(44, 90)).toBe(0);
+    expect(snapAngleToIncrement(46, 90)).toBe(90);
+    expect(snapAngleToIncrement(-46, 90)).toBe(-90);
+    expect(snapAngleToIncrement(37, 0)).toBe(37);
   });
 
   it('calculates rotated rectangle bounding-box size', () => {
