@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import {
   anchoredViewportScrollOffset,
+  clientPointToViewportPoint,
   nextViewportScale,
 } from '../src/geometry';
 
@@ -35,5 +36,42 @@ describe('viewport geometry', () => {
 
   it('never returns a negative scroll offset', () => {
     expect(anchoredViewportScrollOffset(0, 100, 2, 1)).toBe(0);
+  });
+
+  it('projects client coordinates into a viewport rectangle', () => {
+    expect(
+      clientPointToViewportPoint(
+        { x: 200, y: 100 },
+        { left: 100, top: 50, width: 200, height: 100 },
+        { x: 0, y: 0, w: 1000, h: 500 },
+      ),
+    ).toEqual({ x: 500, y: 250 });
+  });
+
+  it('preserves a nonzero viewport origin during client projection', () => {
+    expect(
+      clientPointToViewportPoint(
+        { x: 150, y: 75 },
+        { left: 100, top: 50, width: 200, height: 100 },
+        { x: 10, y: 20, w: 40, h: 80 },
+      ),
+    ).toEqual({ x: 20, y: 40 });
+  });
+
+  it('rejects client rectangles with no usable size', () => {
+    expect(
+      clientPointToViewportPoint(
+        { x: 10, y: 10 },
+        { left: 0, top: 0, width: 0, height: 100 },
+        { x: 0, y: 0, w: 100, h: 100 },
+      ),
+    ).toBeNull();
+    expect(
+      clientPointToViewportPoint(
+        { x: 10, y: 10 },
+        { left: 0, top: 0, width: 100, height: -1 },
+        { x: 0, y: 0, w: 100, h: 100 },
+      ),
+    ).toBeNull();
   });
 });

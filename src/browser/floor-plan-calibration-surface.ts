@@ -5,6 +5,7 @@ import {
   type AppStore,
   type CommandDispatcher,
 } from '../app';
+import { clientPointToViewportPoint, type Point } from '../geometry';
 import {
   isFloorPlanCalibrationArrowKey,
   nudgeFloorPlanCalibrationSquare,
@@ -18,7 +19,6 @@ import {
 
 const SVG_NS = 'http://www.w3.org/2000/svg';
 
-type Point = { x: number; y: number };
 type Square = FloorPlanCalibrationSquare;
 
 interface DistanceCalibration {
@@ -195,11 +195,11 @@ export class FloorPlanCalibrationSurface {
     if (!svg) return null;
     const rect = svg.getBoundingClientRect();
     const viewBox = svg.viewBox.baseVal;
-    if (rect.width <= 0 || rect.height <= 0) return null;
-    return {
-      x: ((event.clientX - rect.left) / rect.width) * viewBox.width + viewBox.x,
-      y: ((event.clientY - rect.top) / rect.height) * viewBox.height + viewBox.y,
-    };
+    return clientPointToViewportPoint(
+      { x: event.clientX, y: event.clientY },
+      rect,
+      { x: viewBox.x, y: viewBox.y, w: viewBox.width, h: viewBox.height },
+    );
   }
 
   private own(event: PointerEvent): void {
