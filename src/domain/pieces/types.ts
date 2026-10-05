@@ -105,13 +105,17 @@ export type PieceGeometry = {
 /**
  * CAD Lite keeps the mature width/height rectangle as an editable frame while
  * allowing the actual fabrication boundary to be an arbitrary local polygon.
- * Coordinates are stored in Piece-local inches with (0, 0) at the frame's
- * upper-left corner. Sinks/cutouts remain semantic children and are subtracted
- * when a derived fabrication region is requested.
+ * Coordinates are stored in Piece-local inches with (0, 0) at the source
+ * frame's upper-left corner. frameWidth/frameHeight let normal Piece resizing
+ * scale the polygon without rewriting the stored vertices on every drag.
+ * Sinks/cutouts remain semantic children and are subtracted when a derived
+ * fabrication region is requested.
  */
 export type PieceFabricationPoint = { x: number; y: number };
 export type PieceFabricationShape = {
   kind: 'polygon';
+  frameWidth: number;
+  frameHeight: number;
   outer: PieceFabricationPoint[];
 };
 
