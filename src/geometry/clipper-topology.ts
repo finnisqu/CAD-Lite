@@ -131,10 +131,10 @@ function joinType(join: PolygonJoinStyle): clipperLib.JoinType {
   return clipperLib.JoinType.Miter;
 }
 
-async function unionOnly(
+function unionOnly(
   clipper: clipperLib.ClipperLibWrapper,
   paths: Array<Array<{ x: number; y: number }>>,
-): Promise<PolygonRegion[]> {
+): PolygonRegion[] {
   if (paths.length === 0) return [];
   return regionsFromPolyTree(
     clipper.clipToPolyTree({
