@@ -36,6 +36,7 @@ export function createPiece(
     pieceType: 'countertop', tags: [], attachment: null, assemblyLinks: [],
     slabPlacement: { x, y, rotation: 0 },
     cornerRadii: { tl: 0, tr: 0, br: 0, bl: 0 },
+    fabricationShape: null,
     overhangs: { front: 1.5, back: 0, left: 0, right: 0 },
     edgeProfiles: { top: 'none', right: 'none', bottom: 'none', left: 'none' },
     sinks: [], cutouts: [], pieceSeams: [],
