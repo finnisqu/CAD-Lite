@@ -290,6 +290,11 @@ export class ViewPreferencesSurface {
       pattern.setAttribute('patternUnits', 'userSpaceOnUse');
       pattern.setAttribute('width', String(major));
       pattern.setAttribute('height', String(major));
+      // Major lines sit exactly on each repeating tile boundary. SVG patterns
+      // clip boundary strokes by default, which made every sixth grid line
+      // disappear. Preserve the exact grid coordinate and allow the stroke to
+      // extend across the tile edge instead of nudging the visual grid.
+      pattern.setAttribute('overflow', 'visible');
 
       const minorSegments: string[] = [];
       for (let index = 1; index < 6; index += 1) {
