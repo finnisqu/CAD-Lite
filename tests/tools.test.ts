@@ -222,7 +222,23 @@ describe('tool input routing', () => {
     expect(tools.handleKeyDown({ key: 'Escape' })).toBe(true);
     expect(tools.getActiveTool()).toBeNull();
 
+    // Q toggles the Room Features interaction layer itself.
     expect(tools.handleKeyDown({ key: 'q' })).toBe(true);
+    expect(tools.getActiveTool()).toMatchObject({
+      id: 'roomFeatures',
+      activation: 'locked',
+    });
+
+    // A Room Features child tool must not require two Q presses to get back
+    // to Piece interaction. Escape still returns child -> parent separately.
+    expect(tools.activateLocked('roomWall')).toBe(true);
     expect(tools.isActive('roomFeatures')).toBe(true);
+    expect(tools.handleKeyDown({ key: 'q' })).toBe(true);
+    expect(tools.getActiveTool()).toBeNull();
+
+    expect(tools.handleKeyDown({ key: 'q' })).toBe(true);
+    expect(tools.getActiveTool()?.id).toBe('roomFeatures');
+    expect(tools.handleKeyDown({ key: 'q' })).toBe(true);
+    expect(tools.getActiveTool()).toBeNull();
   });
 });

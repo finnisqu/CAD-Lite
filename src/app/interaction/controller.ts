@@ -279,19 +279,10 @@ export class ToolController {
   private exitRoomFeatures(): boolean {
     if (!this.isActive('roomFeatures')) return false;
 
-    const active = this.getActiveTool();
-    if (active?.id !== 'roomFeatures') {
-      const interaction = this.store.getState().session.interaction;
-      this.commitInteraction({
-        ...interaction,
-        activeTool: this.makeSession('roomFeatures', 'locked', null, interaction),
-        pointer: null,
-        preview: null,
-      });
-      return true;
-    }
-
-    return this.cancel();
+    // Q toggles the Room Features interaction layer itself. Unlike Escape,
+    // which deliberately returns a child wall tool to the Room Features parent,
+    // Q leaves the entire family in one press so Piece interaction resumes.
+    return this.deactivateTo(null, true);
   }
 
   private canActivate(toolId: ToolId): boolean {
