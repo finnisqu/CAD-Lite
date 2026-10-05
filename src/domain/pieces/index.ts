@@ -22,7 +22,14 @@ export * from './cutouts';
 
 export * from './ordering';
 
-export * from './fabrication';
+export type {
+  PreparedFabricationTransaction,
+  FabricationPreparationResult,
+} from './fabrication';
+export {
+  prepareFabricationSplit,
+  prepareFabricationMerge,
+} from './fabrication-shape-transactions';
 
 export * from './groups';
 
