@@ -149,6 +149,35 @@ export function shiftedPieceShapeRecipe(
   };
 }
 
+/** Mirror the persistent construction recipe in the Piece-local frame. */
+export function mirrorPieceShapeRecipe(
+  piece: Piece,
+  axis: 'h' | 'v',
+): PieceShapeRecipe | null {
+  const recipe = pieceShapeRecipe(piece);
+  if (!recipe) return null;
+  const width = piece.w;
+  const height = piece.h;
+  const baseOuter = recipe.baseOuter
+    .map((point) =>
+      axis === 'h'
+        ? { x: round3(width - point.x), y: round3(point.y) }
+        : { x: round3(point.x), y: round3(height - point.y) })
+    .reverse();
+  const modifiers = recipe.modifiers.map((item) => ({
+    ...item,
+    x: axis === 'h' ? round3(width - item.x - item.w) : item.x,
+    y: axis === 'v' ? round3(height - item.y - item.h) : item.y,
+  }));
+  return {
+    version: 1,
+    frameWidth: width,
+    frameHeight: height,
+    baseOuter,
+    modifiers,
+  };
+}
+
 function recipeJson(recipe: PieceShapeRecipe): JsonObject {
   return {
     version: 1,
