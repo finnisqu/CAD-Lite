@@ -1,5 +1,6 @@
 import './browser/production-menu-parity';
 import './browser/production-navigator-parity';
+import './browser/production-rail-resize';
 import './styles/index.css';
 import './styles/production-shell.css';
 import './styles/production-inspector.css';
