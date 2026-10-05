@@ -76,3 +76,4 @@ jobs:
             }
           grep -q 'CAD Lite v1.6 Production Shell' /tmp/cadlite-dom.html
           grep -q 'data-cad-lite-production-shell' /tmp/cadlite-dom.html
+          grep -q 'data-cad-lite-canvas-grid="layer"' /tmp/cadlite-dom.html
