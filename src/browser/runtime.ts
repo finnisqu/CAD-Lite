@@ -49,6 +49,7 @@ import { RoomFeatureCanvasInteractions } from './room-feature-canvas-interaction
 import { ScratchpadSurface } from './scratchpad-surface';
 import { SlabNavigatorSurface } from './slab-navigator-surface';
 import { ViewPreferencesSurface } from './view-preferences-surface';
+import { refreshProductionNavigatorParity } from './production-navigator-parity';
 
 export interface CadLiteBrowserRuntimeOptions {
   root?: ParentNode;
@@ -347,6 +348,17 @@ export function mountCadLiteBrowserRuntime(
   startupRecoverySurface.mount();
   effects.start();
 
+  let navigatorParityQueued = false;
+  const unsubscribeNavigatorParity = effects.invalidation.subscribe((batch) => {
+    if (!batch.targets.includes('navigator') || navigatorParityQueued) return;
+    navigatorParityQueued = true;
+    queueMicrotask(() => {
+      navigatorParityQueued = false;
+      refreshProductionNavigatorParity(root);
+    });
+  });
+  refreshProductionNavigatorParity(root);
+
   const beforeUnload = (): void => {
     effects.autosave.flush();
   };
@@ -395,6 +407,7 @@ export function mountCadLiteBrowserRuntime(
       if (typeof window !== 'undefined') {
         window.removeEventListener('beforeunload', beforeUnload);
       }
+      unsubscribeNavigatorParity();
       pieceInteractions.cancel();
       annotationInteractions.cancel();
       roomFeatureInteractions.cancel();
