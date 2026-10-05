@@ -11,6 +11,7 @@ import type {
   PieceSide,
   PieceCutout,
   PieceCutoutKind,
+  PieceFabricationShape,
 } from '../domain/pieces/types';
 import {
   DEFAULT_FAUCET_HOLE_DIAMETER,
@@ -18,6 +19,7 @@ import {
   DEFAULT_FAUCET_SPACING,
   SINK_STANDARD_SETBACK,
 } from '../domain/pieces/sinks';
+import { createPieceFabricationShape } from '../domain/pieces/fabrication-shape';
 import { clamp, round3 } from '../core/numeric';
 import { validatePieceRelationships } from '../domain/pieces/relationships';
 
@@ -267,9 +269,25 @@ function cutouts(
   });
 }
 
+function fabricationShape(
+  raw: unknown,
+  width: number,
+  height: number,
+): PieceFabricationShape | null {
+  const source = object(raw);
+  if (source.kind !== 'polygon' || !Array.isArray(source.outer)) return null;
+  const points = source.outer
+    .filter(isJsonObject)
+    .map((point) => ({
+      x: number(point.x, Number.NaN),
+      y: number(point.y, Number.NaN),
+    }));
+  return createPieceFabricationShape(points, width, height);
+}
+
 const known = new Set([
   'id','name','x','y','w','h','rotation','layer','areaId','pieceGroupId','pieceGroupName',
-  'pieceType','tags','attachment','assemblyLinks','slabPlacement','cornerRadii',
+  'pieceType','tags','attachment','assemblyLinks','slabPlacement','cornerRadii','fabricationShape',
   'rTL','rTR','rBR','rBL','overhangs','edgeProfiles','sinks','cutouts','pieceSeams',
   'color','noFill','fillOpacity','splashKind','splashHeight','legacy',
 ]);
@@ -355,6 +373,7 @@ export function normalizePieces(raw: unknown, areaIds: readonly string[], prefix
       assemblyLinks: links,
       slabPlacement: { x: number(slab.x, x), y: number(slab.y, y), rotation: number(slab.rotation, rotation) },
       cornerRadii: { tl: radius('tl','rTL'), tr: radius('tr','rTR'), br: radius('br','rBR'), bl: radius('bl','rBL') },
+      fabricationShape: fabricationShape(source.fabricationShape, w, h),
       overhangs: {
         front: Math.max(0, number(overhang.front, splash ? 0 : 1.5)),
         back: Math.max(0, number(overhang.back, 0)),
