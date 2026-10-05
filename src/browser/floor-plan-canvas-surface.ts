@@ -31,10 +31,8 @@ export class FloorPlanCanvasSurface {
     this.unsubscribe = this.effects.invalidation.subscribe((batch) => {
       if (batch.targets.includes('canvas')) this.decorate();
     });
-    this.observer = new MutationObserver(() => {
-      if (!this.decorating) queueMicrotask(() => this.decorate());
-    });
-    this.observer.observe(this.svg, { childList: true });
+    this.observer = new MutationObserver(() => this.decorate());
+    this.observeCanvas();
     this.decorate();
   }
 
@@ -50,6 +48,11 @@ export class FloorPlanCanvasSurface {
   decorate(): void {
     const svg = this.svg;
     if (!svg || this.decorating) return;
+
+    // The underlay lives inside the SVG that this surface observes. Pause the
+    // observer while replacing our own decoration so that our childList
+    // mutations cannot recursively schedule another decoration forever.
+    this.observer?.disconnect();
     this.decorating = true;
     try {
       svg.querySelector('[data-plan-underlay="1"]')?.remove();
@@ -99,6 +102,12 @@ export class FloorPlanCanvasSurface {
       }
     } finally {
       this.decorating = false;
+      this.observeCanvas();
     }
+  }
+
+  private observeCanvas(): void {
+    if (!this.svg || !this.observer) return;
+    this.observer.observe(this.svg, { childList: true });
   }
 }

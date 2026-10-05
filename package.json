@@ -11,6 +11,8 @@
   "scripts": {
     "dev": "vite --open /dev/",
     "build": "vite build",
+    "build:smoke": "vite build --config vite.smoke.config.ts",
+    "check:smoke": "npm run check && npm run build:smoke",
     "test": "vitest run",
     "test:watch": "vitest",
     "typecheck": "tsc -p tsconfig.json",

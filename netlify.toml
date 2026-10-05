@@ -1,0 +1,7 @@
+[build]
+  command = "npm run build:smoke"
+  publish = "dist-smoke"
+
+[build.environment]
+  NODE_VERSION = "22.13.0"
+  NPM_VERSION = "11.20.0"

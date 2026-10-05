@@ -54,10 +54,8 @@ export class FloorPlanNavigatorSurface {
     this.unsubscribe = this.effects.invalidation.subscribe((batch) => {
       if (batch.targets.includes('navigator')) this.decorate();
     });
-    this.observer = new MutationObserver(() => {
-      if (!this.decorating) queueMicrotask(() => this.decorate());
-    });
-    this.observer.observe(mount, { childList: true });
+    this.observer = new MutationObserver(() => this.decorate());
+    this.observeMount();
     this.decorate();
   }
 
@@ -75,6 +73,11 @@ export class FloorPlanNavigatorSurface {
   decorate(): void {
     const mount = this.mountElement;
     if (!mount || this.decorating) return;
+
+    // This decorator owns one child inside the same Navigator mount that it
+    // observes for external rerenders. Pause observation while replacing our
+    // own child so that remove/prepend cannot trigger an endless observer loop.
+    this.observer?.disconnect();
     this.decorating = true;
     try {
       mount.querySelector('[data-floor-plan-navigator="1"]')?.remove();
@@ -371,6 +374,12 @@ export class FloorPlanNavigatorSurface {
       mount.prepend(root);
     } finally {
       this.decorating = false;
+      this.observeMount();
     }
+  }
+
+  private observeMount(): void {
+    if (!this.mountElement || !this.observer) return;
+    this.observer.observe(this.mountElement, { childList: true });
   }
 }
