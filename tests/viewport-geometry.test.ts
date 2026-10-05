@@ -54,7 +54,7 @@ describe('viewport geometry', () => {
     expect(anchoredViewportScrollOffset(0, 100, 2, 1)).toBe(0);
   });
 
-  it('projects client coordinates into a viewport rectangle', () => {
+  it('projects matching-aspect client coordinates into a viewport rectangle', () => {
     expect(
       clientPointToViewportPoint(
         { x: 200, y: 100 },
@@ -64,17 +64,54 @@ describe('viewport geometry', () => {
     ).toEqual({ x: 500, y: 250 });
   });
 
-  it('preserves a nonzero viewport origin during client projection', () => {
+  it('accounts for horizontal SVG letterboxing', () => {
     expect(
       clientPointToViewportPoint(
-        { x: 150, y: 75 },
+        { x: 500, y: 250 },
+        { left: 0, top: 0, width: 1000, height: 500 },
+        { x: 0, y: 0, w: 300, h: 200 },
+      ),
+    ).toEqual({ x: 150, y: 100 });
+
+    expect(
+      clientPointToViewportPoint(
+        { x: 125, y: 0 },
+        { left: 0, top: 0, width: 1000, height: 500 },
+        { x: 0, y: 0, w: 300, h: 200 },
+      ),
+    ).toEqual({ x: 0, y: 0 });
+
+    expect(
+      clientPointToViewportPoint(
+        { x: 0, y: 250 },
+        { left: 0, top: 0, width: 1000, height: 500 },
+        { x: 0, y: 0, w: 300, h: 200 },
+      ),
+    ).toEqual({ x: -50, y: 100 });
+  });
+
+  it('accounts for vertical SVG letterboxing', () => {
+    const point = clientPointToViewportPoint(
+      { x: 400, y: 500 },
+      { left: 0, top: 0, width: 800, height: 1000 },
+      { x: 0, y: 0, w: 300, h: 200 },
+    );
+
+    expect(point?.x).toBeCloseTo(150, 8);
+    expect(point?.y).toBeCloseTo(100, 8);
+  });
+
+  it('preserves a nonzero viewport origin during aspect-fit projection', () => {
+    expect(
+      clientPointToViewportPoint(
+        { x: 200, y: 75 },
         { left: 100, top: 50, width: 200, height: 100 },
         { x: 10, y: 20, w: 40, h: 80 },
       ),
-    ).toEqual({ x: 20, y: 40 });
+    ).toEqual({ x: 30, y: 40 });
   });
 
-  it('rejects client rectangles with no usable size', () => {
+  it('rejects client or viewport rectangles with no usable size', () => {
     expect(
       clientPointToViewportPoint(
         { x: 10, y: 10 },
@@ -87,6 +124,20 @@ describe('viewport geometry', () => {
         { x: 10, y: 10 },
         { left: 0, top: 0, width: 100, height: -1 },
         { x: 0, y: 0, w: 100, h: 100 },
+      ),
+    ).toBeNull();
+    expect(
+      clientPointToViewportPoint(
+        { x: 10, y: 10 },
+        { left: 0, top: 0, width: 100, height: 100 },
+        { x: 0, y: 0, w: 0, h: 100 },
+      ),
+    ).toBeNull();
+    expect(
+      clientPointToViewportPoint(
+        { x: 10, y: 10 },
+        { left: 0, top: 0, width: 100, height: 100 },
+        { x: 0, y: 0, w: 100, h: -1 },
       ),
     ).toBeNull();
   });

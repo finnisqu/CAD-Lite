@@ -21,6 +21,12 @@ export function screenDistanceToWorld(
 /**
  * Project a point from client coordinates into an arbitrary viewport rectangle.
  *
+ * The projection mirrors the default SVG `preserveAspectRatio="xMidYMid meet"`
+ * behavior used by CAD Lite's canvas. When the rendered client rectangle and
+ * viewBox have different aspect ratios, the viewBox is uniformly scaled and
+ * centered, leaving horizontal or vertical letterboxing around the rendered
+ * drawing. Pointer coordinates intentionally are not clamped to the viewport.
+ *
  * The caller owns DOM measurement and supplies only the numeric client rectangle,
  * keeping this geometry helper browser-independent and testable.
  */
@@ -29,15 +35,31 @@ export function clientPointToViewportPoint(
   clientRect: ClientRectLike,
   viewport: XYWHRect,
 ): Point | null {
-  if (clientRect.width <= 0 || clientRect.height <= 0) return null;
+  if (
+    clientRect.width <= 0 ||
+    clientRect.height <= 0 ||
+    viewport.w <= 0 ||
+    viewport.h <= 0
+  ) {
+    return null;
+  }
+
+  const scale = Math.min(
+    clientRect.width / viewport.w,
+    clientRect.height / viewport.h,
+  );
+  if (!Number.isFinite(scale) || scale <= 0) return null;
+
+  const renderedWidth = viewport.w * scale;
+  const renderedHeight = viewport.h * scale;
+  const contentLeft =
+    clientRect.left + (clientRect.width - renderedWidth) / 2;
+  const contentTop =
+    clientRect.top + (clientRect.height - renderedHeight) / 2;
 
   return {
-    x:
-      viewport.x +
-      ((clientPoint.x - clientRect.left) / clientRect.width) * viewport.w,
-    y:
-      viewport.y +
-      ((clientPoint.y - clientRect.top) / clientRect.height) * viewport.h,
+    x: viewport.x + (clientPoint.x - contentLeft) / scale,
+    y: viewport.y + (clientPoint.y - contentTop) / scale,
   };
 }
 
