@@ -7,6 +7,7 @@ import './styles/production-inspector.css';
 import './styles/production-inspector-accordion.css';
 import './styles/production-piece-properties.css';
 import './styles/production-piece-interaction-parity.css';
+import './styles/piece-shape-edit.css';
 import './styles/production-splash.css';
 import './styles/production-radius.css';
 import './styles/production-edge-painter.css';
