@@ -65,7 +65,12 @@ export function createPieceFabricationShape(
     return null;
   }
 
-  return { kind: 'polygon', outer: output };
+  return {
+    kind: 'polygon',
+    frameWidth: round3(w),
+    frameHeight: round3(h),
+    outer: output,
+  };
 }
 
 export function pieceHasCustomFabricationShape(piece: Piece): boolean {
@@ -76,15 +81,30 @@ export function pieceHasCustomFabricationShape(piece: Piece): boolean {
 }
 
 /**
- * Return the local outer fabrication boundary. Rectangle-era Pieces derive a
- * four-point polygon on demand, so every caller can consume a polygon without
- * requiring a migration of existing projects.
+ * Return the current Piece-local outer fabrication boundary. Rectangle-era
+ * Pieces derive a four-point polygon on demand. A custom polygon scales from
+ * the frame dimensions it was authored against to the Piece's current frame,
+ * which lets the existing width/height resize system keep working unchanged.
  */
 export function pieceFabricationOutline(piece: Piece): PieceFabricationPoint[] {
-  const custom = piece.fabricationShape?.kind === 'polygon'
-    ? createPieceFabricationShape(piece.fabricationShape.outer, piece.w, piece.h)
-    : null;
-  if (custom) return custom.outer.map((point) => ({ ...point }));
+  const source = piece.fabricationShape;
+  if (source?.kind === 'polygon' && source.outer.length >= 3) {
+    const sourceWidth = Math.max(0.25, source.frameWidth || piece.w);
+    const sourceHeight = Math.max(0.25, source.frameHeight || piece.h);
+    const shape = createPieceFabricationShape(
+      source.outer,
+      sourceWidth,
+      sourceHeight,
+    );
+    if (shape) {
+      const sx = piece.w / sourceWidth;
+      const sy = piece.h / sourceHeight;
+      return shape.outer.map((point) => ({
+        x: round3(point.x * sx),
+        y: round3(point.y * sy),
+      }));
+    }
+  }
 
   return [
     { x: 0, y: 0 },
@@ -94,6 +114,7 @@ export function pieceFabricationOutline(piece: Piece): PieceFabricationPoint[] {
   ];
 }
 
+/** Bake the current scale into a custom polygon and re-anchor it to a new frame. */
 export function scalePieceFabricationShape(
   shape: PieceFabricationShape | null | undefined,
   oldWidth: number,
@@ -102,14 +123,16 @@ export function scalePieceFabricationShape(
   nextHeight: number,
 ): PieceFabricationShape | null {
   if (!shape || shape.kind !== 'polygon') return null;
-  const safeOldWidth = Math.max(0.25, oldWidth);
-  const safeOldHeight = Math.max(0.25, oldHeight);
-  const sx = nextWidth / safeOldWidth;
-  const sy = nextHeight / safeOldHeight;
+  const authoredWidth = Math.max(0.25, shape.frameWidth || oldWidth);
+  const authoredHeight = Math.max(0.25, shape.frameHeight || oldHeight);
+  const oldScaleX = Math.max(0.25, oldWidth) / authoredWidth;
+  const oldScaleY = Math.max(0.25, oldHeight) / authoredHeight;
+  const sx = nextWidth / Math.max(0.25, oldWidth);
+  const sy = nextHeight / Math.max(0.25, oldHeight);
   return createPieceFabricationShape(
     shape.outer.map((point) => ({
-      x: point.x * sx,
-      y: point.y * sy,
+      x: point.x * oldScaleX * sx,
+      y: point.y * oldScaleY * sy,
     })),
     nextWidth,
     nextHeight,
@@ -123,12 +146,14 @@ export function mirrorPieceFabricationShape(
   axis: 'h' | 'v',
 ): PieceFabricationShape | null {
   if (!shape || shape.kind !== 'polygon') return null;
-  const points = shape.outer.map((point) =>
+  const current = scalePieceFabricationShape(shape, width, height, width, height);
+  if (!current) return null;
+  const points = current.outer.map((point) =>
     axis === 'h'
       ? { x: width - point.x, y: point.y }
       : { x: point.x, y: height - point.y });
   // Mirroring reverses winding. Reverse again so downstream topology gets a
-  // stable outer-contour orientation independent of the transform history.
+  // stable outer-contour orientation independent of transform history.
   points.reverse();
   return createPieceFabricationShape(points, width, height);
 }
