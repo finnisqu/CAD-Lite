@@ -4,7 +4,7 @@ import {
   Segment as FlattenSegment,
 } from '@flatten-js/core';
 
-import type { GeometryKernel } from './kernel';
+import type { AnalyticalGeometryKernel } from './kernel';
 import type { Point } from './types';
 
 const EPSILON = 1e-12;
@@ -106,13 +106,13 @@ function nativePolygonContainsPoint(
 }
 
 /**
- * Flatten.js-backed computational geometry kernel.
+ * Flatten.js-backed analytical geometry kernel.
  *
  * CAD Lite continues to own its plain-object Point/polygon data. Conversion to
  * Flatten shapes happens only at this boundary so no third-party class leaks
  * into persistence, domain entities, or browser projections.
  */
-export const flattenGeometryKernel: GeometryKernel = {
+export const flattenGeometryKernel: AnalyticalGeometryKernel = {
   id: 'flatten-js',
   version: '1.6.14',
 
