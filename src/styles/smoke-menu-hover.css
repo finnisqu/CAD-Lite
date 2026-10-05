@@ -1,0 +1,51 @@
+/*
+ * Smoke-browser hover intent refinements.
+ *
+ * The production menus are intentionally hover-only. These invisible pointer
+ * bridges make the short travel from a toolbar trigger into its dropdown (and
+ * from a submenu row into its flyout) forgiving without reintroducing a
+ * click-to-pin state.
+ */
+
+.cad-lite-production-shell__menu.is-open::after {
+  content: '';
+  position: absolute;
+  z-index: 49;
+  top: 100%;
+  left: -4px;
+  right: -4px;
+  height: 12px;
+}
+
+.lc-v159-submenu-host::after {
+  content: '';
+  position: absolute;
+  z-index: 79;
+  top: -7px;
+  left: calc(100% - 4px);
+  width: 16px;
+  height: calc(100% + 14px);
+}
+
+/* Mouse clicks can leave focus on a submenu trigger. Focus alone must not pin
+ * the flyout open; hover remains the sole mouse interaction state. */
+.cad-lite-production-shell .lc-v159-submenu-host:focus-within > .lc-v159-submenu-panel {
+  display: none;
+}
+
+.cad-lite-production-shell .lc-v159-submenu-host:hover > .lc-v159-submenu-panel {
+  display: block;
+}
+
+/* Give the pointer a little more shared territory between the parent menu and
+ * the flyout so diagonal movement does not accidentally collapse the submenu. */
+.cad-lite-production-shell .lc-v159-submenu-panel {
+  left: calc(100% - 6px);
+}
+
+@media (max-width: 760px) {
+  .cad-lite-production-shell .lc-v159-submenu-panel {
+    left: auto;
+    right: 0;
+  }
+}
