@@ -1,0 +1,131 @@
+.cad-lite-production-shell #lc-inspector .lc-piece-shape-inspector__body {
+  display: block;
+}
+
+.cad-lite-production-shell #lc-inspector .lc-piece-shape-inspector__count {
+  color: var(--lc-muted);
+  font-size: 9px;
+  font-weight: 500;
+}
+
+.cad-lite-production-shell #lc-inspector .lc-piece-shape-inspector__toolbar {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.cad-lite-production-shell #lc-inspector .lc-piece-shape-inspector__toolbar button {
+  min-height: 28px;
+  padding: 4px 7px;
+  font-size: 10px;
+}
+
+.cad-lite-production-shell #lc-inspector .lc-piece-shape-inspector__list {
+  display: grid;
+  gap: 5px;
+}
+
+.cad-lite-production-shell #lc-inspector .lc-piece-shape-inspector__row {
+  overflow: hidden;
+  border: 1px solid var(--lc-border);
+  border-radius: 6px;
+  background: var(--lc-panel);
+}
+
+.cad-lite-production-shell #lc-inspector .lc-piece-shape-inspector__row.is-selected {
+  border-color: var(--lc-selected-border);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--lc-selected-border) 22%, transparent);
+}
+
+.cad-lite-production-shell #lc-inspector .lc-piece-shape-inspector__summary {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  width: 100%;
+  min-height: 31px;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 7px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: var(--lc-text);
+  text-align: left;
+  font-size: 10px;
+}
+
+.cad-lite-production-shell #lc-inspector .lc-piece-shape-inspector__summary:hover {
+  background: var(--lc-hover);
+}
+
+.cad-lite-production-shell #lc-inspector .lc-piece-shape-inspector__badge {
+  min-width: 29px;
+  padding: 2px 4px;
+  border-radius: 999px;
+  font-size: 8px;
+  font-weight: 750;
+  letter-spacing: .04em;
+  text-align: center;
+}
+
+.cad-lite-production-shell #lc-inspector .lc-piece-shape-inspector__badge.is-add {
+  color: #166534;
+  background: #dcfce7;
+}
+
+.cad-lite-production-shell #lc-inspector .lc-piece-shape-inspector__badge.is-subtract {
+  color: #991b1b;
+  background: #fee2e2;
+}
+
+.cad-lite-production-shell[data-theme="dark"] #lc-inspector .lc-piece-shape-inspector__badge.is-add {
+  color: #bbf7d0;
+  background: #14532d;
+}
+
+.cad-lite-production-shell[data-theme="dark"] #lc-inspector .lc-piece-shape-inspector__badge.is-subtract {
+  color: #fecaca;
+  background: #7f1d1d;
+}
+
+.cad-lite-production-shell #lc-inspector .lc-piece-shape-inspector__size {
+  color: var(--lc-muted);
+  font-size: 9px;
+  white-space: nowrap;
+}
+
+.cad-lite-production-shell #lc-inspector .lc-piece-shape-inspector__fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 7px;
+  padding: 8px;
+  border-top: 1px solid var(--lc-border);
+  background: var(--lc-toolbar);
+}
+
+.cad-lite-production-shell #lc-inspector .lc-piece-shape-inspector__delete {
+  grid-column: 1 / -1;
+  min-height: 27px;
+  border-color: color-mix(in srgb, #dc2626 45%, var(--lc-border));
+  color: #b91c1c;
+  background: transparent;
+  font-size: 9px;
+}
+
+.cad-lite-production-shell[data-theme="dark"] #lc-inspector .lc-piece-shape-inspector__delete {
+  color: #fca5a5;
+}
+
+.cad-lite-production-shell #lc-inspector .lc-piece-shape-inspector__empty,
+.cad-lite-production-shell #lc-inspector .lc-piece-shape-inspector__status {
+  padding: 7px;
+  border-radius: 5px;
+  color: var(--lc-muted);
+  background: var(--lc-toolbar);
+  font-size: 9px;
+  line-height: 1.35;
+}
+
+.cad-lite-production-shell #lc-inspector .lc-piece-shape-inspector__status {
+  margin-top: 7px;
+}

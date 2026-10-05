@@ -9,6 +9,7 @@ import {
 } from '../app';
 import {
   clientPointToViewportPoint,
+  distanceBetween,
   rotatePointAround,
   type Point,
 } from '../geometry';
@@ -31,6 +32,26 @@ interface PieceShapeDrag {
   start: Point;
   current: Point;
 }
+
+export type PieceShapeSnapKind = 'vertex' | 'midpoint' | 'edge' | 'grid';
+
+export interface PieceShapeSnapTarget {
+  point: Point;
+  kind: PieceShapeSnapKind;
+  pieceId: string | null;
+  priority: number;
+}
+
+export interface PieceShapeSnapOptions {
+  scale: number;
+  pieceSnap: boolean;
+  gridSnap: boolean;
+  gridStep: number;
+  acquirePx?: number;
+}
+
+const SNAP_ACQUIRE_PX = 8;
+const SNAP_RELEASE_PX = 14;
 
 export function pieceShapeRectangleFromDrag(
   start: Point,
@@ -73,6 +94,116 @@ export function pieceShapeCanvasPoint(
   );
 }
 
+function worldOutline(item: PieceCanvasItem): Point[] {
+  return item.fabricationOutline.map((point) =>
+    rotatePointAround(point, item.center, item.renderRotation));
+}
+
+function midpoint(a: Point, b: Point): Point {
+  return { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
+}
+
+function nearestPointOnSegment(point: Point, a: Point, b: Point): Point {
+  const dx = b.x - a.x;
+  const dy = b.y - a.y;
+  const lengthSquared = dx * dx + dy * dy;
+  if (lengthSquared <= 1e-12) return { ...a };
+  const t = Math.max(
+    0,
+    Math.min(1, ((point.x - a.x) * dx + (point.y - a.y) * dy) / lengthSquared),
+  );
+  return { x: a.x + dx * t, y: a.y + dy * t };
+}
+
+export function pieceShapeSnapTargets(
+  projection: PieceCanvasProjection,
+  activePieceId: string,
+): PieceShapeSnapTarget[] {
+  const targets: PieceShapeSnapTarget[] = [];
+  projection.pieces.forEach((item) => {
+    const outline = worldOutline(item);
+    const active = item.id === activePieceId;
+    outline.forEach((point, index) => {
+      const next = outline[(index + 1) % outline.length];
+      targets.push({
+        point,
+        kind: 'vertex',
+        pieceId: item.id,
+        priority: active ? 0 : 3,
+      });
+      if (next) {
+        targets.push({
+          point: midpoint(point, next),
+          kind: 'midpoint',
+          pieceId: item.id,
+          priority: active ? 1 : 4,
+        });
+      }
+    });
+  });
+  return targets;
+}
+
+export function resolvePieceShapeSnapPoint(
+  projection: PieceCanvasProjection,
+  activePieceId: string,
+  point: Point,
+  options: PieceShapeSnapOptions,
+): { point: Point; target: PieceShapeSnapTarget | null } {
+  const scale = Math.max(0.001, Math.abs(options.scale || 1));
+  const tolerance = (options.acquirePx ?? SNAP_ACQUIRE_PX) / scale;
+  let best: { target: PieceShapeSnapTarget; distance: number } | null = null;
+
+  const consider = (target: PieceShapeSnapTarget): void => {
+    const distance = distanceBetween(point, target.point);
+    if (distance > tolerance) return;
+    if (
+      !best ||
+      target.priority < best.target.priority ||
+      (target.priority === best.target.priority && distance < best.distance)
+    ) {
+      best = { target, distance };
+    }
+  };
+
+  if (options.pieceSnap) {
+    pieceShapeSnapTargets(projection, activePieceId).forEach(consider);
+    projection.pieces.forEach((item) => {
+      const outline = worldOutline(item);
+      const active = item.id === activePieceId;
+      outline.forEach((start, index) => {
+        const end = outline[(index + 1) % outline.length];
+        if (!end) return;
+        consider({
+          point: nearestPointOnSegment(point, start, end),
+          kind: 'edge',
+          pieceId: item.id,
+          priority: active ? 2 : 5,
+        });
+      });
+    });
+  }
+
+  if (best) return { point: { ...best.target.point }, target: best.target };
+
+  if (options.gridSnap && Number.isFinite(options.gridStep) && options.gridStep > 0) {
+    const x = Math.round(point.x / options.gridStep) * options.gridStep;
+    const y = Math.round(point.y / options.gridStep) * options.gridStep;
+    const gridPoint = { x, y };
+    if (distanceBetween(point, gridPoint) <= tolerance) {
+      const target: PieceShapeSnapTarget = {
+        point: gridPoint,
+        kind: 'grid',
+        pieceId: null,
+        priority: 9,
+      };
+      return { point: gridPoint, target };
+    }
+  }
+
+  return { point: { ...point }, target: null };
+}
+
 export class PieceShapeEditSurface {
   private readonly root: ParentNode;
   private readonly store: AppStore;
@@ -88,6 +219,7 @@ export class PieceShapeEditSurface {
   private addButton: HTMLButtonElement | null = null;
   private subtractButton: HTMLButtonElement | null = null;
   private toolMount: HTMLElement | null = null;
+  private currentSnap: PieceShapeSnapTarget | null = null;
 
   constructor(options: PieceShapeEditSurfaceOptions) {
     this.root = options.root;
@@ -104,27 +236,22 @@ export class PieceShapeEditSurface {
     const signal = this.abort.signal;
     this.installToolControls(signal);
 
-    this.svg.addEventListener(
-      'pointerdown',
-      (event) => this.onPointerDown(event),
-      { signal, capture: true },
-    );
-    this.svg.addEventListener(
-      'pointermove',
-      (event) => this.onPointerMove(event),
-      { signal, capture: true },
-    );
-    this.svg.addEventListener(
-      'pointerup',
-      (event) => this.onPointerUp(event),
-      { signal, capture: true },
-    );
-    this.svg.addEventListener(
-      'pointercancel',
-      (event) => this.onPointerCancel(event),
-      { signal, capture: true },
-    );
-
+    this.svg.addEventListener('pointerdown', (event) => this.onPointerDown(event), {
+      signal,
+      capture: true,
+    });
+    this.svg.addEventListener('pointermove', (event) => this.onPointerMove(event), {
+      signal,
+      capture: true,
+    });
+    this.svg.addEventListener('pointerup', (event) => this.onPointerUp(event), {
+      signal,
+      capture: true,
+    });
+    this.svg.addEventListener('pointercancel', (event) => this.onPointerCancel(event), {
+      signal,
+      capture: true,
+    });
     this.svg.ownerDocument.defaultView?.addEventListener(
       'keydown',
       (event) => this.onKeyDown(event),
@@ -157,7 +284,6 @@ export class PieceShapeEditSurface {
     const document = panel.ownerDocument;
     const mount = document.createElement('div');
     mount.dataset.pieceShapeTools = '1';
-
     const heading = document.createElement('div');
     heading.className = 'cad-lite-production-shell__menu-heading';
     heading.textContent = 'Piece Shape';
@@ -194,6 +320,7 @@ export class PieceShapeEditSurface {
   private selectedContext(): {
     projection: PieceCanvasProjection;
     item: PieceCanvasItem;
+    grid: number;
   } | null {
     const state = this.store.getState();
     if (state.session.workspace !== 'design') return null;
@@ -203,16 +330,12 @@ export class PieceShapeEditSurface {
     const layout = state.project.layouts.find(
       (candidate) => candidate.id === state.session.activeLayoutId,
     );
-    const piece = layout?.pieces.find(
-      (candidate) => candidate.id === selection.ids[0],
-    );
-    if (!layout || !piece || !pieceShapeEditEligibility(layout, piece).ok) {
-      return null;
-    }
+    const piece = layout?.pieces.find((candidate) => candidate.id === selection.ids[0]);
+    if (!layout || !piece || !pieceShapeEditEligibility(layout, piece).ok) return null;
 
     const projection = createPieceCanvasProjection(state);
     const item = projection.pieces.find((candidate) => candidate.id === piece.id);
-    return item ? { projection, item } : null;
+    return item ? { projection, item, grid: layout.grid } : null;
   }
 
   private eligibilityReason(): string {
@@ -246,10 +369,12 @@ export class PieceShapeEditSurface {
 
     this.mode = operation;
     this.drag = null;
+    this.currentSnap = null;
     this.status = '';
     if (this.svg) this.svg.style.cursor = 'crosshair';
     this.syncControls();
     this.renderHud();
+    this.renderSnapPoints();
   }
 
   private cancelMode(): void {
@@ -257,8 +382,10 @@ export class PieceShapeEditSurface {
     this.drag = null;
     this.busy = false;
     this.status = '';
+    this.currentSnap = null;
     this.removePreview();
     this.removeHud();
+    this.removeSnapPoints();
     if (this.svg) this.svg.style.cursor = '';
     this.syncControls();
   }
@@ -269,7 +396,12 @@ export class PieceShapeEditSurface {
       return;
     }
     this.syncControls();
-    if (this.mode) this.renderHud();
+    if (this.mode) {
+      queueMicrotask(() => {
+        this.renderHud();
+        this.renderSnapPoints();
+      });
+    }
   }
 
   private syncControls(): void {
@@ -309,6 +441,40 @@ export class PieceShapeEditSurface {
     );
   }
 
+  private snappedCanvasPoint(
+    raw: Point,
+    context: { projection: PieceCanvasProjection; item: PieceCanvasItem; grid: number },
+    altKey: boolean,
+  ): Point {
+    if (altKey) {
+      this.currentSnap = null;
+      return raw;
+    }
+    const scale = Math.max(0.001, Math.abs(context.projection.scale || 1));
+    if (
+      this.currentSnap &&
+      this.currentSnap.kind !== 'edge' &&
+      distanceBetween(raw, this.currentSnap.point) <= SNAP_RELEASE_PX / scale
+    ) {
+      return { ...this.currentSnap.point };
+    }
+    this.currentSnap = null;
+    const preferences = this.store.getState().preferences;
+    const resolved = resolvePieceShapeSnapPoint(
+      context.projection,
+      context.item.id,
+      raw,
+      {
+        scale,
+        pieceSnap: preferences.pieceSnap,
+        gridSnap: preferences.gridSnap,
+        gridStep: context.grid,
+      },
+    );
+    this.currentSnap = resolved.target;
+    return resolved.point;
+  }
+
   private intercept(event: Event): void {
     event.preventDefault();
     event.stopImmediatePropagation();
@@ -318,10 +484,12 @@ export class PieceShapeEditSurface {
     if (!this.mode || this.busy || event.button !== 0) return;
     const context = this.selectedContext();
     if (!context) return;
-    const canvas = this.eventCanvasPoint(event, context.projection);
-    if (!canvas) return;
+    const raw = this.eventCanvasPoint(event, context.projection);
+    if (!raw) return;
 
     this.intercept(event);
+    this.currentSnap = null;
+    const canvas = this.snappedCanvasPoint(raw, context, event.altKey);
     const local = pieceShapeLocalPoint(context.item, canvas);
     this.drag = {
       pointerId: event.pointerId,
@@ -330,8 +498,10 @@ export class PieceShapeEditSurface {
       start: local,
       current: local,
     };
+    this.currentSnap = null;
     this.svg?.setPointerCapture?.(event.pointerId);
     this.renderPreview();
+    this.renderSnapPoints();
   }
 
   private onPointerMove(event: PointerEvent): void {
@@ -339,12 +509,14 @@ export class PieceShapeEditSurface {
     if (!this.mode || !drag || drag.pointerId !== event.pointerId) return;
     const context = this.selectedContext();
     if (!context || context.item.id !== drag.pieceId) return;
-    const canvas = this.eventCanvasPoint(event, context.projection);
-    if (!canvas) return;
+    const raw = this.eventCanvasPoint(event, context.projection);
+    if (!raw) return;
 
     this.intercept(event);
+    const canvas = this.snappedCanvasPoint(raw, context, event.altKey);
     drag.current = pieceShapeLocalPoint(context.item, canvas);
     this.renderPreview();
+    this.renderSnapPoints();
   }
 
   private onPointerUp(event: PointerEvent): void {
@@ -356,8 +528,11 @@ export class PieceShapeEditSurface {
       this.cancelDrag(event.pointerId);
       return;
     }
-    const canvas = this.eventCanvasPoint(event, context.projection);
-    if (canvas) drag.current = pieceShapeLocalPoint(context.item, canvas);
+    const raw = this.eventCanvasPoint(event, context.projection);
+    if (raw) {
+      const canvas = this.snappedCanvasPoint(raw, context, event.altKey);
+      drag.current = pieceShapeLocalPoint(context.item, canvas);
+    }
 
     this.intercept(event);
     const rectangle = pieceShapeRectangleFromDrag(drag.start, drag.current);
@@ -371,36 +546,32 @@ export class PieceShapeEditSurface {
     this.syncControls();
     this.renderHud();
 
-    void preparePieceRectangleShapeEdit(
-      layout,
-      drag.pieceId,
-      rectangle,
-      operation,
-    ).then((result) => {
-      this.busy = false;
-      if (!this.mode) return;
-      if (!result.ok) {
-        this.status = result.reason;
+    void preparePieceRectangleShapeEdit(layout, drag.pieceId, rectangle, operation)
+      .then((result) => {
+        this.busy = false;
+        if (!this.mode) return;
+        if (!result.ok) {
+          this.status = result.reason;
+          this.syncControls();
+          this.renderHud();
+          return;
+        }
+        const eventResult = this.commands.execute(
+          applyPreparedPieceShapeEdit(result.prepared),
+        );
+        this.status = eventResult
+          ? (operation === 'add' ? 'Shape added.' : 'Shape subtracted.')
+          : 'The Piece changed before the shape edit could be applied. Try again.';
         this.syncControls();
         this.renderHud();
-        return;
-      }
-      const eventResult = this.commands.execute(
-        applyPreparedPieceShapeEdit(result.prepared),
-      );
-      this.status = eventResult
-        ? (operation === 'add' ? 'Shape added.' : 'Shape subtracted.')
-        : 'The Piece changed before the shape edit could be applied. Try again.';
-      this.syncControls();
-      this.renderHud();
-    }).catch((error: unknown) => {
-      this.busy = false;
-      this.status = error instanceof Error
-        ? error.message
-        : 'Unable to update the Piece shape.';
-      this.syncControls();
-      this.renderHud();
-    });
+        queueMicrotask(() => this.renderSnapPoints());
+      })
+      .catch((error: unknown) => {
+        this.busy = false;
+        this.status = error instanceof Error ? error.message : 'Unable to update the Piece shape.';
+        this.syncControls();
+        this.renderHud();
+      });
   }
 
   private onPointerCancel(event: PointerEvent): void {
@@ -411,6 +582,7 @@ export class PieceShapeEditSurface {
 
   private cancelDrag(pointerId: number): void {
     this.drag = null;
+    this.currentSnap = null;
     this.removePreview();
     try {
       this.svg?.releasePointerCapture?.(pointerId);
@@ -440,15 +612,9 @@ export class PieceShapeEditSurface {
       { x: rectangle.x, y: rectangle.y + rectangle.h },
     ].map((point) => pieceShapeCanvasPoint(context.item, point));
 
-    const polygon = this.svg.ownerDocument.createElementNS(
-      'http://www.w3.org/2000/svg',
-      'polygon',
-    );
+    const polygon = this.svg.ownerDocument.createElementNS('http://www.w3.org/2000/svg', 'polygon');
     polygon.dataset.pieceShapePreview = this.mode;
-    polygon.setAttribute(
-      'points',
-      corners.map((point) => `${point.x},${point.y}`).join(' '),
-    );
+    polygon.setAttribute('points', corners.map((point) => `${point.x},${point.y}`).join(' '));
     polygon.setAttribute('vector-effect', 'non-scaling-stroke');
     polygon.setAttribute('stroke-width', '2');
     polygon.setAttribute('stroke-dasharray', '6 4');
@@ -465,6 +631,56 @@ export class PieceShapeEditSurface {
 
   private removePreview(): void {
     this.svg?.querySelector('[data-piece-shape-preview]')?.remove();
+  }
+
+  private renderSnapPoints(): void {
+    this.removeSnapPoints();
+    if (!this.mode || !this.svg) return;
+    const context = this.selectedContext();
+    if (!context) return;
+    const preferences = this.store.getState().preferences;
+    if (!preferences.pieceSnap) return;
+
+    const document = this.svg.ownerDocument;
+    const group = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+    group.dataset.pieceShapeSnapPoints = '1';
+    group.setAttribute('pointer-events', 'none');
+    const scale = Math.max(0.001, Math.abs(context.projection.scale || 1));
+    const radius = Math.max(0.08, 3 / scale);
+    const activeTargets = pieceShapeSnapTargets(
+      context.projection,
+      context.item.id,
+    ).filter((target) => target.pieceId === context.item.id);
+
+    activeTargets.forEach((target) => {
+      const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+      circle.setAttribute('cx', String(target.point.x));
+      circle.setAttribute('cy', String(target.point.y));
+      circle.setAttribute('r', String(target.kind === 'vertex' ? radius : radius * 0.75));
+      circle.setAttribute('fill', target.kind === 'vertex' ? '#2563eb' : '#ffffff');
+      circle.setAttribute('stroke', '#2563eb');
+      circle.setAttribute('stroke-width', String(Math.max(0.04, 1 / scale)));
+      circle.setAttribute('vector-effect', 'non-scaling-stroke');
+      group.append(circle);
+    });
+
+    if (this.currentSnap) {
+      const marker = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+      marker.setAttribute('cx', String(this.currentSnap.point.x));
+      marker.setAttribute('cy', String(this.currentSnap.point.y));
+      marker.setAttribute('r', String(radius * 1.65));
+      marker.setAttribute('fill', 'none');
+      marker.setAttribute('stroke', '#f59e0b');
+      marker.setAttribute('stroke-width', '2');
+      marker.setAttribute('vector-effect', 'non-scaling-stroke');
+      group.append(marker);
+    }
+
+    this.svg.append(group);
+  }
+
+  private removeSnapPoints(): void {
+    this.svg?.querySelector('[data-piece-shape-snap-points]')?.remove();
   }
 
   private renderHud(): void {
@@ -510,8 +726,8 @@ export class PieceShapeEditSurface {
     if (title) title.textContent = mode === 'add' ? 'ADD SHAPE' : 'SUBTRACT SHAPE';
     if (help) {
       const instruction = mode === 'add'
-        ? 'Drag a rectangle that touches or overlaps the selected Piece.'
-        : 'Drag from the perimeter inward to notch the selected Piece.';
+        ? 'Drag a rectangle that touches the Piece · Piece Snap is sticky · Alt bypasses snap.'
+        : 'Drag from the perimeter inward · Piece Snap is sticky · Alt bypasses snap.';
       help.textContent = this.status ? `${instruction} · ${this.status}` : instruction;
       help.title = help.textContent;
     }

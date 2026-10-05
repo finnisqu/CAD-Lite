@@ -114,8 +114,11 @@ export {
   applyPreparedPieceShapeEdit,
   pieceShapeEditEligibility,
   preparePieceRectangleShapeEdit,
+  preparePieceShapeModifierDelete,
+  preparePieceShapeModifierUpdate,
 } from './piece-shape-edit';
 export type {
+  PieceShapeModifierPatch,
   PieceShapeRectangle,
   PieceShapeRectangleOperation,
   PreparedPieceShapeEdit,

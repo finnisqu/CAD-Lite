@@ -10,6 +10,7 @@ export * from './clipboard';
 
 export * from './geometry';
 export * from './fabrication-shape';
+export * from './shape-modifiers';
 
 export * from './transforms';
 
