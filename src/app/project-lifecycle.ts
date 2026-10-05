@@ -69,12 +69,16 @@ export class ProjectLifecycle {
 
   resetProject(): ProjectReplacementResult {
     const current = this.store.getState();
+    const project = normalizeProjectState({});
     const file: CadLiteFile = {
       schemaVersion: CAD_LITE_SCHEMA_VERSION,
       appVersion: this.appVersion,
-      project: normalizeProjectState({}),
+      project,
       editor: {
-        activeLayoutId: null,
+        // A CAD Lite project always has one usable Layout. Make that active
+        // target explicit here instead of relying on a later normalization pass
+        // to repair a null session target.
+        activeLayoutId: project.layouts[0]?.id ?? null,
         workspace: 'design',
         // New projects keep the user's durable editor preferences while
         // clearing all project/session content.
