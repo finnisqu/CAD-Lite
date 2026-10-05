@@ -45,14 +45,14 @@ describe('v1.5.99 Navigator parity', () => {
     expect(classifyGeneratedNavigatorBlock('lc-floor-plan-nav lc-annotation-nav-section', 'Floor Plan')).toBe('plan');
   });
 
-  it('restores the production six-color piece-group accent cycle', () => {
+  it('restores the exact v1.5.99 six-color piece-group accent cycle', () => {
     expect(PIECE_GROUP_ACCENTS).toEqual([
       '#5c8fbe',
-      '#7b6fae',
-      '#5f9d7a',
-      '#c47f6a',
-      '#9a8c58',
-      '#4f9290',
+      '#8d70b5',
+      '#6e9a70',
+      '#c17a67',
+      '#9c8b4f',
+      '#5b8f8a',
     ]);
   });
 
