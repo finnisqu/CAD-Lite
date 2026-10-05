@@ -7,7 +7,9 @@ import {
   normalizePieceCutout,
   pieceBoundsFromGeometryPose,
   pieceCenterFromGeometryPose,
+  pieceFabricationOutline,
   pieceGeometry,
+  pieceHasCustomFabricationShape,
   piecePose,
   pieceSeamLocalCoordinate,
   pieceSinkLocalPose,
@@ -23,6 +25,7 @@ import {
   slabUsableBounds,
 } from '../domain/slabs';
 import {
+  polygonContainsPoint,
   rotatePointAround,
   roundedRectContainsPoint,
   roundedRectPathCorners,
@@ -113,6 +116,8 @@ export interface PieceCanvasItem {
   localRect: XYWHRect;
   renderRotation: number;
   path: string;
+  fabricationOutline: Point[];
+  customFabricationShape: boolean;
   appearance: PieceCanvasAppearance;
   sinks: PieceCanvasSink[];
   cutouts: PieceCanvasCutout[];
@@ -161,6 +166,17 @@ function normalizedRotation(rotation: number): number {
 
 function finiteNumber(value: unknown): number | null {
   return typeof value === 'number' && Number.isFinite(value) ? value : null;
+}
+
+function polygonPath(points: readonly Point[]): string {
+  const first = points[0];
+  if (!first) return '';
+  const commands = [`M ${String(first.x)} ${String(first.y)}`];
+  points.slice(1).forEach((point) => {
+    commands.push(`L ${String(point.x)} ${String(point.y)}`);
+  });
+  commands.push('Z');
+  return commands.join(' ');
 }
 
 function projectCutouts(
@@ -414,6 +430,15 @@ export function projectPieceForCanvas(
     w: geometry.width,
     h: geometry.height,
   };
+  const customFabricationShape = pieceHasCustomFabricationShape(piece);
+  const fabricationOutline = pieceFabricationOutline({
+    ...piece,
+    w: geometry.width,
+    h: geometry.height,
+  }).map((point) => ({
+    x: localRect.x + point.x,
+    y: localRect.y + point.y,
+  }));
 
   return {
     id: piece.id,
@@ -427,7 +452,11 @@ export function projectPieceForCanvas(
     center,
     localRect,
     renderRotation: normalizedRotation(pose.rotation),
-    path: roundedRectPathCorners(localRect, geometry.cornerRadii),
+    path: customFabricationShape
+      ? polygonPath(fabricationOutline)
+      : roundedRectPathCorners(localRect, geometry.cornerRadii),
+    fabricationOutline,
+    customFabricationShape,
     appearance: pieceAppearance(piece, options),
     sinks: projectSinks(
       piece,
@@ -601,15 +630,14 @@ export function hitTestPieceCanvas(
       -piece.renderRotation,
     );
 
-    if (
-      roundedRectContainsPoint(
-        piece.localRect,
-        piece.geometry.cornerRadii,
-        localPoint,
-      )
-    ) {
-      return piece;
-    }
+    const contains = piece.customFabricationShape
+      ? polygonContainsPoint(piece.fabricationOutline, localPoint)
+      : roundedRectContainsPoint(
+          piece.localRect,
+          piece.geometry.cornerRadii,
+          localPoint,
+        );
+    if (contains) return piece;
   }
   return null;
 }
