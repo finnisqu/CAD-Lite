@@ -1,7 +1,16 @@
+export * from './clipper-topology';
 export * from './constraints';
 export * from './engine';
 export * from './hit-testing';
-export type { GeometryKernel, GeometryKernelInfo } from './kernel';
+export type {
+  AnalyticalGeometryKernel,
+  GeometryKernel,
+  GeometryKernelInfo,
+  PolygonBooleanOperation,
+  PolygonJoinStyle,
+  PolygonOffsetOptions,
+  PolygonRegion,
+} from './kernel';
 export * from './polygon';
 export * from './rectangle';
 export * from './snapping';
