@@ -18,6 +18,7 @@ import './styles/startup-recovery.css';
 import './styles/production-focus.css';
 import './styles/production-v159-parity.css';
 import './styles/production-navigator-v159-parity.css';
+import './styles/smoke-menu-hover.css';
 
 export {
   CAD_LITE_ARCHITECTURE_VERSION,
