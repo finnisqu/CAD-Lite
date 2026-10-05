@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  AppStore,
+  CommandDispatcher,
+  applicationStateFromLegacyPayload,
+  mirrorPieces,
   preparePieceRectangleShapeEdit,
   preparePieceShapeModifierDelete,
   preparePieceShapeModifierUpdate,
@@ -20,7 +24,6 @@ import {
   resolvePieceShapeSnapPoint,
 } from '../src/browser/piece-shape-edit-surface';
 import { normalizePieces } from '../src/persistence/pieces';
-import { applicationStateFromLegacyPayload } from '../src/app';
 import { v159ProjectFixture } from './fixtures/v159-project';
 
 function rectanglePiece(overrides: Partial<Piece> = {}): Piece {
@@ -162,6 +165,45 @@ describe('persistent Piece shape modifiers', () => {
     if (!result.ok) return;
     expect(pieceShapeModifiers(result.prepared.piece)).toHaveLength(1);
     expect(polygonArea(pieceFabricationOutline(result.prepared.piece))).toBeGreaterThan(700);
+  });
+
+  it('mirrors the persistent recipe with the Piece so later edits stay mirrored', async () => {
+    const piece = rectanglePiece();
+    const added = await preparePieceRectangleShapeEdit(
+      testLayout(piece),
+      piece.id,
+      { x: 40, y: 10, w: 20, h: 15 },
+      'add',
+      'addition-1',
+    );
+    expect(added.ok).toBe(true);
+    if (!added.ok) return;
+
+    const layout = testLayout(added.prepared.piece);
+    const base = applicationStateFromLegacyPayload(v159ProjectFixture);
+    const store = new AppStore({
+      ...base,
+      project: { ...base.project, layouts: [layout] },
+      session: {
+        ...base.session,
+        activeLayoutId: layout.id,
+        workspace: 'design',
+        selection: { kind: 'pieces', ids: [piece.id] },
+      },
+    });
+    const commands = new CommandDispatcher(store);
+    commands.execute(mirrorPieces(layout.id, [piece.id], 'h'));
+
+    const mirrored = store.getState().project.layouts[0]?.pieces[0];
+    expect(mirrored).toBeDefined();
+    if (!mirrored) return;
+    expect(pieceShapeModifiers(mirrored)[0]).toMatchObject({
+      id: 'addition-1',
+      x: 0,
+      y: 10,
+      w: 20,
+      h: 15,
+    });
   });
 });
 
