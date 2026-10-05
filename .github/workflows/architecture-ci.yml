@@ -5,6 +5,7 @@ on:
     branches:
       - architecture/v1.6-foundation
       - smoke/v1.6.0-browser
+      - experiment/flatten-geometry-engine
   pull_request:
     branches:
       - main
