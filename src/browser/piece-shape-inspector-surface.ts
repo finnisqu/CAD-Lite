@@ -11,8 +11,28 @@ import {
   type Piece,
   type PieceShapeModifier,
 } from '../domain/pieces';
-import { createPieceCanvasProjection } from './piece-canvas-model';
-import { pieceShapeCanvasPoint } from './piece-shape-edit-surface';
+import {
+  clientPointToViewportPoint,
+  distanceBetween,
+  type Point,
+} from '../geometry';
+import {
+  createPieceCanvasProjection,
+  type PieceCanvasItem,
+  type PieceCanvasProjection,
+} from './piece-canvas-model';
+import {
+  pieceShapeCanvasPoint,
+  pieceShapeLocalPoint,
+  resolvePieceShapeSnapPoint,
+  type PieceShapeSnapTarget,
+} from './piece-shape-edit-surface';
+import {
+  dragPieceShapeModifier,
+  nudgePieceShapeModifier,
+  type PieceShapeModifierHandle,
+  type PieceShapeModifierRect,
+} from './piece-shape-modifier-interaction';
 
 export interface PieceShapeInspectorSurfaceOptions {
   root: ParentNode;
@@ -26,6 +46,55 @@ interface ShapeInspectorContext {
   modifiers: PieceShapeModifier[];
 }
 
+interface ModifierCanvasContext {
+  projection: PieceCanvasProjection;
+  item: PieceCanvasItem;
+  grid: number;
+}
+
+interface ModifierDrag {
+  pointerId: number;
+  pieceId: string;
+  modifierId: string;
+  handle: PieceShapeModifierHandle;
+  startCanvas: Point;
+  startLocal: Point;
+  source: PieceShapeModifierRect;
+  preview: PieceShapeModifierRect;
+  currentSnap: PieceShapeSnapTarget | null;
+}
+
+const SNAP_RELEASE_PX = 14;
+const MODIFIER_NUDGE_INCHES = 0.125;
+const MODIFIER_FAST_NUDGE_INCHES = 1;
+
+function modifierHandle(value: string | undefined): PieceShapeModifierHandle | null {
+  return value === 'move' ||
+    value === 'n' ||
+    value === 'ne' ||
+    value === 'e' ||
+    value === 'se' ||
+    value === 's' ||
+    value === 'sw' ||
+    value === 'w' ||
+    value === 'nw'
+    ? value
+    : null;
+}
+
+function editableTarget(target: EventTarget | null): boolean {
+  if (!(target instanceof Element)) return false;
+  return Boolean(target.closest('input,textarea,select,[contenteditable="true"]'));
+}
+
+function cursorForHandle(handle: PieceShapeModifierHandle): string {
+  if (handle === 'move') return 'move';
+  if (handle === 'n' || handle === 's') return 'ns-resize';
+  if (handle === 'e' || handle === 'w') return 'ew-resize';
+  if (handle === 'ne' || handle === 'sw') return 'nesw-resize';
+  return 'nwse-resize';
+}
+
 export class PieceShapeInspectorSurface {
   private readonly root: ParentNode;
   private readonly store: AppStore;
@@ -34,11 +103,13 @@ export class PieceShapeInspectorSurface {
   private svg: SVGSVGElement | null = null;
   private unsubscribe: (() => void) | null = null;
   private observer: MutationObserver | null = null;
+  private abort: AbortController | null = null;
   private rendering = false;
   private scheduled = false;
   private selectedModifierId: string | null = null;
   private selectedPieceId: string | null = null;
   private knownModifierIds: string[] = [];
+  private drag: ModifierDrag | null = null;
   private busy = false;
   private status = '';
 
@@ -49,10 +120,34 @@ export class PieceShapeInspectorSurface {
   }
 
   mount(): void {
-    if (this.unsubscribe || this.observer) return;
+    if (this.unsubscribe || this.observer || this.abort) return;
     this.inspector = this.root.querySelector<HTMLElement>('#lc-inspector');
     this.svg = this.root.querySelector<SVGSVGElement>('#lc-svg');
     if (!this.inspector || !this.svg) return;
+
+    this.abort = new AbortController();
+    const signal = this.abort.signal;
+    this.svg.addEventListener('pointerdown', (event) => this.onPointerDown(event), {
+      signal,
+      capture: true,
+    });
+    this.svg.addEventListener('pointermove', (event) => this.onPointerMove(event), {
+      signal,
+      capture: true,
+    });
+    this.svg.addEventListener('pointerup', (event) => this.onPointerUp(event), {
+      signal,
+      capture: true,
+    });
+    this.svg.addEventListener('pointercancel', (event) => this.onPointerCancel(event), {
+      signal,
+      capture: true,
+    });
+    this.svg.ownerDocument.defaultView?.addEventListener(
+      'keydown',
+      (event) => this.onKeyDown(event),
+      { signal, capture: true },
+    );
 
     this.unsubscribe = this.store.subscribe(() => this.scheduleRender());
     const Observer = this.inspector.ownerDocument.defaultView?.MutationObserver;
@@ -64,6 +159,9 @@ export class PieceShapeInspectorSurface {
   }
 
   unmount(): void {
+    this.cancelDrag();
+    this.abort?.abort();
+    this.abort = null;
     this.unsubscribe?.();
     this.unsubscribe = null;
     this.observer?.disconnect();
@@ -91,6 +189,33 @@ export class PieceShapeInspectorSurface {
     };
   }
 
+  private canvasContext(context: ShapeInspectorContext): ModifierCanvasContext | null {
+    const state = this.store.getState();
+    const layout = state.project.layouts.find((candidate) => candidate.id === context.layoutId);
+    if (!layout) return null;
+    const projection = createPieceCanvasProjection(state);
+    const item = projection.pieces.find((candidate) => candidate.id === context.piece.id);
+    return item ? { projection, item, grid: layout.grid } : null;
+  }
+
+  private eventCanvasPoint(
+    event: PointerEvent,
+    projection: PieceCanvasProjection,
+  ): Point | null {
+    const svg = this.svg;
+    if (!svg) return null;
+    return clientPointToViewportPoint(
+      { x: event.clientX, y: event.clientY },
+      svg.getBoundingClientRect(),
+      {
+        x: 0,
+        y: 0,
+        w: projection.canvas.width,
+        h: projection.canvas.height,
+      },
+    );
+  }
+
   private scheduleRender(): void {
     if (this.rendering || this.scheduled) return;
     this.scheduled = true;
@@ -105,6 +230,7 @@ export class PieceShapeInspectorSurface {
       this.selectedPieceId = null;
       this.selectedModifierId = null;
       this.knownModifierIds = [];
+      this.drag = null;
       return;
     }
     const ids = context.modifiers.map((item) => item.id);
@@ -112,12 +238,14 @@ export class PieceShapeInspectorSurface {
       this.selectedPieceId = context.piece.id;
       this.selectedModifierId = null;
       this.knownModifierIds = ids;
+      this.drag = null;
       return;
     }
     const added = ids.find((id) => !this.knownModifierIds.includes(id));
     if (added) this.selectedModifierId = added;
     if (this.selectedModifierId && !ids.includes(this.selectedModifierId)) {
       this.selectedModifierId = null;
+      this.drag = null;
     }
     this.knownModifierIds = ids;
   }
@@ -237,6 +365,7 @@ export class PieceShapeInspectorSurface {
     size.textContent = `${modifier.w}" × ${modifier.h}"`;
     summary.append(badge, label, size);
     summary.addEventListener('click', () => {
+      this.cancelDrag();
       this.selectedModifierId = selected ? null : modifier.id;
       this.status = '';
       this.render();
@@ -340,30 +469,295 @@ export class PieceShapeInspectorSurface {
     }
   }
 
+  private intercept(event: Event): void {
+    event.preventDefault();
+    event.stopImmediatePropagation();
+  }
+
+  private snappedCanvasPoint(
+    raw: Point,
+    context: ModifierCanvasContext,
+    drag: ModifierDrag,
+    altKey: boolean,
+  ): Point {
+    if (altKey) {
+      drag.currentSnap = null;
+      return raw;
+    }
+
+    const scale = Math.max(0.001, Math.abs(context.projection.scale || 1));
+    if (
+      drag.currentSnap &&
+      drag.currentSnap.kind !== 'edge' &&
+      distanceBetween(raw, drag.currentSnap.point) <= SNAP_RELEASE_PX / scale
+    ) {
+      return { ...drag.currentSnap.point };
+    }
+    drag.currentSnap = null;
+
+    const preferences = this.store.getState().preferences;
+    let resolved = resolvePieceShapeSnapPoint(
+      context.projection,
+      context.item.id,
+      raw,
+      {
+        scale,
+        pieceSnap: preferences.pieceSnap,
+        gridSnap: preferences.gridSnap,
+        gridStep: context.grid,
+      },
+    );
+
+    // Do not let an edited handle glue itself to the exact old edge/point that
+    // produced it. Other vertices/midpoints on the same Piece remain valid.
+    if (
+      resolved.target?.pieceId === context.item.id &&
+      (resolved.target.kind === 'edge' ||
+        distanceBetween(resolved.target.point, drag.startCanvas) <= 0.01)
+    ) {
+      const withoutActivePiece: PieceCanvasProjection = {
+        ...context.projection,
+        pieces: context.projection.pieces.filter((piece) => piece.id !== context.item.id),
+      };
+      resolved = resolvePieceShapeSnapPoint(
+        withoutActivePiece,
+        '',
+        raw,
+        {
+          scale,
+          pieceSnap: preferences.pieceSnap,
+          gridSnap: preferences.gridSnap,
+          gridStep: context.grid,
+        },
+      );
+    }
+
+    drag.currentSnap = resolved.target;
+    return resolved.point;
+  }
+
+  private onPointerDown(event: PointerEvent): void {
+    if (this.busy || this.drag || event.button !== 0 || !this.selectedModifierId) return;
+    if (this.root.querySelector('[data-piece-shape-hud]')) return;
+    const target = event.target instanceof Element ? event.target : null;
+    const handleElement = target?.closest<SVGElement>('[data-piece-shape-modifier-handle]');
+    const bodyElement = target?.closest<SVGElement>('[data-piece-shape-modifier-body]');
+    if (!handleElement && !bodyElement) return;
+
+    const modifierId = handleElement?.dataset.pieceShapeModifierId ?? bodyElement?.dataset.pieceShapeModifierId;
+    if (!modifierId || modifierId !== this.selectedModifierId) return;
+    const handle = handleElement
+      ? modifierHandle(handleElement.dataset.pieceShapeModifierHandle)
+      : 'move';
+    if (!handle) return;
+
+    const context = this.context();
+    if (!context) return;
+    const modifier = context.modifiers.find((item) => item.id === modifierId);
+    const canvas = this.canvasContext(context);
+    if (!modifier || !canvas) return;
+    const raw = this.eventCanvasPoint(event, canvas.projection);
+    if (!raw) return;
+
+    this.intercept(event);
+    const local = pieceShapeLocalPoint(canvas.item, raw);
+    this.drag = {
+      pointerId: event.pointerId,
+      pieceId: context.piece.id,
+      modifierId,
+      handle,
+      startCanvas: { ...raw },
+      startLocal: local,
+      source: { x: modifier.x, y: modifier.y, w: modifier.w, h: modifier.h },
+      preview: { x: modifier.x, y: modifier.y, w: modifier.w, h: modifier.h },
+      currentSnap: null,
+    };
+    this.status = '';
+    this.svg?.setPointerCapture?.(event.pointerId);
+    this.renderOverlay(context);
+  }
+
+  private onPointerMove(event: PointerEvent): void {
+    const drag = this.drag;
+    if (!drag || drag.pointerId !== event.pointerId) return;
+    const context = this.context();
+    if (!context || context.piece.id !== drag.pieceId) {
+      this.cancelDrag();
+      return;
+    }
+    const canvas = this.canvasContext(context);
+    if (!canvas) return;
+    const raw = this.eventCanvasPoint(event, canvas.projection);
+    if (!raw) return;
+
+    this.intercept(event);
+    const snapped = this.snappedCanvasPoint(raw, canvas, drag, event.altKey);
+    const local = pieceShapeLocalPoint(canvas.item, snapped);
+    drag.preview = dragPieceShapeModifier(
+      drag.source,
+      drag.handle,
+      local.x - drag.startLocal.x,
+      local.y - drag.startLocal.y,
+    );
+    this.renderOverlay(context);
+  }
+
+  private onPointerUp(event: PointerEvent): void {
+    const drag = this.drag;
+    if (!drag || drag.pointerId !== event.pointerId) return;
+    const context = this.context();
+    this.intercept(event);
+    try {
+      this.svg?.releasePointerCapture?.(event.pointerId);
+    } catch {
+      // The browser may already have released pointer capture.
+    }
+    this.drag = null;
+    if (!context || context.piece.id !== drag.pieceId) {
+      this.renderOverlay(context);
+      return;
+    }
+    this.renderOverlay(context);
+    void this.updateModifier(context, drag.modifierId, drag.preview);
+  }
+
+  private onPointerCancel(event: PointerEvent): void {
+    if (!this.drag || this.drag.pointerId !== event.pointerId) return;
+    this.intercept(event);
+    this.cancelDrag();
+    this.renderOverlay(this.context());
+  }
+
+  private cancelDrag(): void {
+    const pointerId = this.drag?.pointerId;
+    this.drag = null;
+    if (pointerId !== undefined) {
+      try {
+        this.svg?.releasePointerCapture?.(pointerId);
+      } catch {
+        // The browser may already have released pointer capture.
+      }
+    }
+  }
+
+  private onKeyDown(event: KeyboardEvent): void {
+    if (event.defaultPrevented || editableTarget(event.target) || !this.selectedModifierId) return;
+    const context = this.context();
+    if (!context) return;
+
+    if (event.key === 'Escape') {
+      this.intercept(event);
+      if (this.drag) {
+        this.cancelDrag();
+      } else {
+        this.selectedModifierId = null;
+      }
+      this.status = '';
+      this.render();
+      return;
+    }
+
+    if (event.key === 'Delete' || event.key === 'Backspace') {
+      this.intercept(event);
+      if (!this.drag) void this.deleteModifier(context, this.selectedModifierId);
+      return;
+    }
+
+    if (!event.key.startsWith('Arrow') || this.busy || this.drag) return;
+    const modifier = context.modifiers.find((item) => item.id === this.selectedModifierId);
+    if (!modifier) return;
+    const amount = event.shiftKey ? MODIFIER_FAST_NUDGE_INCHES : MODIFIER_NUDGE_INCHES;
+    let dx = 0;
+    let dy = 0;
+    if (event.key === 'ArrowLeft') dx = -amount;
+    if (event.key === 'ArrowRight') dx = amount;
+    if (event.key === 'ArrowUp') dy = -amount;
+    if (event.key === 'ArrowDown') dy = amount;
+    if (!dx && !dy) return;
+    this.intercept(event);
+    const next = nudgePieceShapeModifier(modifier, dx, dy);
+    void this.updateModifier(context, modifier.id, next);
+  }
+
   private renderOverlay(context: ShapeInspectorContext | null): void {
     this.removeOverlay();
     if (!context || !this.selectedModifierId || !this.svg) return;
-    const modifier = context.modifiers.find((item) => item.id === this.selectedModifierId);
-    if (!modifier) return;
-    const projection = createPieceCanvasProjection(this.store.getState());
-    const item = projection.pieces.find((candidate) => candidate.id === context.piece.id);
-    if (!item) return;
-    const corners = [
+    const stored = context.modifiers.find((item) => item.id === this.selectedModifierId);
+    if (!stored) return;
+    const modifier =
+      this.drag?.modifierId === stored.id ? this.drag.preview : stored;
+    const canvas = this.canvasContext(context);
+    if (!canvas) return;
+
+    const color = stored.operation === 'add' ? '#2563eb' : '#dc2626';
+    const fill = stored.operation === 'add' ? 'rgb(37 99 235 / 8%)' : 'rgb(220 38 38 / 8%)';
+    const localCorners = [
       { x: modifier.x, y: modifier.y },
       { x: modifier.x + modifier.w, y: modifier.y },
       { x: modifier.x + modifier.w, y: modifier.y + modifier.h },
       { x: modifier.x, y: modifier.y + modifier.h },
-    ].map((point) => pieceShapeCanvasPoint(item, point));
-    const polygon = this.svg.ownerDocument.createElementNS('http://www.w3.org/2000/svg', 'polygon');
-    polygon.dataset.pieceShapeModifierOverlay = modifier.id;
+    ];
+    const corners = localCorners.map((point) => pieceShapeCanvasPoint(canvas.item, point));
+    const document = this.svg.ownerDocument;
+    const group = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+    group.dataset.pieceShapeModifierOverlay = stored.id;
+
+    const polygon = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
+    polygon.dataset.pieceShapeModifierBody = '1';
+    polygon.dataset.pieceShapeModifierId = stored.id;
     polygon.setAttribute('points', corners.map((point) => `${point.x},${point.y}`).join(' '));
-    polygon.setAttribute('fill', modifier.operation === 'add' ? 'rgb(37 99 235 / 8%)' : 'rgb(220 38 38 / 8%)');
-    polygon.setAttribute('stroke', modifier.operation === 'add' ? '#2563eb' : '#dc2626');
+    polygon.setAttribute('fill', fill);
+    polygon.setAttribute('stroke', color);
     polygon.setAttribute('stroke-width', '2');
     polygon.setAttribute('stroke-dasharray', '5 4');
     polygon.setAttribute('vector-effect', 'non-scaling-stroke');
-    polygon.setAttribute('pointer-events', 'none');
-    this.svg.append(polygon);
+    polygon.setAttribute('pointer-events', 'all');
+    polygon.style.cursor = cursorForHandle('move');
+    group.append(polygon);
+
+    const handlePoints: Array<[PieceShapeModifierHandle, Point]> = [
+      ['nw', localCorners[0]!],
+      ['n', { x: modifier.x + modifier.w / 2, y: modifier.y }],
+      ['ne', localCorners[1]!],
+      ['e', { x: modifier.x + modifier.w, y: modifier.y + modifier.h / 2 }],
+      ['se', localCorners[2]!],
+      ['s', { x: modifier.x + modifier.w / 2, y: modifier.y + modifier.h }],
+      ['sw', localCorners[3]!],
+      ['w', { x: modifier.x, y: modifier.y + modifier.h / 2 }],
+    ];
+    const scale = Math.max(0.001, Math.abs(canvas.projection.scale || 1));
+    const radius = Math.max(0.08, 5 / scale);
+    handlePoints.forEach(([handle, local]) => {
+      const point = pieceShapeCanvasPoint(canvas.item, local);
+      const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+      circle.dataset.pieceShapeModifierHandle = handle;
+      circle.dataset.pieceShapeModifierId = stored.id;
+      circle.setAttribute('cx', String(point.x));
+      circle.setAttribute('cy', String(point.y));
+      circle.setAttribute('r', String(radius));
+      circle.setAttribute('fill', '#ffffff');
+      circle.setAttribute('stroke', color);
+      circle.setAttribute('stroke-width', '1.5');
+      circle.setAttribute('vector-effect', 'non-scaling-stroke');
+      circle.setAttribute('pointer-events', 'all');
+      circle.style.cursor = cursorForHandle(handle);
+      group.append(circle);
+    });
+
+    if (this.drag?.currentSnap) {
+      const snap = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+      snap.setAttribute('cx', String(this.drag.currentSnap.point.x));
+      snap.setAttribute('cy', String(this.drag.currentSnap.point.y));
+      snap.setAttribute('r', String(radius * 1.7));
+      snap.setAttribute('fill', 'none');
+      snap.setAttribute('stroke', '#f59e0b');
+      snap.setAttribute('stroke-width', '2');
+      snap.setAttribute('vector-effect', 'non-scaling-stroke');
+      snap.setAttribute('pointer-events', 'none');
+      group.append(snap);
+    }
+
+    this.svg.append(group);
   }
 
   private removeOverlay(): void {
