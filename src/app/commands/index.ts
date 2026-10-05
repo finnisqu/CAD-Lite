@@ -110,6 +110,17 @@ export {
 export { reorderPieceSink } from './piece-sink-order';
 export { reorderPieceCutout } from './piece-cutout-order';
 export { setPieceFabricationOutline } from './piece-fabrication-shape';
+export {
+  applyPreparedPieceShapeEdit,
+  pieceShapeEditEligibility,
+  preparePieceRectangleShapeEdit,
+} from './piece-shape-edit';
+export type {
+  PieceShapeRectangle,
+  PieceShapeRectangleOperation,
+  PreparedPieceShapeEdit,
+  PreparePieceShapeEditResult,
+} from './piece-shape-edit';
 
 export {
   addPiece,
