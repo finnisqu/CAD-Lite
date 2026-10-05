@@ -257,9 +257,9 @@ function segmentHandler(
 
       const existing = segmentPreview(context);
       if (existing?.tool === tool) {
-        // Production CAD Lite uses point-click creation. Once the first point is
-        // parked, the next click commits the endpoint. A zero-length second
-        // click simply keeps the parked start point alive.
+        // Production CAD Lite uses true point-click creation: click one parks
+        // the start point, click two commits the endpoint. Pointer travel while
+        // the button is held must never turn the first click into drag-release.
         return finish(context, existing, input);
       }
 
@@ -289,25 +289,12 @@ function segmentHandler(
     },
     onPointerUp(context, input) {
       const preview = segmentPreview(context);
-      const layout = activeLayout(context.state);
-      if (!preview || preview.tool !== tool || !layout) {
+      if (!preview || preview.tool !== tool || !activeLayout(context.state)) {
         return { preview: null };
       }
 
-      const pointer = context.state.session.interaction.pointer;
-      const dragThreshold = screenDistanceToWorld(3, layout.scale);
-      const dragged = Boolean(
-        pointer &&
-          Math.hypot(
-            input.x - pointer.startX,
-            input.y - pointer.startY,
-          ) >= dragThreshold,
-      );
-
-      if (dragged) return finish(context, preview, input);
-
-      // A simple click parks the first point instead of discarding a zero-length
-      // segment. Hover/move continues to preview the endpoint until click two.
+      // Releasing the pointer only updates the live preview. Completion is
+      // owned exclusively by the next pointer-down, matching v1.5.99 behavior.
       const end = endpoint(context, preview, input);
       return {
         preview: {
