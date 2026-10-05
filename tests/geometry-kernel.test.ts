@@ -10,11 +10,11 @@ import {
   segmentIntersections,
 } from '../src/geometry';
 
-describe('Flatten.js geometry kernel experiment', () => {
-  it('binds CAD Lite to the pinned Flatten.js engine', () => {
+describe('CAD Lite hybrid geometry kernel experiment', () => {
+  it('binds CAD Lite to the pinned Flatten.js + Clipper engine stack', () => {
     expect(geometryKernelInfo).toEqual({
-      id: 'flatten-js',
-      version: '1.6.14',
+      id: 'flatten-js+clipper',
+      version: 'flatten-js@1.6.14+js-angusj-clipper@1.3.1',
     });
   });
 
