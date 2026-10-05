@@ -1,6 +1,12 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  hitTestPieceCanvas,
+  projectPieceForCanvas,
+  type PieceCanvasProjection,
+  type PieceCanvasRenderOptions,
+} from '../src/browser/piece-canvas-model';
+import {
   createDefaultSink,
   pieceFabricationOutline,
   pieceFabricationRegions,
@@ -50,6 +56,14 @@ function lShapePiece(overrides: Partial<Piece> = {}): Piece {
   if (!piece) throw new Error('Expected normalized Piece.');
   return { ...piece, ...overrides };
 }
+
+const renderOptions: PieceCanvasRenderOptions = {
+  showPieceFills: true,
+  pieceFillOpacity: 1,
+  showSeams: true,
+  showSinkCenterlines: true,
+  showCutoutLabels: true,
+};
 
 describe('polygonal Piece fabrication shape', () => {
   it('persists a custom L-shaped boundary separately from the editing frame', () => {
@@ -104,6 +118,32 @@ describe('polygonal Piece fabrication shape', () => {
     expect(piece.fabricationShape?.frameWidth).toBe(40);
     expect(piece.fabricationShape?.frameHeight).toBe(25.5);
     expect(pieceFabricationOutline(piece)[2]).toEqual({ x: 80, y: 20 });
+  });
+
+  it('renders and hit-tests the real polygon instead of its rectangular frame', () => {
+    const piece = lShapePiece();
+    const item = projectPieceForCanvas(
+      piece,
+      'design',
+      renderOptions,
+      0,
+      null,
+      true,
+    );
+    const projection: PieceCanvasProjection = {
+      layoutId: 'layout-1',
+      workspace: 'design',
+      scale: 1,
+      canvas: { width: 100, height: 100 },
+      slabs: [],
+      pieces: [item],
+    };
+
+    expect(item.customFabricationShape).toBe(true);
+    expect(item.fabricationOutline).toHaveLength(6);
+    expect(item.path).toContain('L 30 35.5');
+    expect(hitTestPieceCanvas(projection, { x: 20, y: 30 })?.id).toBe(piece.id);
+    expect(hitTestPieceCanvas(projection, { x: 40, y: 30 })).toBeNull();
   });
 
   it('subtracts semantic sink geometry from the polygon through Clipper', async () => {
