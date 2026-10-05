@@ -11,6 +11,7 @@ import {
   clampProductionRailWidth,
 } from '../src/browser/production-rail-resize';
 import navigatorParitySource from '../src/browser/production-navigator-parity.ts?raw';
+import runtimeSource from '../src/browser/runtime.ts?raw';
 import mainSource from '../src/main.ts?raw';
 
 describe('v1.5.99 Navigator parity', () => {
@@ -64,10 +65,16 @@ describe('v1.5.99 Navigator parity', () => {
     expect(navigatorParitySource).toContain("mountId: 'lc-room-features-nav'");
     expect(navigatorParitySource).toContain("mountId: 'lc-plan-nav'");
     expect(navigatorParitySource).toContain("mountId: 'lc-estimate-nav'");
-    expect(navigatorParitySource).toContain('observer?.disconnect()');
     expect(navigatorParitySource).toContain("addPiece.textContent = '+ Add Piece'");
     expect(navigatorParitySource).toContain("addArea.textContent = '+ Add Area'");
     expect(navigatorParitySource).toContain("add.textContent = '+ Add Layout'");
+  });
+
+  it('refreshes Navigator parity from application invalidation instead of DOM observation', () => {
+    expect(navigatorParitySource).not.toContain('new MutationObserver');
+    expect(navigatorParitySource).toContain('refreshProductionNavigatorParity');
+    expect(runtimeSource).toContain("batch.targets.includes('navigator')");
+    expect(runtimeSource).toContain('refreshProductionNavigatorParity(root)');
   });
 
   it('bounds Navigator and Inspector rail resizing', () => {
