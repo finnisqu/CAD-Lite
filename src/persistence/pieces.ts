@@ -282,7 +282,9 @@ function fabricationShape(
       x: number(point.x, Number.NaN),
       y: number(point.y, Number.NaN),
     }));
-  return createPieceFabricationShape(points, width, height);
+  const frameWidth = positive(source.frameWidth, width);
+  const frameHeight = positive(source.frameHeight, height);
+  return createPieceFabricationShape(points, frameWidth, frameHeight);
 }
 
 const known = new Set([
