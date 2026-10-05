@@ -1,0 +1,405 @@
+/* v1.5.99 Navigator parity for the typed v1.6 production shell. */
+
+.cad-lite-production-shell__navigator {
+  --lc-nav-band: #eef1f4;
+  --lc-nav-row: #f3f6fa;
+  --lc-nav-row-strong: #e9edf2;
+  --lc-nav-blue: #4f86b7;
+  --lc-nav-blue-soft: #e8f1fb;
+  --lc-nav-group: #5c8fbe;
+}
+
+.cad-lite-production-shell__navigator .cad-lite-production-shell__panel-title {
+  min-height: 29px;
+  padding: 7px 8px 6px;
+  font-size: 10px;
+  letter-spacing: .035em;
+}
+
+.cad-lite-production-shell__navigator .cad-lite-production-shell__section-head {
+  min-height: 28px;
+  padding: 2px 5px;
+  border-bottom: 1px solid var(--lc-border);
+  background: var(--lc-nav-band);
+}
+
+.cad-lite-production-shell__navigator .cad-lite-production-shell__section-toggle {
+  min-height: 23px !important;
+  gap: 4px;
+  padding: 1px 2px !important;
+}
+
+.cad-lite-production-shell__navigator .cad-lite-production-shell__section-chevron {
+  order: 2;
+  width: 10px;
+  flex-basis: 10px;
+  margin-left: auto;
+  font-size: 8px;
+}
+
+.cad-lite-production-shell__navigator .cad-lite-production-shell__section-title {
+  order: 1;
+  font-size: 9.5px;
+  font-weight: 800;
+  letter-spacing: .02em;
+}
+
+.cad-lite-production-shell__navigator .cad-lite-production-shell__section-body {
+  padding: 6px;
+}
+
+.cad-lite-production-shell__navigator [data-cad-lite-nav-section="project"] .cad-lite-production-shell__section-body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 5px 6px;
+}
+
+.cad-lite-production-shell__navigator [data-cad-lite-nav-section="project"] label {
+  min-width: 0;
+  margin: 0;
+  gap: 2px;
+  font-size: 9px;
+}
+
+.cad-lite-production-shell__navigator [data-cad-lite-nav-section="project"] label:nth-child(3) {
+  grid-column: 1 / -1;
+}
+
+.cad-lite-production-shell__navigator [data-cad-lite-nav-section="project"] input,
+.cad-lite-production-shell__navigator [data-cad-lite-nav-section="project"] textarea {
+  min-height: 25px;
+  padding: 4px 5px;
+  border-radius: 4px;
+  font-size: 10px;
+}
+
+.cad-lite-production-shell__navigator [data-cad-lite-nav-section="project"] textarea {
+  min-height: 56px;
+  resize: vertical;
+}
+
+.cad-lite-production-shell__navigator #lc-add-layout {
+  width: 100%;
+  min-height: 24px;
+  margin-bottom: 5px;
+  border: 0;
+  background: #f1f2f4;
+  font-size: 10px;
+  font-weight: 650;
+}
+
+.cad-lite-production-shell__navigator .lc-layout-item {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 4px;
+  margin-bottom: 5px;
+  padding: 6px;
+  border-color: transparent;
+  border-radius: 4px;
+  background: var(--lc-nav-row);
+}
+
+.cad-lite-production-shell__navigator .lc-layout-item.is-active,
+.cad-lite-production-shell__navigator .lc-layout-item.selected {
+  border-color: #38bdf8;
+  background: #eef8ff;
+  outline: 1px solid #38bdf8;
+  outline-offset: -1px;
+}
+
+.cad-lite-production-shell__navigator .lc-layout-title-row {
+  width: 100%;
+  min-height: 16px;
+  gap: 5px;
+}
+
+.cad-lite-production-shell__navigator .lc-layout-title {
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.cad-lite-production-shell__navigator .lc-layout-qty-text {
+  margin-left: auto;
+  font-size: 8px;
+}
+
+.cad-lite-production-shell__navigator .lc-layout-actions {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 22px 22px;
+  width: 100%;
+  gap: 3px;
+}
+
+.cad-lite-production-shell__navigator .lc-layout-actions button {
+  width: 100%;
+  min-width: 0;
+  min-height: 22px;
+  height: 22px;
+  padding: 0 4px;
+  border-radius: 3px;
+  font-size: 9px;
+}
+
+.cad-lite-production-shell__navigator .lc-layout-actions .lc-delete-btn,
+.cad-lite-production-shell__navigator .lc-area-header-actions .lc-delete-btn,
+.cad-lite-production-shell__navigator .lc-annotation-nav-row .red,
+.cad-lite-production-shell__navigator .lc-room-feature-nav-row .red {
+  border-color: #ef6b63;
+  color: #dc2626;
+  background: #fff5f4;
+}
+
+.cad-lite-production-shell__navigator .lc-areas-pieces-add-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 4px;
+  margin-bottom: 6px;
+}
+
+.cad-lite-production-shell__navigator .lc-areas-pieces-add-row button,
+.cad-lite-production-shell__navigator .lc-navigator-add-tool {
+  width: 100%;
+  min-width: 0;
+  min-height: 24px;
+  padding: 3px 6px;
+  border-radius: 3px;
+  font-size: 9px;
+  font-weight: 700;
+}
+
+.cad-lite-production-shell__navigator .lc-areas-pieces-add-row .lc-add-piece-primary {
+  border-color: #171717;
+  color: #fff;
+  background: #111;
+}
+
+.cad-lite-production-shell__navigator #lc-list {
+  margin-bottom: 4px;
+}
+
+.cad-lite-production-shell__navigator .lc-area-header {
+  min-height: 36px;
+  margin: 0 0 4px;
+  padding: 4px 4px 4px 6px;
+  border: 1px solid #cfd5dc;
+  border-left: 4px solid #7ba8cc;
+  border-radius: 4px;
+  background: var(--lc-nav-row-strong);
+}
+
+.cad-lite-production-shell__navigator .lc-area-header.is-active {
+  border-color: #8ab4f8;
+  border-left-color: var(--lc-nav-blue);
+  background: var(--lc-nav-blue-soft);
+  box-shadow: none;
+}
+
+.cad-lite-production-shell__navigator .lc-area-header.is-selected {
+  outline: 1px solid #38bdf8;
+  outline-offset: -1px;
+}
+
+.cad-lite-production-shell__navigator .lc-area-header-title {
+  color: var(--lc-text);
+  font-size: 10.5px;
+  font-weight: 800;
+}
+
+.cad-lite-production-shell__navigator .lc-area-header-meta {
+  margin-top: 1px;
+  font-size: 8px;
+}
+
+.cad-lite-production-shell__navigator .lc-area-header-actions {
+  gap: 2px;
+}
+
+.cad-lite-production-shell__navigator .lc-area-header-actions button,
+.cad-lite-production-shell__navigator .lc-annotation-nav-row .lc-iconbtn,
+.cad-lite-production-shell__navigator .lc-room-feature-nav-row .lc-iconbtn {
+  width: 20px;
+  min-width: 20px;
+  height: 20px;
+  min-height: 20px;
+  padding: 0;
+  border-radius: 3px;
+  font-size: 10px;
+}
+
+.cad-lite-production-shell__navigator .lc-piece-group-header {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  min-height: 36px;
+  margin: 4px 0 3px;
+  padding: 4px 22px 4px 6px;
+  border: 1px solid var(--lc-border);
+  border-left: 5px solid var(--lc-nav-group);
+  border-radius: 4px;
+  background: rgba(127, 127, 127, .055);
+}
+
+.cad-lite-production-shell__navigator .lc-piece-group-header.selected {
+  border-color: #38bdf8;
+  border-left-color: var(--lc-nav-group);
+  background: rgba(14, 165, 233, .09);
+  outline: 1px solid #38bdf8;
+}
+
+.cad-lite-production-shell__navigator .lc-piece-group-header-badge,
+.cad-lite-production-shell__navigator .lc-piece-group-badge {
+  border-color: transparent;
+  color: #fff;
+  background: var(--lc-nav-group);
+  font-weight: 850;
+}
+
+.cad-lite-production-shell__navigator .lc-piece-group-header-badge {
+  min-width: 27px;
+  height: 21px;
+  border-radius: 999px;
+}
+
+.cad-lite-production-shell__navigator .lc-piece-group-header-text strong {
+  font-size: 10.5px;
+  font-weight: 800;
+}
+
+.cad-lite-production-shell__navigator .lc-piece-group-header-meta {
+  font-size: 8px;
+}
+
+.cad-lite-production-shell__navigator #lc-pieces > .lc-nav-entity-row {
+  min-height: 35px;
+  margin-bottom: 3px;
+  padding: 4px 6px;
+  border-radius: 4px;
+  background: var(--lc-nav-row);
+}
+
+.cad-lite-production-shell__navigator #lc-pieces > .lc-piece-grouped {
+  width: calc(100% - 5px);
+  margin-left: 5px;
+  border-left: 4px solid var(--lc-nav-group);
+}
+
+.cad-lite-production-shell__navigator #lc-pieces > .lc-backsplash-nav-piece {
+  width: calc(100% - 14px);
+  margin-left: 14px;
+  border-left-width: 3px;
+}
+
+.cad-lite-production-shell__navigator .lc-navigator-section-actions {
+  display: flex;
+  align-items: center;
+  flex: 0 0 auto;
+}
+
+.cad-lite-production-shell__navigator .lc-navigator-eye {
+  width: 22px;
+  min-width: 22px;
+  height: 22px;
+  min-height: 22px;
+  padding: 0;
+  border: 0;
+  color: #59636e;
+  background: transparent;
+  font-size: 11px;
+}
+
+.cad-lite-production-shell__navigator .lc-navigator-parity-body {
+  padding: 6px;
+}
+
+.cad-lite-production-shell__navigator .lc-navigator-add-tool {
+  margin-bottom: 5px;
+  border-color: #8aa9c4;
+  color: #164f7a;
+  background: #f8fbfe;
+  font-weight: 600;
+}
+
+.cad-lite-production-shell__navigator .lc-annotation-nav-row,
+.cad-lite-production-shell__navigator .lc-room-feature-nav-row {
+  min-height: 35px;
+  margin: 0 0 4px;
+  padding: 4px 5px;
+  border-color: transparent;
+  border-radius: 4px;
+  background: #edf2fa;
+}
+
+.cad-lite-production-shell__navigator .lc-annotation-nav-row.selected,
+.cad-lite-production-shell__navigator .lc-room-feature-nav-row.selected {
+  border-color: #38bdf8;
+  outline: 1px solid #38bdf8;
+  outline-offset: -1px;
+}
+
+.cad-lite-production-shell__navigator .lc-annotation-nav-name {
+  min-width: 0;
+  min-height: 22px;
+  padding: 2px 4px;
+  border-color: transparent;
+  background: transparent;
+  font-size: 10px;
+}
+
+.cad-lite-production-shell__navigator .lc-room-feature-add-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 4px;
+  margin-bottom: 6px;
+}
+
+.cad-lite-production-shell__navigator .lc-room-feature-add-actions .lc-btn {
+  width: 100%;
+  min-width: 0;
+  min-height: 24px;
+  padding: 3px 4px;
+  font-size: 8.5px;
+}
+
+.cad-lite-production-shell__navigator .lc-floor-plan-nav {
+  margin: 6px 0 0;
+  padding: 6px 0 0;
+  border-top: 1px solid var(--lc-border);
+}
+
+.cad-lite-production-shell__navigator .lc-floor-plan-nav .lc-annotation-nav-header {
+  min-height: 23px;
+  margin-bottom: 4px;
+  font-size: 9.5px;
+  text-transform: uppercase;
+}
+
+.cad-lite-production-shell__navigator .lc-floor-plan-nav-actions .lc-btn {
+  min-height: 22px;
+  padding: 2px 4px;
+  border-radius: 3px;
+  font-size: 8.5px;
+}
+
+.cad-lite-production-shell__navigator [data-cad-lite-nav-section="selections"] .lc-selection-nav-item {
+  min-height: 34px;
+  border-color: transparent;
+  border-radius: 3px;
+  background: #edf2fa;
+}
+
+.cad-lite-production-shell[data-theme="dark"] .cad-lite-production-shell__navigator {
+  --lc-nav-band: #252b33;
+  --lc-nav-row: #242b34;
+  --lc-nav-row-strong: #2a313a;
+  --lc-nav-blue-soft: #24384a;
+}
+
+.cad-lite-production-shell[data-theme="dark"] .cad-lite-production-shell__navigator .lc-add-piece-primary {
+  border-color: #d0d5dd;
+  color: #111;
+  background: #f2f4f7;
+}
+
+.cad-lite-production-shell[data-theme="dark"] .cad-lite-production-shell__navigator .lc-layout-item.is-active,
+.cad-lite-production-shell[data-theme="dark"] .cad-lite-production-shell__navigator .lc-layout-item.selected {
+  background: #20384c;
+}
