@@ -7,7 +7,8 @@ import {
   MAX_SINKS_PER_PIECE,
   isBacksplashPiece, isFabricationAssemblyGroup, nextPieceGroupName,
   normalizePieceGroupMembership, pieceGroupMembersById,
-  mirrorPiecesInLayout, resizePieceDimensionInLayout, synchronizeLinkedSplashes,
+  mirrorPieceShapeRecipe, mirrorPiecesInLayout, resizePieceDimensionInLayout,
+  synchronizeLinkedSplashes, withPieceShapeRecipe,
   updatePieceSeam, updatePieceCutout, updatePieceSink,
   type Piece, type PieceCutoutKind, type PieceCutoutPatch,
   type PieceDimension, type PieceDuplicationPlan,
@@ -271,8 +272,15 @@ export function mirrorPieces(
       }
       const layout = state.project.layouts.find(item => item.id === layoutId);
       if (!layout) return state;
-      const pieces = mirrorPiecesInLayout(layout, ids, axis);
-      if (pieces === layout.pieces) return state;
+      const mirrored = mirrorPiecesInLayout(layout, ids, axis);
+      if (mirrored === layout.pieces) return state;
+      const sourceById = new Map(layout.pieces.map(piece => [piece.id, piece]));
+      const pieces = mirrored.map((piece) => {
+        const source = sourceById.get(piece.id);
+        if (!source) return piece;
+        const recipe = mirrorPieceShapeRecipe(source, axis);
+        return recipe ? withPieceShapeRecipe(piece, recipe) : piece;
+      });
       return replace(state, { ...layout, pieces });
     },
   };
