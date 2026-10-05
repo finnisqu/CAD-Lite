@@ -49,8 +49,25 @@ function setup() {
   return { store, tools };
 }
 
-describe('Batch 59 production Room Feature tool parity', () => {
-  it('applies Wall Type and Thickness HUD options to created Room Walls', () => {
+describe('production Room Feature tool parity', () => {
+  it('keeps the Room Features parent as a layer switch instead of a cabinet stamp', () => {
+    const { store, tools } = setup();
+    const before = store.getState().project.layouts[0]?.roomFeatures.length ?? 0;
+
+    expect(tools.activateLocked('roomFeatures')).toBe(true);
+    tools.pointerDown(pointer(44, 32));
+    tools.pointerMove(pointer(60, 44));
+    tools.pointerUp(pointer(60, 44, 0));
+
+    expect(store.getState().project.layouts[0]?.roomFeatures).toHaveLength(before);
+    expect(store.getState().session.interaction.preview).toBeNull();
+    expect(tools.getActiveTool()).toMatchObject({
+      id: 'roomFeatures',
+      activation: 'locked',
+    });
+  });
+
+  it('uses the v1.5.99 two-click wall flow and chains a locked wall from the endpoint', () => {
     const { store, tools } = setup();
     const before = store.getState().project.layouts[0]?.roomFeatures.length ?? 0;
 
@@ -58,9 +75,25 @@ describe('Batch 59 production Room Feature tool parity', () => {
     expect(tools.setToolOption('wallType', 'knee')).toBe(true);
     expect(tools.setToolOption('thickness', 8.5)).toBe(true);
 
+    // First click seeds the reference face. Releasing the pointer must not
+    // create a wall or clear the start point.
     tools.pointerDown(pointer(20, 30));
-    tools.pointerMove(pointer(80, 30));
-    tools.pointerUp(pointer(80, 30, 0));
+    tools.pointerUp(pointer(20, 30, 0));
+    expect(store.getState().project.layouts[0]?.roomFeatures).toHaveLength(before);
+    expect(store.getState().session.interaction.preview).toMatchObject({
+      tool: 'roomWall',
+      startX: 20,
+      startY: 30,
+    });
+
+    tools.pointerMove(pointer(80, 30, 0));
+    expect(store.getState().session.interaction.preview).toMatchObject({
+      length: 60,
+      rotation: 0,
+    });
+
+    // The second click commits. No drag/release is required.
+    tools.pointerDown(pointer(80, 30));
 
     const roomFeatures = store.getState().project.layouts[0]?.roomFeatures ?? [];
     expect(roomFeatures).toHaveLength(before + 1);
@@ -72,6 +105,28 @@ describe('Batch 59 production Room Feature tool parity', () => {
       depth: 8.5,
       length: 60,
       rotation: 0,
+    });
+    expect(store.getState().session.interaction.preview).toMatchObject({
+      tool: 'roomWall',
+      startX: 80,
+      startY: 30,
+      rawLength: 0,
+    });
+  });
+
+  it('ignores an effectively zero-length second wall click instead of creating a default wall', () => {
+    const { store, tools } = setup();
+    const before = store.getState().project.layouts[0]?.roomFeatures.length ?? 0;
+
+    expect(tools.activateLocked('roomWall')).toBe(true);
+    tools.pointerDown(pointer(20, 30));
+    tools.pointerUp(pointer(20, 30, 0));
+    tools.pointerDown(pointer(20.05, 30.05));
+
+    expect(store.getState().project.layouts[0]?.roomFeatures).toHaveLength(before);
+    expect(store.getState().session.interaction.preview).toMatchObject({
+      startX: 20,
+      startY: 30,
     });
   });
 

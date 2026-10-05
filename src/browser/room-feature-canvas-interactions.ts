@@ -6,15 +6,7 @@ import type {
   ToolController,
   ToolPointerInput,
 } from '../app';
-import { rotateVector } from '../geometry';
-import {
-  createAnnotationCanvasProjection,
-  hitTestAnnotations,
-} from './annotation-canvas-model';
-import {
-  createPieceCanvasProjection,
-  hitTestPieceCanvas,
-} from './piece-canvas-model';
+import { clientPointToViewportPoint, rotateVector } from '../geometry';
 import {
   createRoomFeatureCanvasProjection,
   hitTestRoomFeatures,
@@ -104,14 +96,23 @@ export class RoomFeatureCanvasInteractions {
   private eventInput(event: PointerEvent): ToolPointerInput | null {
     const svg = this.svg;
     if (!svg) return null;
-    const rect = svg.getBoundingClientRect();
     const viewBox = svg.viewBox.baseVal;
-    if (rect.width <= 0 || rect.height <= 0) return null;
+    const point = clientPointToViewportPoint(
+      { x: event.clientX, y: event.clientY },
+      svg.getBoundingClientRect(),
+      {
+        x: viewBox.x,
+        y: viewBox.y,
+        w: viewBox.width,
+        h: viewBox.height,
+      },
+    );
+    if (!point) return null;
 
     return {
       pointerId: event.pointerId,
-      x: ((event.clientX - rect.left) / rect.width) * viewBox.width + viewBox.x,
-      y: ((event.clientY - rect.top) / rect.height) * viewBox.height + viewBox.y,
+      x: point.x,
+      y: point.y,
       button: event.button,
       buttons: event.buttons,
       modifiers: {
@@ -129,7 +130,12 @@ export class RoomFeatureCanvasInteractions {
   }
 
   private onPointerDown(event: PointerEvent): void {
-    if (this.tools.getActiveTool()) return;
+    const activeTool = this.tools.getActiveTool();
+    // v1.5.99 used Q to hand canvas interaction from Pieces to Room Features.
+    // Child placement tools own their own pointer lifecycle; the parent layer
+    // is the only active-tool state in which existing Room Features are edited.
+    if (activeTool?.id !== 'roomFeatures') return;
+
     const input = this.eventInput(event);
     if (!input || input.button !== 0) return;
     const target = event.target instanceof Element ? event.target : null;
@@ -170,13 +176,6 @@ export class RoomFeatureCanvasInteractions {
     const state = this.store.getState();
     if (state.session.workspace !== 'design') return;
     const point = { x: input.x, y: input.y };
-    const pieceProjection = createPieceCanvasProjection(state, []);
-    if (hitTestPieceCanvas(pieceProjection, point)) return;
-    const annotationProjection = createAnnotationCanvasProjection(state);
-    if (hitTestAnnotations(annotationProjection, point, pieceProjection.scale)) {
-      return;
-    }
-
     const roomFeature = hitTestRoomFeatures(
       createRoomFeatureCanvasProjection(state),
       point,
@@ -324,7 +323,11 @@ export class RoomFeatureCanvasInteractions {
       group.appendChild(outline);
     }
 
-    if (!this.tools.getActiveTool() && !this.interaction.hasActivePointer()) {
+    const activeTool = this.tools.getActiveTool();
+    if (
+      activeTool?.id === 'roomFeatures' &&
+      !this.interaction.hasActivePointer()
+    ) {
       const selected = projection.items.find((item) => item.selected && !item.preview);
       if (selected) this.renderHandles(document, group, selected, unit);
     }
