@@ -48,7 +48,7 @@ export class FloorPlanNavigatorSurface {
 
   mount(): void {
     if (this.mountElement) return;
-    const mount = this.root.querySelector<HTMLElement>('#lc-pieces');
+    const mount = this.root.querySelector<HTMLElement>('#lc-plan-nav, #lc-pieces');
     if (!mount) return;
     this.mountElement = mount;
     this.unsubscribe = this.effects.invalidation.subscribe((batch) => {
@@ -74,9 +74,6 @@ export class FloorPlanNavigatorSurface {
     const mount = this.mountElement;
     if (!mount || this.decorating) return;
 
-    // This decorator owns one child inside the same Navigator mount that it
-    // observes for external rerenders. Pause observation while replacing our
-    // own child so that remove/prepend cannot trigger an endless observer loop.
     this.observer?.disconnect();
     this.decorating = true;
     try {

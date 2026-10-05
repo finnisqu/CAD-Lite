@@ -1,0 +1,202 @@
+/* v1.5.99 Navigator hierarchy/disclosure parity. Presentation only: durable
+ * section state stays owned by ProductionShellSurface. */
+
+.cad-lite-production-shell__navigator >
+.cad-lite-production-shell__panel-title.cad-lite-production-shell__navigator-collapse-all {
+  display: flex;
+  min-height: 27px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 7px 9px;
+  cursor: pointer;
+  user-select: none;
+  font-size: 11px;
+  font-weight: 650;
+  line-height: 1;
+}
+
+.cad-lite-production-shell__navigator >
+.cad-lite-production-shell__panel-title.cad-lite-production-shell__navigator-collapse-all:focus-visible {
+  outline: 2px solid #60a5fa;
+  outline-offset: -2px;
+}
+
+.cad-lite-production-shell__navigator-collapse-all-icon {
+  flex: 0 0 auto;
+  font-size: 11px;
+  line-height: 1;
+  opacity: .62;
+  transition: transform .12s ease, opacity .12s ease;
+}
+
+.cad-lite-production-shell__navigator-collapse-all:hover
+.cad-lite-production-shell__navigator-collapse-all-icon {
+  opacity: 1;
+}
+
+.cad-lite-production-shell__navigator-collapse-all.is-collapsed-all
+.cad-lite-production-shell__navigator-collapse-all-icon {
+  transform: rotate(180deg);
+}
+
+/* v1.5.99 used the same disclosure language in Navigator and Inspector: a
+ * compact 25px row, quiet collapsed fill, lifted open fill, distinct hover. */
+.cad-lite-production-shell__navigator
+.cad-lite-production-shell__nav-section >
+.cad-lite-production-shell__section-head {
+  min-height: 25px;
+  padding: 0 6px 0 3px;
+  color: #2f3337;
+  background: #f8f9fa;
+  transition: background-color .12s ease, border-color .12s ease;
+}
+
+.cad-lite-production-shell__navigator
+.cad-lite-production-shell__nav-section.is-collapsed >
+.cad-lite-production-shell__section-head {
+  background: #e9edf1;
+}
+
+.cad-lite-production-shell__navigator
+.cad-lite-production-shell__nav-section >
+.cad-lite-production-shell__section-head:hover {
+  background: #dde3e8;
+}
+
+.cad-lite-production-shell__navigator .cad-lite-production-shell__section-toggle {
+  min-height: 25px !important;
+  padding: 5px 3px !important;
+}
+
+.cad-lite-production-shell__navigator .cad-lite-production-shell__section-title {
+  font-size: 9.5px;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: .035em;
+  text-transform: uppercase;
+}
+
+/* AREAS & PIECES is one Navigator section again, but the existing typed
+ * area/piece mounts remain distinct so their controllers keep ownership. */
+.cad-lite-production-shell__areas-pieces-body {
+  padding: 0 !important;
+}
+
+.cad-lite-production-shell__entity-zone + .cad-lite-production-shell__entity-zone {
+  border-top: 1px solid var(--lc-border, #d8dde3);
+}
+
+.cad-lite-production-shell__entity-zone-label {
+  padding: 5px 7px 3px;
+  color: var(--lc-muted, #6b7280);
+  font-size: 8.5px;
+  font-weight: 700;
+  line-height: 1.1;
+  letter-spacing: .055em;
+  text-transform: uppercase;
+}
+
+.cad-lite-production-shell__entity-zone > #lc-list,
+.cad-lite-production-shell__entity-zone > #lc-pieces {
+  padding: 0 4px 5px;
+}
+
+/* Feature-specific renderers keep owning their rows. The parity layer merely
+ * places those generated blocks inside top-level v1.5 Navigator sections. */
+.cad-lite-production-shell__dedicated-nav-body {
+  padding: 0 !important;
+}
+
+.cad-lite-production-shell__dedicated-nav-mount:empty::before {
+  display: block;
+  padding: 7px;
+  color: var(--lc-muted, #6b7280);
+  font-size: 9px;
+  content: 'None';
+}
+
+#lc-estimate-nav:empty::before {
+  content: 'Estimate controls will return in a later parity batch.';
+}
+
+.cad-lite-production-shell__dedicated-nav-mount >
+.lc-annotation-nav-section,
+.cad-lite-production-shell__dedicated-nav-mount >
+.lc-room-feature-nav-section,
+.cad-lite-production-shell__dedicated-nav-mount >
+.lc-floor-plan-nav {
+  margin: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+/* The outer Navigator section now owns the title. Keep inner visibility/action
+ * controls, but suppress duplicate generated headings. */
+#lc-notes-nav > .lc-annotation-nav-section > .lc-annotation-nav-header strong,
+#lc-dimensions-nav > .lc-annotation-nav-section > .lc-annotation-nav-header strong,
+#lc-lines-nav > .lc-annotation-nav-section > .lc-annotation-nav-header strong,
+#lc-room-features-nav > .lc-room-feature-nav-section > .lc-room-feature-nav-header strong,
+#lc-plan-nav > .lc-floor-plan-nav > .lc-annotation-nav-header {
+  display: none;
+}
+
+#lc-notes-nav > .lc-annotation-nav-section > .lc-annotation-nav-header,
+#lc-dimensions-nav > .lc-annotation-nav-section > .lc-annotation-nav-header,
+#lc-lines-nav > .lc-annotation-nav-section > .lc-annotation-nav-header,
+#lc-room-features-nav > .lc-room-feature-nav-section > .lc-room-feature-nav-header {
+  min-height: 0;
+  justify-content: flex-end;
+  padding: 3px 5px 2px;
+  border: 0;
+  background: transparent;
+}
+
+.cad-lite-production-shell__dedicated-nav-mount .lc-item.nav {
+  margin: 0 4px 3px;
+}
+
+.cad-lite-production-shell__dedicated-nav-mount .lc-room-feature-add-actions,
+.cad-lite-production-shell__dedicated-nav-mount .lc-floor-plan-nav-actions,
+.cad-lite-production-shell__dedicated-nav-mount .lc-floor-plan-geometry,
+.cad-lite-production-shell__dedicated-nav-mount .lc-floor-plan-nav-options,
+.cad-lite-production-shell__dedicated-nav-mount .lc-floor-plan-nav-empty,
+.cad-lite-production-shell__dedicated-nav-mount .lc-floor-plan-nav-identity,
+.cad-lite-production-shell__dedicated-nav-mount .lc-floor-plan-delete,
+.cad-lite-production-shell__dedicated-nav-mount .lc-plan-muted {
+  margin-left: 5px;
+  margin-right: 5px;
+}
+
+.cad-lite-production-shell[data-theme="dark"]
+.cad-lite-production-shell__navigator
+.cad-lite-production-shell__nav-section >
+.cad-lite-production-shell__section-head {
+  color: var(--lc-text);
+  background: #2d3238;
+}
+
+.cad-lite-production-shell[data-theme="dark"]
+.cad-lite-production-shell__navigator
+.cad-lite-production-shell__nav-section.is-collapsed >
+.cad-lite-production-shell__section-head {
+  background: #262a2f;
+}
+
+.cad-lite-production-shell[data-theme="dark"]
+.cad-lite-production-shell__navigator
+.cad-lite-production-shell__nav-section >
+.cad-lite-production-shell__section-head:hover {
+  background: #353b42;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cad-lite-production-shell__navigator-collapse-all-icon,
+  .cad-lite-production-shell__navigator
+  .cad-lite-production-shell__nav-section >
+  .cad-lite-production-shell__section-head {
+    transition: none;
+  }
+}
