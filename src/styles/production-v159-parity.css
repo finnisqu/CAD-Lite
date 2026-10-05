@@ -182,6 +182,241 @@
   font-size: 9px;
 }
 
+/* -------------------------------------------------------------------------
+ * v1.5.99 desktop menu hierarchy
+ * ---------------------------------------------------------------------- */
+
+.cad-lite-production-shell .lc-v159-menu-panel {
+  width: 280px !important;
+  min-width: 280px !important;
+  max-width: min(280px, calc(100vw - 16px)) !important;
+  max-height: none;
+  overflow: visible !important;
+  padding: 4px !important;
+  border-radius: 5px !important;
+  color: var(--lc-text);
+}
+
+.cad-lite-production-shell .lc-v159-menu-command {
+  display: grid !important;
+  grid-template-columns: 24px minmax(0, 1fr) auto !important;
+  align-items: center !important;
+  column-gap: 8px !important;
+  width: 100% !important;
+  min-height: 32px !important;
+  margin: 0 !important;
+  padding: 5px 7px !important;
+  border: 0 !important;
+  border-radius: 3px !important;
+  background: transparent !important;
+  color: var(--lc-text);
+  text-align: left !important;
+  font-size: 12px !important;
+  font-weight: 400 !important;
+  letter-spacing: 0 !important;
+}
+
+.cad-lite-production-shell .lc-v159-menu-command:hover:not(:disabled),
+.cad-lite-production-shell .lc-v159-submenu-host:hover > .lc-v159-submenu-trigger,
+.cad-lite-production-shell .lc-v159-submenu-host:focus-within > .lc-v159-submenu-trigger {
+  background: var(--lc-hover) !important;
+}
+
+.cad-lite-production-shell .lc-v159-menu-command:disabled {
+  color: color-mix(in srgb, var(--lc-muted) 58%, transparent) !important;
+  opacity: .62;
+}
+
+.lc-v159-menu-icon,
+.lc-v159-menu-check {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  min-width: 20px;
+  height: 20px;
+  color: var(--lc-muted);
+  font-size: 15px;
+  line-height: 1;
+}
+
+.lc-v159-menu-label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.lc-v159-menu-shortcut {
+  justify-self: end;
+  margin-left: 18px;
+  color: var(--lc-muted);
+  font-size: 10.5px;
+  white-space: nowrap;
+}
+
+.lc-v159-menu-chevron {
+  justify-self: end;
+  color: var(--lc-muted);
+  font-size: 17px;
+  line-height: 1;
+}
+
+.lc-v159-menu-separator {
+  height: 1px;
+  margin: 4px 0;
+  background: var(--lc-border);
+}
+
+.lc-v159-menu-section {
+  margin: 7px 8px 3px;
+  color: var(--lc-muted);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: .045em;
+}
+
+.lc-v159-submenu-host {
+  position: relative;
+  width: 100%;
+}
+
+.lc-v159-submenu-trigger {
+  cursor: default;
+}
+
+.lc-v159-submenu-panel {
+  position: absolute;
+  top: -4px;
+  left: calc(100% - 2px);
+  z-index: 80;
+  display: none;
+  width: 280px;
+  min-width: 280px;
+  max-width: min(280px, calc(100vw - 16px));
+  max-height: calc(100vh - 16px);
+  overflow: auto;
+  padding: 4px;
+  border: 1px solid var(--lc-border);
+  border-radius: 5px;
+  background: var(--lc-panel);
+  box-shadow: 0 8px 24px rgba(16, 24, 40, .16);
+}
+
+.lc-v159-submenu-host:hover > .lc-v159-submenu-panel,
+.lc-v159-submenu-host:focus-within > .lc-v159-submenu-panel {
+  display: block;
+}
+
+.lc-v159-toggle .lc-v159-menu-check::before {
+  content: '';
+  width: 13px;
+  height: 13px;
+  border: 1px solid var(--lc-selected-border);
+  border-radius: 2px;
+  background: var(--lc-panel);
+}
+
+.lc-v159-toggle.is-active .lc-v159-menu-check::before,
+.lc-v159-toggle[aria-pressed='true'] .lc-v159-menu-check::before {
+  content: '✓';
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-color: #1a73e8;
+  color: #fff;
+  background: #1a73e8;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.lc-v159-number-row,
+.lc-v159-select-row {
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) 84px 36px;
+  align-items: center;
+  gap: 7px !important;
+  min-height: 36px;
+  margin: 0 !important;
+  padding: 4px 7px;
+  color: var(--lc-text) !important;
+  font-size: 12px !important;
+}
+
+.lc-v159-number-row input {
+  width: 84px !important;
+  min-width: 84px;
+  height: 28px;
+  padding: 3px 7px !important;
+  font-size: 12px !important;
+}
+
+.lc-v159-number-unit {
+  width: 36px;
+  color: var(--lc-muted);
+  font-size: 10.5px;
+  white-space: nowrap;
+}
+
+.lc-v159-select-row {
+  grid-template-columns: minmax(0, 1fr) 124px;
+}
+
+.lc-v159-select-row select {
+  width: 124px !important;
+  height: 28px;
+  padding: 3px 6px !important;
+  font-size: 11px !important;
+}
+
+.lc-v159-segmented {
+  display: grid;
+  gap: 4px;
+  margin: 4px 5px 6px;
+}
+
+.lc-v159-segmented-three {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.lc-v159-segmented-two {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.cad-lite-production-shell .lc-v159-segmented > button {
+  display: flex;
+  min-width: 0;
+  min-height: 50px;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 5px 4px;
+  border: 1px solid var(--lc-border);
+  border-radius: 4px;
+  background: var(--lc-panel);
+  font-size: 14px;
+}
+
+.cad-lite-production-shell .lc-v159-segmented > button small {
+  font-size: 9px;
+  font-weight: 400;
+}
+
+.cad-lite-production-shell .lc-v159-segmented > button.is-active,
+.cad-lite-production-shell .lc-v159-segmented > button[aria-pressed='true'] {
+  border-color: #4285f4;
+  color: #0b57d0;
+  background: color-mix(in srgb, #e8f0fe 86%, var(--lc-panel));
+}
+
+.lc-v159-disabled-note {
+  margin: 5px 7px 7px;
+  color: var(--lc-muted);
+  font-size: 10px;
+  line-height: 1.35;
+}
+
 /* Theater mode keeps the same center-shell contract after flattening body. */
 .cad-lite-production-shell.is-theater {
   grid-template-columns: minmax(0, 1fr);
@@ -215,5 +450,10 @@
   .cad-lite-production-shell__topbar,
   .cad-lite-production-shell__workspace {
     grid-column: 1;
+  }
+
+  .lc-v159-submenu-panel {
+    left: auto;
+    right: 0;
   }
 }

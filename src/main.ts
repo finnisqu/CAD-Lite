@@ -1,3 +1,4 @@
+import './browser/production-menu-parity';
 import './styles/index.css';
 import './styles/production-shell.css';
 import './styles/production-inspector.css';
