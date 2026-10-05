@@ -1,34 +1,23 @@
+import { geometryKernel } from './engine';
 import { rotatedRectBoundingSize } from './rectangle';
 import type { Point, XYWHRect } from './types';
-import { rotateVector } from './vector';
 
 /**
  * Shortest Euclidean distance from a point to a finite line segment.
+ * Backed by the active computational geometry kernel.
  */
 export function distancePointToSegment(
   point: Point,
   a: Point,
   b: Point,
 ): number {
-  const dx = b.x - a.x;
-  const dy = b.y - a.y;
-  const length2 = dx * dx + dy * dy;
-  if (length2 <= 1e-12) {
-    return Math.hypot(point.x - a.x, point.y - a.y);
-  }
-
-  const t = Math.max(
-    0,
-    Math.min(1, ((point.x - a.x) * dx + (point.y - a.y) * dy) / length2),
-  );
-  return Math.hypot(
-    point.x - (a.x + dx * t),
-    point.y - (a.y + dy * t),
-  );
+  return geometryKernel.pointSegmentDistance(point, a, b);
 }
 
 /**
  * Exact inclusive point containment for an axis-aligned XYWH rectangle.
+ * This remains local because CAD Lite intentionally requires exact edge
+ * inclusion rather than a kernel-specific floating tolerance.
  */
 export function xywhRectContainsPoint(
   rect: XYWHRect,
@@ -50,15 +39,11 @@ export function rotatePointAround(
   center: Point,
   degrees: unknown,
 ): Point {
-  const offset = rotateVector(
-    point.x - center.x,
-    point.y - center.y,
-    degrees,
+  return geometryKernel.rotatePointAround(
+    point,
+    center,
+    Number(degrees) || 0,
   );
-  return {
-    x: center.x + offset.x,
-    y: center.y + offset.y,
-  };
 }
 
 /**
