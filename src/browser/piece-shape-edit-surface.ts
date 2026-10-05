@@ -152,18 +152,11 @@ export function resolvePieceShapeSnapPoint(
 ): { point: Point; target: PieceShapeSnapTarget | null } {
   const scale = Math.max(0.001, Math.abs(options.scale || 1));
   const tolerance = (options.acquirePx ?? SNAP_ACQUIRE_PX) / scale;
-  let best: { target: PieceShapeSnapTarget; distance: number } | null = null;
+  const candidates: Array<{ target: PieceShapeSnapTarget; distance: number }> = [];
 
   const consider = (target: PieceShapeSnapTarget): void => {
     const distance = distanceBetween(point, target.point);
-    if (distance > tolerance) return;
-    if (
-      !best ||
-      target.priority < best.target.priority ||
-      (target.priority === best.target.priority && distance < best.distance)
-    ) {
-      best = { target, distance };
-    }
+    if (distance <= tolerance) candidates.push({ target, distance });
   };
 
   if (options.pieceSnap) {
@@ -183,6 +176,18 @@ export function resolvePieceShapeSnapPoint(
       });
     });
   }
+
+  const best = candidates.reduce<
+    { target: PieceShapeSnapTarget; distance: number } | null
+  >((current, candidate) => {
+    if (!current) return candidate;
+    if (candidate.target.priority !== current.target.priority) {
+      return candidate.target.priority < current.target.priority
+        ? candidate
+        : current;
+    }
+    return candidate.distance < current.distance ? candidate : current;
+  }, null);
 
   if (best) return { point: { ...best.target.point }, target: best.target };
 
