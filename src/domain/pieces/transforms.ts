@@ -3,6 +3,7 @@ import { rotateVector, rotatedRectBoundingSize } from '../../geometry';
 import type { Layout } from '../project/types';
 import { cloneJson } from '../types';
 import { pieceGeometry, piecePose } from './factory';
+import { mirrorPieceFabricationShape } from './fabrication-shape';
 import { mirrorPieceSink } from './sinks';
 import {
   clampPiecePoseToWorkspace,
@@ -354,6 +355,13 @@ function mirrorPieceLocal(
           : seam.reference,
     }));
   }
+
+  piece.fabricationShape = mirrorPieceFabricationShape(
+    piece.fabricationShape,
+    piece.w,
+    piece.h,
+    axis,
+  );
 
   piece.sinks = piece.sinks.map((sink) =>
     mirrorPieceSink(piece, sink, axis));
