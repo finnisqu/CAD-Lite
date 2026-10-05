@@ -2,7 +2,6 @@ import type {
   CanvasSelectionActions,
   SelectionController,
 } from '../app';
-import { mountProductionNavigatorParity } from './production-navigator-parity';
 
 export interface ProductionShellSurfaceOptions {
   root: ParentNode;
@@ -111,10 +110,6 @@ export class ProductionShellSurface {
     this.abort = new AbortController();
     const signal = this.abort.signal;
     const document = ownerDocument(this.root);
-
-    // Re-home the typed v1.6 Navigator content into the mature production
-    // information architecture before disclosure listeners are registered.
-    mountProductionNavigatorParity(shell, signal);
 
     const menus = Array.from(
       shell.querySelectorAll<HTMLElement>('[data-cad-lite-menu]'),
