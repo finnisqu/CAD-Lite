@@ -1,0 +1,32 @@
+.cad-lite-production-shell__menu-panel > [data-piece-shape-tools] > button {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  min-height: 31px;
+  padding: 6px 7px;
+  border: 0;
+  border-radius: 5px;
+  background: transparent;
+  text-align: left;
+  font-size: 12px;
+}
+
+.cad-lite-production-shell__menu-panel > [data-piece-shape-tools] > button.is-active::after {
+  content: "✓";
+  margin-left: auto;
+  color: var(--lc-muted);
+  font-weight: 700;
+}
+
+.cad-lite-production-shell__menu-panel > [data-piece-shape-tools] > button:hover:not(:disabled) {
+  background: var(--lc-hover);
+}
+
+.cad-lite-production-shell__menu-panel > [data-piece-shape-tools] > button:disabled {
+  color: var(--lc-muted);
+  opacity: .55;
+  cursor: not-allowed;
+}
