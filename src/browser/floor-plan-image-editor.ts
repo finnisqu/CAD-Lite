@@ -10,8 +10,10 @@ type Point = { x: number; y: number };
 type Crop = { x: number; y: number; w: number; h: number };
 type EditorMode = 'crop' | 'level' | 'erase';
 
+const FLOOR_PLAN_EDITOR_HISTORY_LIMIT = 10;
+
 interface EditorSnapshot {
-  canvas: HTMLCanvasElement;
+  image: string;
   crop: Crop;
   cropFocused: boolean;
   transformed: boolean;
@@ -193,6 +195,7 @@ export async function openFloorPlanImageEditor(
     | null = null;
   const history: EditorSnapshot[] = [];
   let historyIndex = -1;
+  let historyBusy = false;
   const controls: EditorControls = {
     undo: null,
     redo: null,
@@ -252,33 +255,50 @@ export async function openFloorPlanImageEditor(
     return true;
   };
 
-  const restore = (snapshot: EditorSnapshot): void => {
-    work = cloneCanvas(snapshot.canvas);
-    crop = clampCrop(snapshot.crop, work);
-    cropFocused = snapshot.cropFocused;
-    transformed = snapshot.transformed;
-    pointer = null;
-    levelLine = null;
-    eraseBase = null;
-  };
-
   const syncHistoryButtons = (): void => {
-    if (controls.undo) controls.undo.disabled = historyIndex <= 0;
+    if (controls.undo) {
+      controls.undo.disabled = historyBusy || historyIndex <= 0;
+    }
     if (controls.redo) {
-      controls.redo.disabled = historyIndex >= history.length - 1;
+      controls.redo.disabled =
+        historyBusy || historyIndex >= history.length - 1;
     }
   };
 
   const pushHistory = (): void => {
+    if (historyBusy) return;
     history.splice(historyIndex + 1);
     history.push({
-      canvas: cloneCanvas(work),
+      image: work.toDataURL('image/png'),
       crop: { ...crop },
       cropFocused,
       transformed,
     });
+    if (history.length > FLOOR_PLAN_EDITOR_HISTORY_LIMIT) history.shift();
     historyIndex = history.length - 1;
     syncHistoryButtons();
+  };
+
+  const restoreHistory = async (index: number): Promise<void> => {
+    if (historyBusy || index < 0 || index >= history.length) return;
+    historyBusy = true;
+    syncHistoryButtons();
+    try {
+      const snapshot = history[index]!;
+      const restored = await loadImage(options.document, snapshot.image);
+      work = imageToCanvas(restored, 3200);
+      crop = clampCrop(snapshot.crop, work);
+      cropFocused = snapshot.cropFocused;
+      transformed = snapshot.transformed;
+      pointer = null;
+      levelLine = null;
+      eraseBase = null;
+      historyIndex = index;
+      render();
+    } finally {
+      historyBusy = false;
+      syncHistoryButtons();
+    }
   };
 
   const render = (): void => {
@@ -454,18 +474,10 @@ export async function openFloorPlanImageEditor(
   };
 
   const undo = createFloorPlanButton(options.document, 'Undo', () => {
-    if (historyIndex <= 0) return;
-    historyIndex -= 1;
-    restore(history[historyIndex]!);
-    syncHistoryButtons();
-    render();
+    void restoreHistory(historyIndex - 1);
   });
   const redo = createFloorPlanButton(options.document, 'Redo', () => {
-    if (historyIndex >= history.length - 1) return;
-    historyIndex += 1;
-    restore(history[historyIndex]!);
-    syncHistoryButtons();
-    render();
+    void restoreHistory(historyIndex + 1);
   });
   controls.undo = undo;
   controls.redo = redo;
