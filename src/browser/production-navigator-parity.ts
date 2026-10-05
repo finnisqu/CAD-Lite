@@ -272,6 +272,13 @@ export function mountProductionNavigatorParity(
     else navigator.append(target.section);
   });
 
+  // Floor-plan controls own their own PLAN section. Keep that section after
+  // Room Features and completely outside the Areas & Pieces entity tree.
+  const plan = navigator.querySelector<HTMLElement>(
+    '[data-cad-lite-nav-section="plan"]',
+  );
+  if (plan && selections) navigator.insertBefore(plan, selections);
+
   const decorate = (): void => {
     const annotationRoots = Array.from(
       prepared.pieceMount.querySelectorAll<HTMLElement>(
