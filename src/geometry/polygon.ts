@@ -1,3 +1,4 @@
+import { geometryKernel } from './engine';
 import type { Axis, Point, Projection } from './types';
 
 export function polygonCenter(polygon: readonly Point[]): Point {
@@ -52,6 +53,10 @@ export function projectPolygon(polygon: readonly Point[], axis: Axis): Projectio
  *
  * Touching edges are intentionally not considered overlap. CAD Lite uses
  * explicit cut-clearance rules for required fabrication spacing.
+ *
+ * This remains a CAD Lite policy calculation for now rather than a kernel
+ * primitive because the epsilon represents fabrication clearance semantics,
+ * not merely topological polygon intersection.
  */
 export function convexPolygonsOverlap(
   a: readonly Point[],
@@ -75,48 +80,34 @@ export function convexPolygonsOverlap(
   return true;
 }
 
+/**
+ * Computational point-to-segment distance supplied by the active geometry
+ * kernel. The plain Point API remains unchanged for CAD Lite callers.
+ */
 export function pointSegmentDistance(point: Point, a: Point, b: Point): number {
-  const vectorX = b.x - a.x;
-  const vectorY = b.y - a.y;
-  const lengthSquared = vectorX * vectorX + vectorY * vectorY;
-
-  if (lengthSquared <= 1e-12) {
-    return Math.hypot(point.x - a.x, point.y - a.y);
-  }
-
-  const t = Math.max(
-    0,
-    Math.min(
-      1,
-      ((point.x - a.x) * vectorX + (point.y - a.y) * vectorY) / lengthSquared,
-    ),
-  );
-
-  return Math.hypot(
-    point.x - (a.x + vectorX * t),
-    point.y - (a.y + vectorY * t),
-  );
+  return geometryKernel.pointSegmentDistance(point, a, b);
 }
 
+/**
+ * Distance between polygonal CAD entities. Overlap/containment returns zero.
+ */
 export function polygonDistance(a: readonly Point[], b: readonly Point[]): number {
   if (convexPolygonsOverlap(a, b)) return 0;
+  return geometryKernel.polygonDistance(a, b);
+}
 
-  let best = Infinity;
+export function polygonContainsPoint(
+  polygon: readonly Point[],
+  point: Point,
+): boolean {
+  return geometryKernel.polygonContainsPoint(polygon, point);
+}
 
-  const scan = (points: readonly Point[], edges: readonly Point[]): void => {
-    points.forEach((point) => {
-      for (let index = 0; index < edges.length; index += 1) {
-        const edgeA = edges[index];
-        const edgeB = edges[(index + 1) % edges.length];
-        if (!edgeA || !edgeB) continue;
-
-        best = Math.min(best, pointSegmentDistance(point, edgeA, edgeB));
-      }
-    });
-  };
-
-  scan(a, b);
-  scan(b, a);
-
-  return best;
+export function segmentIntersections(
+  a: Point,
+  b: Point,
+  c: Point,
+  d: Point,
+): Point[] {
+  return geometryKernel.segmentIntersections(a, b, c, d);
 }
