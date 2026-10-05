@@ -1,5 +1,7 @@
 export * from './constraints';
+export * from './engine';
 export * from './hit-testing';
+export type { GeometryKernel, GeometryKernelInfo } from './kernel';
 export * from './polygon';
 export * from './rectangle';
 export * from './snapping';
