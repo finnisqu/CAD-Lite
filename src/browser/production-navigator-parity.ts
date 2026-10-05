@@ -69,8 +69,6 @@ const ADD_TOOL_PROXIES: ReadonlyArray<{
   { mountId: 'lc-lines-nav', label: '+ Add Line', target: '#lc-tool-line' },
 ];
 
-const RENDERER_MOUNT_SELECTORS = ['#lc-layouts', '#lc-list', '#lc-pieces'] as const;
-
 export function shouldCollapseProductionNavigator(
   expandedStates: readonly boolean[],
 ): boolean {
@@ -221,7 +219,6 @@ function ensureAreasAndPiecesSection(nav: HTMLElement): void {
   if (!sameElementOrder(addRow, [addPiece, addArea])) {
     addRow.replaceChildren(addPiece, addArea);
   }
-
   if (!sameElementOrder(body, [addRow, areaList, pieceList])) {
     body.replaceChildren(addRow, areaList, pieceList);
   }
@@ -270,14 +267,12 @@ function reorderSections(nav: HTMLElement): void {
     const section = sectionByKey(nav, key);
     return section ? [section] : [];
   });
-
   if (
     current.length === desired.length &&
     desired.every((section, index) => current[index] === section)
   ) {
     return;
   }
-
   desired.forEach((section) => nav.appendChild(section));
 }
 
@@ -334,7 +329,6 @@ function installHeaderVisibility(
   control.title = `${visible ? 'Hide' : 'Show'} ${label}`;
   control.setAttribute('aria-label', control.title);
   control.setAttribute('aria-pressed', String(visible));
-
   if (
     actions.childElementCount !== 1 ||
     actions.firstElementChild !== control
@@ -390,10 +384,8 @@ function syncGeneratedNavigatorBlocks(nav: HTMLElement): void {
       block.textContent ?? '',
     );
     if (!key) return;
-
     const destination = dedicatedMountForKey(nav, key);
     if (!destination) return;
-
     const prior = generatedBlockInMount(destination, key);
     if (prior && prior !== block) prior.replaceWith(block);
     else if (block.parentElement !== destination) destination.appendChild(block);
@@ -484,7 +476,6 @@ function decoratePieceRows(nav: HTMLElement): void {
       ':scope > button[data-piece-group-header]',
     ),
   );
-
   groupHeaders.forEach((header, index) => {
     const groupId = header.dataset.pieceGroupHeader;
     if (!groupId) return;
@@ -546,7 +537,6 @@ function decoratePieceRows(nav: HTMLElement): void {
         null;
       return;
     }
-
     const pieceButton = child.matches('button[data-piece-id]')
       ? (child as HTMLButtonElement)
       : null;
@@ -562,7 +552,6 @@ function decoratePieceRows(nav: HTMLElement): void {
   pieces.forEach((piece) => {
     const pieceId = piece.dataset.pieceId;
     if (!pieceId) return;
-
     const wrapper = mount.ownerDocument.createElement('div');
     wrapper.className = 'lc-v159-piece-row';
     if (piece.classList.contains('lc-piece-grouped')) {
@@ -573,7 +562,6 @@ function decoratePieceRows(nav: HTMLElement): void {
     }
     const accent = piece.style.getPropertyValue('--piece-group-accent');
     if (accent) setAccent(wrapper, accent);
-
     mount.insertBefore(wrapper, piece);
     wrapper.appendChild(piece);
 
@@ -618,7 +606,6 @@ function syncSectionCounts(nav: HTMLElement): void {
       `Layouts (${nav.querySelectorAll('#lc-layouts [data-layout-id]').length})`,
     );
   }
-
   const areasPieces = sectionByKey(nav, 'areas-pieces');
   if (areasPieces) {
     setSectionTitle(
@@ -628,50 +615,15 @@ function syncSectionCounts(nav: HTMLElement): void {
   }
 }
 
-function observeRendererMounts(
-  nav: HTMLElement,
-  observer: MutationObserver,
-): void {
-  RENDERER_MOUNT_SELECTORS.forEach((selector) => {
-    const mount = nav.querySelector<HTMLElement>(selector);
-    if (mount) observer.observe(mount, { childList: true });
-  });
-}
-
-function syncNavigator(
-  nav: HTMLElement,
-  observer?: MutationObserver,
-): void {
-  observer?.disconnect();
-  try {
-    ensureLayoutsAddRow(nav);
-    ensureAreasAndPiecesSection(nav);
-    ensureDedicatedSections(nav);
-    ensureAddToolProxies(nav);
-    reorderSections(nav);
-    syncGeneratedNavigatorBlocks(nav);
-    decoratePieceRows(nav);
-    syncSectionCounts(nav);
-  } finally {
-    if (observer) observeRendererMounts(nav, observer);
-  }
-}
-
-function installGeneratedSectionRelocator(
-  nav: HTMLElement,
-): MutationObserver | null {
-  if (typeof MutationObserver === 'undefined') return null;
-  let queued = false;
-  const observer = new MutationObserver(() => {
-    if (queued) return;
-    queued = true;
-    queueMicrotask(() => {
-      queued = false;
-      syncNavigator(nav, observer);
-    });
-  });
-  observeRendererMounts(nav, observer);
-  return observer;
+function syncNavigator(nav: HTMLElement): void {
+  ensureLayoutsAddRow(nav);
+  ensureAreasAndPiecesSection(nav);
+  ensureDedicatedSections(nav);
+  ensureAddToolProxies(nav);
+  reorderSections(nav);
+  syncGeneratedNavigatorBlocks(nav);
+  decoratePieceRows(nav);
+  syncSectionCounts(nav);
 }
 
 function installCollapseAll(nav: HTMLElement): void {
@@ -698,7 +650,6 @@ function installCollapseAll(nav: HTMLElement): void {
     Array.from(
       nav.querySelectorAll<HTMLButtonElement>('[data-cad-lite-section-toggle]'),
     );
-
   const syncHeader = (): void => {
     const states = toggles().map(
       (toggle) => toggle.getAttribute('aria-expanded') === 'true',
@@ -707,7 +658,6 @@ function installCollapseAll(nav: HTMLElement): void {
     title.classList.toggle('is-collapsed-all', !collapse);
     title.setAttribute('aria-expanded', String(collapse));
   };
-
   const toggleAll = (): void => {
     const controls = toggles();
     const collapse = shouldCollapseProductionNavigator(
@@ -743,21 +693,22 @@ function installCollapseAll(nav: HTMLElement): void {
   syncHeader();
 }
 
+export function refreshProductionNavigatorParity(
+  root: ParentNode = document,
+): void {
+  const nav = navigatorRoot(root);
+  if (!nav) return;
+  syncNavigator(nav);
+}
+
 export function applyProductionNavigatorParity(
   root: ParentNode = document,
 ): void {
   const nav = navigatorRoot(root);
   if (!nav || nav.dataset.cadLiteNavigatorParity === '1') return;
   nav.dataset.cadLiteNavigatorParity = '1';
-
-  ensureLayoutsAddRow(nav);
-  ensureAreasAndPiecesSection(nav);
-  ensureDedicatedSections(nav);
-  ensureAddToolProxies(nav);
-  reorderSections(nav);
+  syncNavigator(nav);
   installCollapseAll(nav);
-  const observer = installGeneratedSectionRelocator(nav);
-  syncNavigator(nav, observer ?? undefined);
 }
 
 if (typeof document !== 'undefined') {
