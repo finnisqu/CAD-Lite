@@ -45,13 +45,31 @@ function hasChanges(changed: ChangedDomains): boolean {
   return changed.project || changed.session || changed.preferences;
 }
 
+function withActiveLayoutInvariant(state: ApplicationState): ApplicationState {
+  const currentId = state.session.activeLayoutId;
+  const activeExists =
+    currentId !== null &&
+    state.project.layouts.some((layout) => layout.id === currentId);
+  if (activeExists || state.project.layouts.length === 0) return state;
+
+  const fallback = state.project.layouts[0];
+  if (!fallback) return state;
+  return {
+    ...state,
+    session: {
+      ...state.session,
+      activeLayoutId: fallback.id,
+    },
+  };
+}
+
 export class AppStore {
   private state: ApplicationState;
   private revision = 0;
   private readonly listeners = new Set<StoreListener>();
 
   constructor(initialState: ApplicationState) {
-    this.state = initialState;
+    this.state = withActiveLayoutInvariant(initialState);
   }
 
   getState(): ReadonlyApplicationState {
@@ -74,11 +92,12 @@ export class AppStore {
     metadata: StoreCommitMetadata,
   ): StoreChangeEvent | null {
     const previous = this.state;
-    const changed = changedDomains(previous, nextState);
+    const reconciled = withActiveLayoutInvariant(nextState);
+    const changed = changedDomains(previous, reconciled);
 
     if (!hasChanges(changed)) return null;
 
-    this.state = nextState;
+    this.state = reconciled;
     this.revision += 1;
 
     const event: StoreChangeEvent = {
@@ -86,7 +105,7 @@ export class AppStore {
       revision: this.revision,
       changed,
       previous,
-      current: nextState,
+      current: reconciled,
     };
 
     this.listeners.forEach((listener) => listener(event));
