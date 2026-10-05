@@ -193,9 +193,76 @@ function segmentHandler(
   tool: 'dimension' | 'line',
   createId: AnnotationIdFactory,
 ): ToolHandler {
+  const endpoint = (
+    context: ToolHandlerContext,
+    preview: AnnotationSegmentPreview,
+    input: ToolPointerInput,
+  ): AnnotationPoint =>
+    constrain(
+      { x: preview.x1, y: preview.y1 },
+      snapPoint(context, input),
+      input.modifiers.shift,
+    );
+
+  const finish = (
+    context: ToolHandlerContext,
+    preview: AnnotationSegmentPreview,
+    input: ToolPointerInput,
+  ) => {
+    const layout = activeLayout(context.state);
+    if (!layout) return { preview: null };
+
+    const end = endpoint(context, preview, input);
+    const start = { x: preview.x1, y: preview.y1 };
+    if (Math.hypot(end.x - start.x, end.y - start.y) < 0.001) {
+      return {
+        preview: {
+          ...preview,
+          x2: end.x,
+          y2: end.y,
+        },
+      };
+    }
+
+    const command =
+      tool === 'dimension'
+        ? addDimension(
+            layout.id,
+            createDimensionAnnotation(
+              createId('dimension'),
+              start,
+              end,
+            ),
+          )
+        : addDrawingLine(
+            layout.id,
+            createDrawingLine(
+              createId('line'),
+              start,
+              end,
+            ),
+          );
+
+    return {
+      preview: null,
+      commands: [command],
+      transactionLabel:
+        tool === 'dimension' ? 'Add dimension' : 'Add line',
+    };
+  };
+
   return {
     onPointerDown(context, input) {
       if (input.button !== 0 || !activeLayout(context.state)) return;
+
+      const existing = segmentPreview(context);
+      if (existing?.tool === tool) {
+        // Production CAD Lite uses true point-click creation: click one parks
+        // the start point, click two commits the endpoint. Pointer travel while
+        // the button is held must never turn the first click into drag-release.
+        return finish(context, existing, input);
+      }
+
       const start = snapPoint(context, input);
       return {
         preview: {
@@ -211,11 +278,7 @@ function segmentHandler(
     onPointerMove(context, input) {
       const preview = segmentPreview(context);
       if (!preview || preview.tool !== tool) return;
-      const end = constrain(
-        { x: preview.x1, y: preview.y1 },
-        snapPoint(context, input),
-        input.modifiers.shift,
-      );
+      const end = endpoint(context, preview, input);
       return {
         preview: {
           ...preview,
@@ -226,45 +289,19 @@ function segmentHandler(
     },
     onPointerUp(context, input) {
       const preview = segmentPreview(context);
-      const layout = activeLayout(context.state);
-      if (!preview || preview.tool !== tool || !layout) {
+      if (!preview || preview.tool !== tool || !activeLayout(context.state)) {
         return { preview: null };
       }
 
-      const end = constrain(
-        { x: preview.x1, y: preview.y1 },
-        snapPoint(context, input),
-        input.modifiers.shift,
-      );
-      const start = { x: preview.x1, y: preview.y1 };
-      if (Math.hypot(end.x - start.x, end.y - start.y) < 0.001) {
-        return { preview: null };
-      }
-
-      const command =
-        tool === 'dimension'
-          ? addDimension(
-              layout.id,
-              createDimensionAnnotation(
-                createId('dimension'),
-                start,
-                end,
-              ),
-            )
-          : addDrawingLine(
-              layout.id,
-              createDrawingLine(
-                createId('line'),
-                start,
-                end,
-              ),
-            );
-
+      // Releasing the pointer only updates the live preview. Completion is
+      // owned exclusively by the next pointer-down, matching v1.5.99 behavior.
+      const end = endpoint(context, preview, input);
       return {
-        preview: null,
-        commands: [command],
-        transactionLabel:
-          tool === 'dimension' ? 'Add dimension' : 'Add line',
+        preview: {
+          ...preview,
+          x2: end.x,
+          y2: end.y,
+        },
       };
     },
   };

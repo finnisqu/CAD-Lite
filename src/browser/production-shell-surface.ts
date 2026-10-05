@@ -2,6 +2,7 @@ import type {
   CanvasSelectionActions,
   SelectionController,
 } from '../app';
+import { mountProductionNavigatorParity } from './production-navigator-parity';
 
 export interface ProductionShellSurfaceOptions {
   root: ParentNode;
@@ -110,6 +111,11 @@ export class ProductionShellSurface {
     this.abort = new AbortController();
     const signal = this.abort.signal;
     const document = ownerDocument(this.root);
+
+    // Re-home the typed v1.6 Navigator content into the mature production
+    // information architecture before disclosure listeners are registered.
+    mountProductionNavigatorParity(shell, signal);
+
     const menus = Array.from(
       shell.querySelectorAll<HTMLElement>('[data-cad-lite-menu]'),
     );
@@ -169,17 +175,49 @@ export class ProductionShellSurface {
       button.setAttribute('aria-controls', panel.id);
 
       setOpen(menu, false);
+
+      // Production menus are hover/focus flyouts only. Clicking a trigger no
+      // longer pins a panel open, which removes the ambiguous click-mode state
+      // and guarantees that sibling flyouts cannot overlap.
+      menu.addEventListener(
+        'pointerenter',
+        () => {
+          closeAll(menu);
+          setOpen(menu, true);
+        },
+        { signal },
+      );
+      menu.addEventListener(
+        'pointerleave',
+        () => setOpen(menu, false),
+        { signal },
+      );
+      menu.addEventListener(
+        'focusin',
+        () => {
+          closeAll(menu);
+          setOpen(menu, true);
+        },
+        { signal },
+      );
+      menu.addEventListener(
+        'focusout',
+        (event) => {
+          const next = event.relatedTarget;
+          if (next instanceof Node && menu.contains(next)) return;
+          setOpen(menu, false);
+        },
+        { signal },
+      );
       button.addEventListener(
         'click',
         (event) => {
           event.preventDefault();
           event.stopPropagation();
-          const open = panel.hidden !== false;
-          closeAll(menu);
-          setOpen(menu, open);
         },
         { signal },
       );
+
       panel.addEventListener(
         'click',
         (event) => {

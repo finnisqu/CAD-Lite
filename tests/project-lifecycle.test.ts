@@ -210,20 +210,37 @@ describe('project file lifecycle', () => {
     expect(store.getState()).toBe(stateBefore);
   });
 
-  it('starts a blank project while preserving durable editor preferences', () => {
+  it('starts a blank project with one empty layout while preserving durable editor preferences', () => {
     const { store, storage, effects, lifecycle } = setup();
     const preferencesBefore = store.getState().preferences;
 
     const result = lifecycle.resetProject();
+    const state = store.getState();
+    const layout = state.project.layouts[0];
 
     expect(result.autosaved).toBe(true);
-    expect(store.getState().project.layouts).toEqual([]);
-    expect(store.getState().project.materials).toEqual([]);
-    expect(store.getState().project.meta.name).toBe('');
-    expect(store.getState().session.activeLayoutId).toBeNull();
-    expect(store.getState().session.workspace).toBe('design');
-    expect(store.getState().session.selection).toEqual({ kind: 'none' });
-    expect(store.getState().preferences).toEqual(preferencesBefore);
+    expect(state.project.layouts).toHaveLength(1);
+    expect(layout).toMatchObject({
+      name: 'Layout 1',
+      quantity: 1,
+      pieces: [],
+      dims: [],
+      notes: [],
+      lines: [],
+      roomFeatures: [],
+      plan: null,
+      overlays: [],
+    });
+    expect(layout?.areas).toEqual([
+      { id: 'migrated-layout-1-area-1', name: 'Area 1' },
+    ]);
+    expect(layout?.activeAreaId).toBe('migrated-layout-1-area-1');
+    expect(state.project.materials).toEqual([]);
+    expect(state.project.meta.name).toBe('');
+    expect(state.session.activeLayoutId).toBe(layout?.id);
+    expect(state.session.workspace).toBe('design');
+    expect(state.session.selection).toEqual({ kind: 'none' });
+    expect(state.preferences).toEqual(preferencesBefore);
     expect(effects.history.getStatus().size).toBe(1);
     expect(storage.writes).toBe(1);
   });

@@ -186,6 +186,10 @@ export function normalizeProjectState(raw: unknown): ProjectState {
     ? source.layouts.map((layout, index) => normalizeLayout(layout, index))
     : [];
 
+  if (layouts.length === 0) {
+    layouts.push(normalizeLayout({}, 0));
+  }
+
   return {
     meta: normalizeProjectMeta(source.meta),
     materials: Array.isArray(source.materials)
