@@ -101,6 +101,40 @@ describe('Batch 21 annotation tool interactions', () => {
     unregister.forEach((fn) => fn());
   });
 
+  it('creates a Line with first-point / second-point clicks', () => {
+    const { store, tools, unregister } = setup();
+    expect(tools.activateLocked('line')).toBe(true);
+
+    expect(tools.pointerDown(pointer(14.2, 14.2))).toBe(true);
+    expect(tools.pointerUp(pointer(14.2, 14.2, { buttons: 0 }))).toBe(true);
+
+    const parked = store.getState().session.interaction.preview;
+    expect(parked).toMatchObject({
+      kind: 'annotation-segment',
+      tool: 'line',
+      x1: 14,
+      y1: 14,
+    });
+
+    expect(tools.pointerMove(pointer(28.2, 19.2, { buttons: 0 }))).toBe(true);
+    expect(tools.pointerDown(pointer(28.2, 19.2))).toBe(true);
+    expect(tools.pointerUp(pointer(28.2, 19.2, { buttons: 0 }))).toBe(true);
+
+    const created = store
+      .getState()
+      .project.layouts[0]!
+      .lines.find((item) => item.id === 'line-test-1');
+    expect(created).toMatchObject({
+      x1: 14,
+      y1: 14,
+      x2: 28,
+      y2: 19,
+    });
+    expect(store.getState().session.interaction.preview).toBeNull();
+
+    unregister.forEach((fn) => fn());
+  });
+
   it('rejects a zero-length Line and keeps the graph unchanged', () => {
     const { store, tools, unregister } = setup();
     const before = store.getState().project.layouts[0]!.lines.length;
