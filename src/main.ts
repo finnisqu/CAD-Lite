@@ -1,5 +1,6 @@
 import './styles/index.css';
 import './styles/production-shell.css';
+import './styles/production-navigator-parity.css';
 import './styles/production-inspector.css';
 import './styles/production-inspector-accordion.css';
 import './styles/production-piece-properties.css';
