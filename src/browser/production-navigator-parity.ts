@@ -339,7 +339,9 @@ function decoratePieceRows(nav: HTMLElement): void {
     if (header.parentElement?.classList.contains('lc-v159-group-row')) return;
     const groupId = header.dataset.pieceGroupHeader;
     if (!groupId) return;
-    const accent = PIECE_GROUP_ACCENTS[index % PIECE_GROUP_ACCENTS.length];
+    const accent =
+      PIECE_GROUP_ACCENTS[index % PIECE_GROUP_ACCENTS.length] ??
+      PIECE_GROUP_ACCENTS[0];
     setAccent(header, accent);
 
     const wrapper = mount.ownerDocument.createElement('div');
