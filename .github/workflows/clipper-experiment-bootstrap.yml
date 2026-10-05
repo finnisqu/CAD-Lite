@@ -1,0 +1,34 @@
+name: Bootstrap Clipper geometry experiment
+
+on:
+  push:
+    branches:
+      - experiment/flatten-geometry-engine
+
+permissions:
+  contents: write
+
+jobs:
+  dependency:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Pin npm
+        run: npm install --global npm@11.20.0
+      - name: Add Clipper dependency and refresh lockfile
+        run: npm install --save-exact js-angusj-clipper@1.3.1
+      - name: Commit generated manifests
+        run: |
+          if git diff --quiet -- package.json package-lock.json; then
+            echo "Dependency manifests already current."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add package.json package-lock.json
+          git commit -m "chore: add Clipper topology dependency"
+          git push origin HEAD:experiment/flatten-geometry-engine
