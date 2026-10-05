@@ -29,6 +29,7 @@ export class FloorPlanNavigatorSurface {
   private readonly onDistanceCalibration: (() => void) | null;
   private readonly onSquareCalibration: (() => void) | null;
   private mountElement: HTMLElement | null = null;
+  private createdSection: HTMLElement | null = null;
   private observer: MutationObserver | null = null;
   private unsubscribe: (() => void) | null = null;
   private decorating = false;
@@ -48,7 +49,7 @@ export class FloorPlanNavigatorSurface {
 
   mount(): void {
     if (this.mountElement) return;
-    const mount = this.root.querySelector<HTMLElement>('#lc-pieces');
+    const mount = this.resolveMountElement();
     if (!mount) return;
     this.mountElement = mount;
     this.unsubscribe = this.effects.invalidation.subscribe((batch) => {
@@ -61,6 +62,57 @@ export class FloorPlanNavigatorSurface {
     this.decorate();
   }
 
+  private resolveMountElement(): HTMLElement | null {
+    const existing = this.root.querySelector<HTMLElement>('#lc-floor-plan-nav');
+    if (existing) return existing;
+
+    const navigator = this.root.querySelector<HTMLElement>(
+      '.cad-lite-production-shell__navigator',
+    );
+    if (navigator) {
+      const document = navigator.ownerDocument;
+      const section = document.createElement('section');
+      section.className =
+        'cad-lite-production-shell__section cad-lite-production-shell__nav-section';
+      section.dataset.cadLiteNavSection = 'plan';
+
+      const head = document.createElement('div');
+      head.className = 'cad-lite-production-shell__section-head';
+      const toggle = document.createElement('button');
+      toggle.type = 'button';
+      toggle.className = 'cad-lite-production-shell__section-toggle';
+      toggle.dataset.cadLiteSectionToggle = '';
+      toggle.setAttribute('aria-expanded', 'true');
+      const chevron = document.createElement('span');
+      chevron.className = 'cad-lite-production-shell__section-chevron';
+      chevron.setAttribute('aria-hidden', 'true');
+      chevron.textContent = '▾';
+      const title = document.createElement('span');
+      title.className = 'cad-lite-production-shell__section-title';
+      title.textContent = 'Plan';
+      toggle.append(chevron, title);
+      head.append(toggle);
+
+      const body = document.createElement('div');
+      body.id = 'lc-floor-plan-nav';
+      body.className = 'cad-lite-production-shell__section-body';
+      body.dataset.cadLiteSectionBody = '';
+      section.append(head, body);
+
+      const selections = navigator.querySelector<HTMLElement>(
+        '[data-cad-lite-nav-section="selections"]',
+      );
+      if (selections) navigator.insertBefore(section, selections);
+      else navigator.append(section);
+      this.createdSection = section;
+      return body;
+    }
+
+    // Keep the architecture harness functional without imposing production
+    // shell markup on it. Only the production Navigator receives a PLAN tab.
+    return this.root.querySelector<HTMLElement>('#lc-pieces');
+  }
+
   unmount(): void {
     this.unsubscribe?.();
     this.unsubscribe = null;
@@ -69,6 +121,8 @@ export class FloorPlanNavigatorSurface {
     this.mountElement
       ?.querySelector('[data-floor-plan-navigator="1"]')
       ?.remove();
+    this.createdSection?.remove();
+    this.createdSection = null;
     this.mountElement = null;
   }
 
@@ -90,12 +144,14 @@ export class FloorPlanNavigatorSurface {
       root.className = 'lc-floor-plan-nav lc-annotation-nav-section';
       root.dataset.floorPlanNavigator = '1';
 
-      const header = document.createElement('div');
-      header.className = 'lc-annotation-nav-header';
-      const title = document.createElement('strong');
-      title.textContent = 'Floor Plan';
-      header.appendChild(title);
-      root.appendChild(header);
+      if (mount.id !== 'lc-floor-plan-nav') {
+        const header = document.createElement('div');
+        header.className = 'lc-annotation-nav-header';
+        const title = document.createElement('strong');
+        title.textContent = 'Floor Plan';
+        header.appendChild(title);
+        root.appendChild(header);
+      }
 
       const button = (
         label: string,
