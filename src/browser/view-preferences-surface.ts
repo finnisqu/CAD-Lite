@@ -8,8 +8,6 @@ import type {
   EditorPreferences,
 } from '../persistence';
 
-const SVG_NS = 'http://www.w3.org/2000/svg';
-
 export type DimensionPrecision = 1 | 2 | 4 | 8 | 16;
 export type BooleanViewPreference =
   | 'showGrid'
@@ -84,9 +82,12 @@ export function booleanViewPreferenceFromControlId(
  * remains shared between DESIGN and SLAB, while workspace-view persistence is
  * handled by the existing preferences command boundary.
  *
- * This surface also restores the DESIGN canvas grid from the same canonical
- * showGrid + Layout.grid settings. The grid is decorative only; annotation and
- * piece snapping continue to use the typed interaction geometry.
+ * The DESIGN grid is painted as an SVG-element CSS background rather than as
+ * disposable child nodes. PieceCanvasSurface replaces all SVG children during
+ * normal pointer/render activity, so a child-node grid can disappear between
+ * frames. The background survives those replacements; this surface only makes
+ * the canvas background rect transparent after each renderer pass so the grid
+ * remains visible underneath CAD entities.
  */
 export class ViewPreferencesSurface {
   private readonly root: ParentNode;
@@ -98,7 +99,7 @@ export class ViewPreferencesSurface {
   private precisionControl: HTMLSelectElement | null = null;
   private svg: SVGSVGElement | null = null;
   private gridObserver: MutationObserver | null = null;
-  private gridRenderQueued = false;
+  private gridRenderFrame: number | null = null;
   private booleanControls: Array<{
     element: HTMLButtonElement;
     preference: BooleanViewPreference;
@@ -163,9 +164,11 @@ export class ViewPreferencesSurface {
 
     if (this.svg && typeof MutationObserver !== 'undefined') {
       this.gridObserver = new MutationObserver(() => {
-        if (!this.svg?.querySelector('[data-cad-lite-grid]')) {
-          this.scheduleCanvasGrid();
-        }
+        // PieceCanvasSurface rebuilds the SVG synchronously with replaceChildren.
+        // Restore the transparent background on the next animation frame after
+        // every such rebuild; no grid DOM nodes are involved, so this observer
+        // cannot trigger itself recursively.
+        this.scheduleCanvasGrid();
       });
       this.gridObserver.observe(this.svg, { childList: true });
     }
@@ -189,7 +192,8 @@ export class ViewPreferencesSurface {
     this.unsubscribe = null;
     this.gridObserver?.disconnect();
     this.gridObserver = null;
-    this.gridRenderQueued = false;
+    this.cancelGridFrame();
+    this.clearCanvasGrid();
     this.svg = null;
     this.booleanControls = [];
   }
@@ -211,20 +215,40 @@ export class ViewPreferencesSurface {
     this.scheduleCanvasGrid();
   }
 
+  private cancelGridFrame(): void {
+    if (this.gridRenderFrame === null) return;
+    const view = this.svg?.ownerDocument.defaultView;
+    view?.cancelAnimationFrame(this.gridRenderFrame);
+    this.gridRenderFrame = null;
+  }
+
   private scheduleCanvasGrid(): void {
-    if (this.gridRenderQueued) return;
-    this.gridRenderQueued = true;
-    queueMicrotask(() => {
-      this.gridRenderQueued = false;
+    if (this.gridRenderFrame !== null) return;
+    const view = this.svg?.ownerDocument.defaultView;
+    if (!view) {
+      queueMicrotask(() => this.renderCanvasGrid());
+      return;
+    }
+    this.gridRenderFrame = view.requestAnimationFrame(() => {
+      this.gridRenderFrame = null;
       this.renderCanvasGrid();
     });
+  }
+
+  private clearCanvasGrid(): void {
+    const svg = this.svg;
+    if (!svg) return;
+    svg.style.backgroundImage = '';
+    svg.style.backgroundSize = '';
+    svg.style.backgroundPosition = '';
+    svg.style.backgroundColor = '#ffffff';
+    const background = svg.querySelector<SVGRectElement>('.lc-canvas-background');
+    background?.setAttribute('fill', '#ffffff');
   }
 
   private renderCanvasGrid(): void {
     const svg = this.svg;
     if (!svg) return;
-
-    svg.querySelector('[data-cad-lite-grid]')?.remove();
 
     const state = this.store.getState();
     const layout = state.project.layouts.find(
@@ -237,59 +261,38 @@ export class ViewPreferencesSurface {
       !Number.isFinite(layout.grid) ||
       layout.grid <= 0
     ) {
+      this.clearCanvasGrid();
       return;
     }
 
-    const width = Math.max(0, layout.cw);
-    const height = Math.max(0, layout.ch);
-    const step = layout.grid;
-    if (width <= 0 || height <= 0) return;
-
-    const document = svg.ownerDocument;
-    const grid = document.createElementNS(SVG_NS, 'g');
-    grid.dataset.cadLiteGrid = '1';
-    grid.setAttribute('class', 'lc-canvas-grid');
-    grid.setAttribute('pointer-events', 'none');
-
-    const appendLine = (
-      x1: number,
-      y1: number,
-      x2: number,
-      y2: number,
-      major: boolean,
-    ): void => {
-      const line = document.createElementNS(SVG_NS, 'line');
-      line.setAttribute(
-        'class',
-        `lc-canvas-grid-line ${major ? 'lc-canvas-grid-line--major' : 'lc-canvas-grid-line--minor'}`,
-      );
-      line.setAttribute('x1', String(x1));
-      line.setAttribute('y1', String(y1));
-      line.setAttribute('x2', String(x2));
-      line.setAttribute('y2', String(y2));
-      line.setAttribute('stroke', major ? '#d1d5db' : '#e5e7eb');
-      line.setAttribute('stroke-width', major ? '1.25' : '0.5');
-      line.setAttribute('stroke-opacity', major ? '0.9' : '0.7');
-      line.setAttribute('vector-effect', 'non-scaling-stroke');
-      grid.appendChild(line);
-    };
-
-    const verticalCount = Math.floor(width / step + 1e-9);
-    for (let index = 1; index <= verticalCount; index += 1) {
-      const x = index * step;
-      if (x >= width - 1e-9) break;
-      appendLine(x, 0, x, height, index % 6 === 0);
+    const scale = Math.max(0.001, Math.abs(layout.scale || 1));
+    const minor = layout.grid * scale;
+    const major = minor * 6;
+    if (!Number.isFinite(minor) || minor <= 0 || !Number.isFinite(major)) {
+      this.clearCanvasGrid();
+      return;
     }
 
-    const horizontalCount = Math.floor(height / step + 1e-9);
-    for (let index = 1; index <= horizontalCount; index += 1) {
-      const y = index * step;
-      if (y >= height - 1e-9) break;
-      appendLine(0, y, width, y, index % 6 === 0);
-    }
+    // Four gradients create one minor vertical/horizontal grid and a stronger
+    // sixth-line rhythm. Sizes are CSS pixels, so multiplying world-inch grid
+    // spacing by the Layout scale keeps the background aligned with the SVG
+    // viewBox at every zoom level.
+    svg.style.backgroundColor = '#ffffff';
+    svg.style.backgroundImage = [
+      'linear-gradient(to right, #d1d5db 1px, transparent 1px)',
+      'linear-gradient(to bottom, #d1d5db 1px, transparent 1px)',
+      'linear-gradient(to right, #e5e7eb 1px, transparent 1px)',
+      'linear-gradient(to bottom, #e5e7eb 1px, transparent 1px)',
+    ].join(', ');
+    svg.style.backgroundSize = [
+      `${major}px ${major}px`,
+      `${major}px ${major}px`,
+      `${minor}px ${minor}px`,
+      `${minor}px ${minor}px`,
+    ].join(', ');
+    svg.style.backgroundPosition = '0 0, 0 0, 0 0, 0 0';
 
-    const background = svg.querySelector('.lc-canvas-background');
-    if (background) background.after(grid);
-    else svg.prepend(grid);
+    const background = svg.querySelector<SVGRectElement>('.lc-canvas-background');
+    background?.setAttribute('fill', 'transparent');
   }
 }
