@@ -6,6 +6,7 @@ import {
 } from '../app';
 import { createPieceGroupProjection } from '../domain/pieces';
 import { ProductionCutoutInteractionParitySurface } from './production-cutout-interaction-parity-surface';
+import { PieceShapeEditSurface } from './piece-shape-edit-surface';
 
 export interface ProductionPieceInteractionParitySurfaceOptions {
   root: ParentNode;
@@ -49,6 +50,7 @@ export class ProductionPieceInteractionParitySurface {
   private readonly store: AppStore;
   private readonly commands: CommandDispatcher;
   private readonly cutoutParitySurface: ProductionCutoutInteractionParitySurface;
+  private readonly shapeEditSurface: PieceShapeEditSurface;
 
   private abort: AbortController | null = null;
   private observer: MutationObserver | null = null;
@@ -63,6 +65,7 @@ export class ProductionPieceInteractionParitySurface {
     this.store = options.store;
     this.commands = options.commands;
     this.cutoutParitySurface = new ProductionCutoutInteractionParitySurface(options);
+    this.shapeEditSurface = new PieceShapeEditSurface(options);
   }
 
   mount(): void {
@@ -116,9 +119,11 @@ export class ProductionPieceInteractionParitySurface {
     }
     this.decorateSinkRows();
     this.cutoutParitySurface.mount();
+    this.shapeEditSurface.mount();
   }
 
   unmount(): void {
+    this.shapeEditSurface.unmount();
     this.cutoutParitySurface.unmount();
     this.abort?.abort();
     this.abort = null;
