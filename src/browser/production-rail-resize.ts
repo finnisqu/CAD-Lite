@@ -1,11 +1,16 @@
 export type ProductionRail = 'navigator' | 'inspector';
 
-export const PRODUCTION_RAIL_LIMITS: Readonly<Record<ProductionRail, { min: number; max: number }>> = {
+export const PRODUCTION_RAIL_LIMITS: Readonly<
+  Record<ProductionRail, { min: number; max: number }>
+> = {
   navigator: { min: 190, max: 420 },
   inspector: { min: 220, max: 480 },
 };
 
-export function clampProductionRailWidth(rail: ProductionRail, width: number): number {
+export function clampProductionRailWidth(
+  rail: ProductionRail,
+  width: number,
+): number {
   const { min, max } = PRODUCTION_RAIL_LIMITS[rail];
   return Math.min(max, Math.max(min, width));
 }
@@ -28,14 +33,24 @@ function createHitbox(
   return hitbox;
 }
 
-export function mountProductionRailResize(root: ParentNode = document): () => void {
+export function mountProductionRailResize(
+  root: ParentNode = document,
+): () => void {
   const shell = root.querySelector<HTMLElement>('.cad-lite-production-shell');
-  if (!shell || shell.dataset.cadLiteRailResizeMounted === '1') return () => undefined;
+  if (!shell || shell.dataset.cadLiteRailResizeMounted === '1') {
+    return () => undefined;
+  }
   shell.dataset.cadLiteRailResizeMounted = '1';
 
-  const body = shell.querySelector<HTMLElement>('.cad-lite-production-shell__body');
-  const navigator = shell.querySelector<HTMLElement>('.cad-lite-production-shell__navigator');
-  const inspector = shell.querySelector<HTMLElement>('.cad-lite-production-shell__inspector');
+  const body = shell.querySelector<HTMLElement>(
+    '.cad-lite-production-shell__body',
+  );
+  const navigator = shell.querySelector<HTMLElement>(
+    '.cad-lite-production-shell__navigator',
+  );
+  const inspector = shell.querySelector<HTMLElement>(
+    '.cad-lite-production-shell__inspector',
+  );
   if (!body || !navigator || !inspector) return () => undefined;
 
   const controllers: AbortController[] = [];
@@ -75,9 +90,9 @@ export function mountProductionRailResize(root: ParentNode = document): () => vo
     hitbox.addEventListener(
       'pointerdown',
       (event) => {
-        if (event.button !== 0 || shell.ownerDocument.defaultView?.innerWidth && shell.ownerDocument.defaultView.innerWidth <= 980) {
-          return;
-        }
+        const view = shell.ownerDocument.defaultView;
+        if (event.button !== 0 || (view && view.innerWidth <= 980)) return;
+
         event.preventDefault();
         event.stopPropagation();
         const startX = event.clientX;
@@ -87,12 +102,13 @@ export function mountProductionRailResize(root: ParentNode = document): () => vo
 
         const move = (moveEvent: PointerEvent): void => {
           const delta = moveEvent.clientX - startX;
-          const candidate = rail === 'navigator'
-            ? startWidth + delta
-            : startWidth - delta;
+          const candidate =
+            rail === 'navigator' ? startWidth + delta : startWidth - delta;
           const width = clampProductionRailWidth(rail, candidate);
           shell.style.setProperty(
-            rail === 'navigator' ? '--lc-navigator-width' : '--lc-inspector-width',
+            rail === 'navigator'
+              ? '--lc-navigator-width'
+              : '--lc-inspector-width',
             `${Math.round(width)}px`,
           );
           hitbox.setAttribute('aria-valuenow', String(Math.round(width)));
@@ -115,7 +131,9 @@ export function mountProductionRailResize(root: ParentNode = document): () => vo
 
   return () => {
     controllers.forEach((controller) => controller.abort());
-    shell.querySelectorAll('[data-cad-lite-rail-resize]').forEach((node) => node.remove());
+    shell
+      .querySelectorAll('[data-cad-lite-rail-resize]')
+      .forEach((node) => node.remove());
     shell.classList.remove('is-rail-resizing');
     delete shell.dataset.cadLiteRailResizeMounted;
   };
@@ -123,7 +141,11 @@ export function mountProductionRailResize(root: ParentNode = document): () => vo
 
 if (typeof document !== 'undefined') {
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', () => mountProductionRailResize(document), { once: true });
+    document.addEventListener(
+      'DOMContentLoaded',
+      () => mountProductionRailResize(document),
+      { once: true },
+    );
   } else {
     mountProductionRailResize(document);
   }
