@@ -26,15 +26,7 @@ export interface PolygonOffsetOptions {
   arcTolerance?: number;
 }
 
-/**
- * Stable boundary between CAD Lite's domain geometry and the underlying
- * computational geometry implementation.
- *
- * Callers should depend on this interface rather than importing a third-party
- * kernel directly. That keeps persisted CAD Lite data and browser surfaces
- * independent from the engine choice.
- */
-export interface GeometryKernel {
+export interface AnalyticalGeometryKernel {
   readonly id: string;
   readonly version: string;
 
@@ -43,7 +35,17 @@ export interface GeometryKernel {
   polygonContainsPoint(polygon: readonly Point[], point: Point): boolean;
   rotatePointAround(point: Point, center: Point, degrees: number): Point;
   segmentIntersections(a: Point, b: Point, c: Point, d: Point): Point[];
+}
 
+/**
+ * Stable boundary between CAD Lite's domain geometry and the underlying
+ * computational geometry implementation.
+ *
+ * Callers should depend on this interface rather than importing a third-party
+ * kernel directly. That keeps persisted CAD Lite data and browser surfaces
+ * independent from the engine choice.
+ */
+export interface GeometryKernel extends AnalyticalGeometryKernel {
   /**
    * Robust polygon topology operation. These methods are async because the
    * Clipper WebAssembly/Asm.js engine is loaded once, lazily, on first use.
