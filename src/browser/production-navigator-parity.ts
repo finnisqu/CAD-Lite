@@ -144,6 +144,20 @@ function distributeRoomFeatures(
   source.remove();
 }
 
+function prepareLayouts(navigator: HTMLElement): void {
+  const layouts = navigator.querySelector<HTMLElement>(
+    '[data-cad-lite-nav-section="layouts"]',
+  );
+  const body = layouts?.querySelector<HTMLElement>('[data-cad-lite-section-body]');
+  const list = layouts?.querySelector<HTMLElement>('#lc-layouts');
+  const add = layouts?.querySelector<HTMLButtonElement>('#lc-add-layout');
+  if (!body || !list || !add) return;
+
+  add.textContent = '+ Add Layout';
+  add.classList.add('lc-add-layout-row');
+  body.insertBefore(add, list);
+}
+
 function prepareAreasAndPieces(
   navigator: HTMLElement,
   document: Document,
@@ -218,7 +232,6 @@ function updateStaticCounts(
  * production sections so their existing listeners remain authoritative.
  */
 export function mountProductionNavigatorParity(
-  root: ParentNode,
   shell: HTMLElement,
   signal: AbortSignal,
 ): void {
@@ -228,6 +241,7 @@ export function mountProductionNavigatorParity(
   const document = navigator?.ownerDocument;
   if (!navigator || !document) return;
 
+  prepareLayouts(navigator);
   const prepared = prepareAreasAndPieces(navigator, document);
   if (!prepared) return;
 
@@ -279,6 +293,7 @@ export function mountProductionNavigatorParity(
 
   decorate();
 
+  if (typeof MutationObserver === 'undefined') return;
   const observer = new MutationObserver(() => {
     const hasDynamicContent = Boolean(
       prepared.pieceMount.querySelector(
