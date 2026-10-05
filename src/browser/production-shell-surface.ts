@@ -2,6 +2,7 @@ import type {
   CanvasSelectionActions,
   SelectionController,
 } from '../app';
+import { mountProductionNavigatorParity } from './production-navigator-parity';
 
 export interface ProductionShellSurfaceOptions {
   root: ParentNode;
@@ -110,6 +111,11 @@ export class ProductionShellSurface {
     this.abort = new AbortController();
     const signal = this.abort.signal;
     const document = ownerDocument(this.root);
+
+    // Re-home the typed v1.6 Navigator content into the mature production
+    // information architecture before disclosure listeners are registered.
+    mountProductionNavigatorParity(this.root, shell, signal);
+
     const menus = Array.from(
       shell.querySelectorAll<HTMLElement>('[data-cad-lite-menu]'),
     );
@@ -180,6 +186,24 @@ export class ProductionShellSurface {
         },
         { signal },
       );
+
+      // Once a menu has been deliberately pinned open by click, hovering a
+      // sibling menu transfers ownership instead of allowing two flyouts to
+      // overlap. The newly hovered menu remains open until another sibling,
+      // outside click, Escape, or an ordinary menu action takes ownership.
+      menu.addEventListener(
+        'pointerenter',
+        () => {
+          const openMenu = menus.find((candidate) =>
+            candidate.classList.contains('is-open'),
+          );
+          if (!openMenu || openMenu === menu) return;
+          closeAll(menu);
+          setOpen(menu, true);
+        },
+        { signal },
+      );
+
       panel.addEventListener(
         'click',
         (event) => {
