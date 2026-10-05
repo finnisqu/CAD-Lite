@@ -114,7 +114,7 @@ export class ProductionShellSurface {
 
     // Re-home the typed v1.6 Navigator content into the mature production
     // information architecture before disclosure listeners are registered.
-    mountProductionNavigatorParity(this.root, shell, signal);
+    mountProductionNavigatorParity(shell, signal);
 
     const menus = Array.from(
       shell.querySelectorAll<HTMLElement>('[data-cad-lite-menu]'),
