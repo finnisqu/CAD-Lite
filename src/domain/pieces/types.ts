@@ -101,6 +101,20 @@ export type PieceGeometry = {
   height: number;
   cornerRadii: CornerRadii;
 };
+
+/**
+ * CAD Lite keeps the mature width/height rectangle as an editable frame while
+ * allowing the actual fabrication boundary to be an arbitrary local polygon.
+ * Coordinates are stored in Piece-local inches with (0, 0) at the frame's
+ * upper-left corner. Sinks/cutouts remain semantic children and are subtracted
+ * when a derived fabrication region is requested.
+ */
+export type PieceFabricationPoint = { x: number; y: number };
+export type PieceFabricationShape = {
+  kind: 'polygon';
+  outer: PieceFabricationPoint[];
+};
+
 // Child detail is preserved at a compatibility boundary until its own batch.
 export type FabricationChild = JsonObject & { id: string };
 export type AssemblyLink = JsonObject & {
@@ -124,8 +138,9 @@ export type SplashAttachment = JsonObject & {
 };
 
 /** Typed rectangle-era storage. Consumers obtain geometry through pieceGeometry.
- * A future shape migration replaces this storage adapter, not every consumer.
- * No arbitrary index signature: unmigrated fields live in legacy.
+ * The rectangle remains the editing frame while fabricationShape can carry an
+ * arbitrary polygonal countertop boundary. No arbitrary index signature:
+ * unmigrated fields live in legacy.
  */
 export type Piece = {
   id: string;
@@ -145,6 +160,7 @@ export type Piece = {
   assemblyLinks: AssemblyLink[];
   slabPlacement: PiecePose;
   cornerRadii: CornerRadii;
+  fabricationShape?: PieceFabricationShape | null;
   overhangs: { front: number; back: number; left: number; right: number };
   edgeProfiles: Record<PieceSide, string>;
   sinks: PieceSink[];
