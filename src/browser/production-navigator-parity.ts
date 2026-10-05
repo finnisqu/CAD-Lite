@@ -1,6 +1,4 @@
-const DYNAMIC_SECTION_KEYS = ['notes', 'dimensions', 'lines', 'room-features'] as const;
-
-type DynamicSectionKey = (typeof DYNAMIC_SECTION_KEYS)[number];
+type DynamicSectionKey = 'notes' | 'dimensions' | 'lines' | 'room-features';
 
 interface DynamicSectionTarget {
   section: HTMLElement;
@@ -20,7 +18,9 @@ function directChild<T extends Element>(
 }
 
 function sectionTitle(section: HTMLElement): HTMLElement | null {
-  return section.querySelector<HTMLElement>('.cad-lite-production-shell__section-title');
+  return section.querySelector<HTMLElement>(
+    '.cad-lite-production-shell__section-title',
+  );
 }
 
 function createSection(
@@ -80,10 +80,11 @@ function createSection(
 }
 
 function annotationKey(root: HTMLElement): DynamicSectionKey | null {
-  const text = root
-    .querySelector('.lc-annotation-nav-header strong')
-    ?.textContent?.trim()
-    .toLowerCase() ?? '';
+  const text =
+    root
+      .querySelector('.lc-annotation-nav-header strong')
+      ?.textContent?.trim()
+      .toLowerCase() ?? '';
   if (text.startsWith('notes')) return 'notes';
   if (text.startsWith('dimensions')) return 'dimensions';
   if (text.startsWith('lines')) return 'lines';
@@ -148,7 +149,9 @@ function prepareLayouts(navigator: HTMLElement): void {
   const layouts = navigator.querySelector<HTMLElement>(
     '[data-cad-lite-nav-section="layouts"]',
   );
-  const body = layouts?.querySelector<HTMLElement>('[data-cad-lite-section-body]');
+  const body = layouts?.querySelector<HTMLElement>(
+    '[data-cad-lite-section-body]',
+  );
   const list = layouts?.querySelector<HTMLElement>('#lc-layouts');
   const add = layouts?.querySelector<HTMLButtonElement>('#lc-add-layout');
   if (!body || !list || !add) return;
@@ -168,7 +171,9 @@ function prepareAreasAndPieces(
   const pieces = navigator.querySelector<HTMLElement>(
     '[data-cad-lite-nav-section="pieces"]',
   );
-  const areaBody = areas?.querySelector<HTMLElement>('[data-cad-lite-section-body]');
+  const areaBody = areas?.querySelector<HTMLElement>(
+    '[data-cad-lite-section-body]',
+  );
   const pieceMount = pieces?.querySelector<HTMLElement>('#lc-pieces');
   const addArea = areas?.querySelector<HTMLButtonElement>('#lc-add-area');
   const addPiece = pieces?.querySelector<HTMLButtonElement>('#lc-add');
@@ -212,7 +217,9 @@ function updateStaticCounts(
   );
   const layoutsTitle = layouts ? sectionTitle(layouts) : null;
   if (layoutsTitle) {
-    const count = navigator.querySelectorAll('#lc-layouts [data-layout-id]').length;
+    const count = navigator.querySelectorAll(
+      '#lc-layouts [data-layout-id]',
+    ).length;
     layoutsTitle.textContent = `Layouts (${count})`;
   }
 
@@ -238,8 +245,8 @@ export function mountProductionNavigatorParity(
   const navigator = shell.querySelector<HTMLElement>(
     '.cad-lite-production-shell__navigator',
   );
-  const document = navigator?.ownerDocument;
-  if (!navigator || !document) return;
+  if (!navigator) return;
+  const document = navigator.ownerDocument;
 
   prepareLayouts(navigator);
   const prepared = prepareAreasAndPieces(navigator, document);
@@ -277,7 +284,11 @@ export function mountProductionNavigatorParity(
       const target = targets.get(key);
       if (!target) return;
       const label =
-        key === 'notes' ? 'Notes' : key === 'dimensions' ? 'Dimensions' : 'Lines';
+        key === 'notes'
+          ? 'Notes'
+          : key === 'dimensions'
+            ? 'Dimensions'
+            : 'Lines';
       distributeAnnotationSection(source, target, label);
     });
 
@@ -293,7 +304,6 @@ export function mountProductionNavigatorParity(
 
   decorate();
 
-  if (typeof MutationObserver === 'undefined') return;
   const observer = new MutationObserver(() => {
     const hasDynamicContent = Boolean(
       prepared.pieceMount.querySelector(
