@@ -9,6 +9,7 @@ export * from './lifecycle';
 export * from './clipboard';
 
 export * from './geometry';
+export * from './fabrication-shape';
 
 export * from './transforms';
 
