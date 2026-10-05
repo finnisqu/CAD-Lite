@@ -54,13 +54,27 @@ function pointer(
 }
 
 describe('Batch 21 annotation tool interactions', () => {
-  it('creates a Dimension through the tool controller and Shift-constrains it horizontally', () => {
+  it('creates a Dimension with first-point / second-point clicks and Shift-constrains it horizontally', () => {
     const { store, tools, unregister } = setup();
     expect(tools.activateLocked('dimension')).toBe(true);
 
     expect(tools.pointerDown(pointer(10.2, 15.2))).toBe(true);
+    expect(tools.pointerUp(pointer(10.2, 15.2, { buttons: 0 }))).toBe(true);
     expect(
       tools.pointerMove(
+        pointer(35.8, 20.4, {
+          buttons: 0,
+          modifiers: {
+            shift: true,
+            alt: true,
+            ctrl: false,
+            meta: false,
+          },
+        }),
+      ),
+    ).toBe(true);
+    expect(
+      tools.pointerDown(
         pointer(35.8, 20.4, {
           modifiers: {
             shift: true,
@@ -131,6 +145,30 @@ describe('Batch 21 annotation tool interactions', () => {
       y2: 19,
     });
     expect(store.getState().session.interaction.preview).toBeNull();
+
+    unregister.forEach((fn) => fn());
+  });
+
+  it('does not complete a Line on drag-release; the second click remains authoritative', () => {
+    const { store, tools, unregister } = setup();
+    const before = store.getState().project.layouts[0]!.lines.length;
+    expect(tools.activateLocked('line')).toBe(true);
+
+    tools.pointerDown(pointer(14, 14));
+    tools.pointerMove(pointer(40, 26));
+    tools.pointerUp(pointer(40, 26, { buttons: 0 }));
+
+    expect(store.getState().project.layouts[0]!.lines).toHaveLength(before);
+    expect(store.getState().session.interaction.preview).toMatchObject({
+      kind: 'annotation-segment',
+      tool: 'line',
+      x1: 14,
+      y1: 14,
+    });
+
+    tools.pointerDown(pointer(40, 26));
+    tools.pointerUp(pointer(40, 26, { buttons: 0 }));
+    expect(store.getState().project.layouts[0]!.lines).toHaveLength(before + 1);
 
     unregister.forEach((fn) => fn());
   });
