@@ -78,6 +78,20 @@ export function booleanViewPreferenceFromControlId(
 }
 
 /**
+ * Place a repeating major-grid stroke fully inside its SVG pattern tile while
+ * keeping the outside edge of the stroke on the exact major-grid coordinate.
+ * Chrome clips strokes centered on pattern boundaries even when overflow is
+ * requested, which otherwise makes every sixth grid line disappear.
+ */
+export function canvasGridMajorLineCoordinate(
+  major: number,
+  scale: number,
+): number {
+  const normalizedScale = Math.max(0.001, Math.abs(scale || 1));
+  return Math.max(0, major - 0.5 / normalizedScale);
+}
+
+/**
  * Browser binding for shared View preferences.
  *
  * The DESIGN grid is rendered as a real SVG layer immediately above the canvas
@@ -290,11 +304,6 @@ export class ViewPreferencesSurface {
       pattern.setAttribute('patternUnits', 'userSpaceOnUse');
       pattern.setAttribute('width', String(major));
       pattern.setAttribute('height', String(major));
-      // Major lines sit exactly on each repeating tile boundary. SVG patterns
-      // clip boundary strokes by default, which made every sixth grid line
-      // disappear. Preserve the exact grid coordinate and allow the stroke to
-      // extend across the tile edge instead of nudging the visual grid.
-      pattern.setAttribute('overflow', 'visible');
 
       const minorSegments: string[] = [];
       for (let index = 1; index < 6; index += 1) {
@@ -311,15 +320,17 @@ export class ViewPreferencesSurface {
       minorPath.setAttribute('stroke-width', String(0.7 / scale));
       minorPath.setAttribute('shape-rendering', 'crispEdges');
 
+      const majorStrokeWidth = 1 / scale;
+      const majorCoordinate = canvasGridMajorLineCoordinate(major, scale);
       const majorPath = document.createElementNS(SVG_NS, 'path');
       majorPath.setAttribute(
         'd',
-        `M 0 0 H ${major} M 0 0 V ${major}`,
+        `M ${majorCoordinate} 0 V ${major} M 0 ${majorCoordinate} H ${major}`,
       );
       majorPath.setAttribute('fill', 'none');
       majorPath.setAttribute('stroke', '#c4cbd4');
-      majorPath.setAttribute('stroke-width', String(1 / scale));
-      majorPath.setAttribute('shape-rendering', 'crispEdges');
+      majorPath.setAttribute('stroke-width', String(majorStrokeWidth));
+      majorPath.setAttribute('shape-rendering', 'geometricPrecision');
 
       pattern.append(minorPath, majorPath);
       defs.appendChild(pattern);
