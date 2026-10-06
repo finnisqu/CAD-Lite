@@ -23,6 +23,7 @@ import type {
 
 const BOUNDARY_EPSILON = 0.001;
 const MIN_MODIFIER_SPAN = 0.125;
+const RESIZE_AXIS_DOMINANCE = 4;
 
 function near(value: number, target: number): boolean {
   return Math.abs(value - target) <= BOUNDARY_EPSILON;
@@ -172,10 +173,17 @@ export function pieceBoundaryResizeOutline(
   );
 }
 
+function normalizedRotationDelta(a: number, b: number): number {
+  const delta = (a - b) % 360;
+  return delta > 180 ? delta - 360 : delta < -180 ? delta + 360 : delta;
+}
+
 /**
  * Infer which single edge moved from the signed size delta and center shift.
- * Comparing against +/- delta/2 keeps the grabbed edge authoritative in both
- * directions: a right edge dragged left is still a right-edge resize.
+ * A real side-handle resize changes only one dimension, but rounding/snap
+ * normalization can leak a tiny delta into the other axis. Treat a strongly
+ * dominant axis as authoritative so a shaped Piece never falls back to the old
+ * rubber-scale preview merely because of incidental cross-axis noise.
  */
 export function inferPieceBoundaryResizeSide(
   piece: Piece,
@@ -184,10 +192,30 @@ export function inferPieceBoundaryResizeSide(
 ): PieceSide | null {
   const widthDelta = geometry.width - piece.w;
   const heightDelta = geometry.height - piece.h;
-  const widthChanged = Math.abs(widthDelta) > BOUNDARY_EPSILON;
-  const heightChanged = Math.abs(heightDelta) > BOUNDARY_EPSILON;
-  if (widthChanged === heightChanged) return null;
-  if (Math.abs(pose.rotation - piece.rotation) > BOUNDARY_EPSILON) return null;
+  const widthMagnitude = Math.abs(widthDelta);
+  const heightMagnitude = Math.abs(heightDelta);
+  let widthChanged = widthMagnitude > BOUNDARY_EPSILON;
+  let heightChanged = heightMagnitude > BOUNDARY_EPSILON;
+  if (!widthChanged && !heightChanged) return null;
+
+  if (widthChanged && heightChanged) {
+    const relativeWidth = widthMagnitude / Math.max(0.25, piece.w);
+    const relativeHeight = heightMagnitude / Math.max(0.25, piece.h);
+    if (relativeWidth >= relativeHeight * RESIZE_AXIS_DOMINANCE) {
+      heightChanged = false;
+    } else if (relativeHeight >= relativeWidth * RESIZE_AXIS_DOMINANCE) {
+      widthChanged = false;
+    } else {
+      return null;
+    }
+  }
+
+  if (
+    Math.abs(normalizedRotationDelta(pose.rotation, piece.rotation)) >
+    BOUNDARY_EPSILON
+  ) {
+    return null;
+  }
 
   const oldCenter = pieceCenterFromGeometryPose(
     pieceGeometry(piece),
@@ -206,6 +234,7 @@ export function inferPieceBoundaryResizeSide(
     return rightError <= leftError ? 'right' : 'left';
   }
 
+  if (!heightChanged) return null;
   const bottomError = Math.abs(localShift.y - heightDelta / 2);
   const topError = Math.abs(localShift.y + heightDelta / 2);
   return bottomError <= topError ? 'bottom' : 'top';
