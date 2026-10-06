@@ -1,0 +1,168 @@
+name: Weld integration bootstrap
+
+on:
+  push:
+    branches:
+      - experiment/flatten-geometry-engine
+
+permissions:
+  contents: write
+
+jobs:
+  integrate:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Wire weld persistence and browser runtime
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          def replace(path, old, new):
+              p = Path(path)
+              text = p.read_text()
+              if old not in text:
+                  raise SystemExit(f'missing expected snippet in {path}: {old[:80]!r}')
+              p.write_text(text.replace(old, new, 1))
+
+          # Persistence: normalize the explicit weld field rather than leaking it into legacy.
+          replace(
+              'src/persistence/pieces.ts',
+              "  PieceFabricationShape,\n} from '../domain/pieces/types';",
+              "  PieceFabricationShape,\n  PieceFabricationWeld,\n} from '../domain/pieces/types';",
+          )
+          marker = "const known = new Set([\n"
+          p = Path('src/persistence/pieces.ts')
+          text = p.read_text()
+          if 'function fabricationWeld(' not in text:
+              helper = r'''function fabricationWeld(raw: unknown): PieceFabricationWeld | null {
+  const source = object(raw);
+  const id = text(source.id).trim();
+  const groupId = text(source.groupId).trim();
+  const anchorPieceId = text(source.anchorPieceId).trim();
+  const sourceSignature = text(source.sourceSignature);
+  const memberIds = Array.isArray(source.memberIds)
+    ? [...new Set(source.memberIds.filter((value): value is string => typeof value === 'string' && value.trim()).map((value) => value.trim()))].sort((a, b) => a.localeCompare(b))
+    : [];
+  const outer = Array.isArray(source.outer)
+    ? source.outer
+        .filter(isJsonObject)
+        .map((point) => ({ x: number(point.x, Number.NaN), y: number(point.y, Number.NaN) }))
+        .filter((point) => Number.isFinite(point.x) && Number.isFinite(point.y))
+    : [];
+  if (!id || !groupId || !anchorPieceId || memberIds.length < 2 || outer.length < 3) return null;
+  return {
+    version: 1,
+    id,
+    groupId,
+    anchorPieceId,
+    memberIds,
+    sourceSignature,
+    outer,
+  };
+}
+
+'''
+              if marker not in text:
+                  raise SystemExit('missing persistence known marker')
+              text = text.replace(marker, helper + marker, 1)
+              p.write_text(text)
+          replace(
+              'src/persistence/pieces.ts',
+              "'pieceType','tags','attachment','assemblyLinks','slabPlacement','cornerRadii','fabricationShape',\n",
+              "'pieceType','tags','attachment','assemblyLinks','slabPlacement','cornerRadii','fabricationShape','fabricationWeld',\n",
+          )
+          replace(
+              'src/persistence/pieces.ts',
+              "      fabricationShape: fabricationShape(source.fabricationShape, w, h),\n",
+              "      fabricationShape: fabricationShape(source.fabricationShape, w, h),\n      fabricationWeld: fabricationWeld(source.fabricationWeld),\n",
+          )
+
+          # Copies remain safe/non-destructive: a copied source graph starts unwelded.
+          replace(
+              'src/domain/pieces/clipboard.ts',
+              "    piece.name = isBacksplashPiece(source)\n      ? 'Splash'\n      : `${source.name || 'Piece'} Copy`;\n",
+              "    piece.name = isBacksplashPiece(source)\n      ? 'Splash'\n      : `${source.name || 'Piece'} Copy`;\n    piece.fabricationWeld = null;\n",
+          )
+
+          # Browser exports.
+          p = Path('src/browser/index.ts')
+          text = p.read_text()
+          append = "\nexport { PieceWeldCanvasSurface } from './piece-weld-canvas-surface';\nexport type { PieceWeldCanvasSurfaceOptions } from './piece-weld-canvas-surface';\nexport { ProductionPieceWeldSurface } from './production-piece-weld-surface';\nexport type { ProductionPieceWeldSurfaceOptions } from './production-piece-weld-surface';\n"
+          if "from './piece-weld-canvas-surface'" not in text:
+              p.write_text(text.rstrip() + append)
+
+          # Runtime imports.
+          replace(
+              'src/browser/runtime.ts',
+              "import { PieceCanvasSurface } from './piece-canvas-surface';\n",
+              "import { PieceCanvasSurface } from './piece-canvas-surface';\nimport { PieceWeldCanvasSurface } from './piece-weld-canvas-surface';\n",
+          )
+          replace(
+              'src/browser/runtime.ts',
+              "import { ProductionPiecePropertiesSurface } from './production-piece-properties-surface';\n",
+              "import { ProductionPiecePropertiesSurface } from './production-piece-properties-surface';\nimport { ProductionPieceWeldSurface } from './production-piece-weld-surface';\n",
+          )
+          replace(
+              'src/browser/runtime.ts',
+              "  productionPiecePropertiesSurface: ProductionPiecePropertiesSurface;\n",
+              "  productionPiecePropertiesSurface: ProductionPiecePropertiesSurface;\n  productionPieceWeldSurface: ProductionPieceWeldSurface;\n",
+          )
+          replace(
+              'src/browser/runtime.ts',
+              "  pieceCanvas: PieceCanvasSurface;\n",
+              "  pieceCanvas: PieceCanvasSurface;\n  pieceWeldCanvas: PieceWeldCanvasSurface;\n",
+          )
+          replace(
+              'src/browser/runtime.ts',
+              "  const productionPiecePropertiesSurface =\n    new ProductionPiecePropertiesSurface({ root, store, commands });\n",
+              "  const productionPiecePropertiesSurface =\n    new ProductionPiecePropertiesSurface({ root, store, commands });\n  const productionPieceWeldSurface = new ProductionPieceWeldSurface({\n    root,\n    store,\n    commands,\n    createId,\n  });\n",
+          )
+          replace(
+              'src/browser/runtime.ts',
+              "  const pieceCanvas = new PieceCanvasSurface({\n    root,\n    store,\n    commands,\n    effects,\n    interaction: pieceInteractions,\n    annotationInteraction: annotationInteractions,\n    tools,\n  });\n",
+              "  const pieceCanvas = new PieceCanvasSurface({\n    root,\n    store,\n    commands,\n    effects,\n    interaction: pieceInteractions,\n    annotationInteraction: annotationInteractions,\n    tools,\n  });\n  const pieceWeldCanvas = new PieceWeldCanvasSurface({\n    root,\n    store,\n    effects,\n    interaction: pieceInteractions,\n  });\n",
+          )
+          replace(
+              'src/browser/runtime.ts',
+              "  pieceCanvas.mount();\n  canvasKeyboard.mount();\n",
+              "  pieceCanvas.mount();\n  pieceWeldCanvas.mount();\n  canvasKeyboard.mount();\n",
+          )
+          replace(
+              'src/browser/runtime.ts',
+              "  productionPiecePropertiesSurface.mount();\n  productionPieceInteractionParitySurface.mount();\n",
+              "  productionPiecePropertiesSurface.mount();\n  productionPieceWeldSurface.mount();\n  productionPieceInteractionParitySurface.mount();\n",
+          )
+          replace(
+              'src/browser/runtime.ts',
+              "    productionPiecePropertiesSurface,\n    productionPieceInteractionParitySurface,\n",
+              "    productionPiecePropertiesSurface,\n    productionPieceWeldSurface,\n    productionPieceInteractionParitySurface,\n",
+          )
+          replace(
+              'src/browser/runtime.ts',
+              "    pieceCanvas,\n    canvasKeyboard,\n",
+              "    pieceCanvas,\n    pieceWeldCanvas,\n    canvasKeyboard,\n",
+          )
+          replace(
+              'src/browser/runtime.ts',
+              "      productionPieceInteractionParitySurface.unmount();\n      productionPiecePropertiesSurface.unmount();\n",
+              "      productionPieceInteractionParitySurface.unmount();\n      productionPieceWeldSurface.unmount();\n      productionPiecePropertiesSurface.unmount();\n",
+          )
+          replace(
+              'src/browser/runtime.ts',
+              "      canvasKeyboard.unmount();\n      pieceCanvas.unmount();\n",
+              "      canvasKeyboard.unmount();\n      pieceWeldCanvas.unmount();\n      pieceCanvas.unmount();\n",
+          )
+          PY
+      - name: Commit integration
+        run: |
+          if git diff --quiet; then
+            echo "No integration changes required"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src
+          git commit -m "feat: wire Piece weld persistence and browser surfaces"
+          git push origin HEAD:experiment/flatten-geometry-engine
