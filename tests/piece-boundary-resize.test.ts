@@ -8,6 +8,7 @@ import {
   transformPieces,
 } from '../src/app';
 import {
+  inferPieceBoundaryResizeSide,
   pieceBoundaryResizeOutline,
   pieceFabricationOutline,
   pieceGeometry,
@@ -149,6 +150,71 @@ describe('one-boundary Piece resize', () => {
     expect(localXValues(pieceFabricationOutline(resized))).toContain(8);
     expect(localXValues(pieceFabricationOutline(resized))).toContain(18);
     expect(localXValues(pieceFabricationOutline(resized))).toContain(90);
+  });
+
+  it('retracts the right boundary inward while keeping the left edge fixed', async () => {
+    const piece = await multiNotchPiece();
+    const nextWidth = 40;
+    const geometry = { ...pieceGeometry(piece), width: nextWidth };
+    const resizedPose = {
+      x: piece.x,
+      y: piece.y,
+      rotation: piece.rotation,
+    };
+
+    expect(
+      inferPieceBoundaryResizeSide(piece, geometry, resizedPose),
+    ).toBe('right');
+
+    const preview = projectPieceForCanvas(
+      piece,
+      'design',
+      renderOptions,
+      0,
+      { id: piece.id, geometry, pose: resizedPose },
+      true,
+    );
+    const previewLocal = preview.fabricationOutline.map((point) => ({
+      x: point.x - preview.localRect.x,
+      y: point.y - preview.localRect.y,
+    }));
+    const previewX = localXValues(previewLocal);
+    expect(preview.localRect.x).toBe(piece.x);
+    expect(Math.max(...previewX)).toBe(nextWidth);
+    expect(previewX).toContain(8);
+    expect(previewX).toContain(18);
+    expect(previewX).toContain(34);
+    expect(previewX).not.toContain(44);
+
+    const state = applicationStateFromLegacyPayload(v159ProjectFixture);
+    const layout = testLayout(piece);
+    const store = new AppStore({
+      ...state,
+      project: { ...state.project, layouts: [layout] },
+      session: {
+        ...state.session,
+        activeLayoutId: layout.id,
+        workspace: 'design',
+        selection: { kind: 'pieces', ids: [piece.id] },
+      },
+    });
+    const commands = new CommandDispatcher(store);
+    commands.execute(
+      transformPieces(layout.id, [
+        { id: piece.id, geometry, designPose: resizedPose },
+      ]),
+    );
+
+    const resized = store.getState().project.layouts[0]?.pieces[0];
+    if (!resized) throw new Error('Expected resized Piece.');
+    const resizedX = localXValues(pieceFabricationOutline(resized));
+    expect(resized.x).toBe(piece.x);
+    expect(resized.w).toBe(nextWidth);
+    expect(Math.max(...resizedX)).toBe(nextWidth);
+    expect(resizedX).toContain(8);
+    expect(resizedX).toContain(18);
+    expect(resizedX).toContain(34);
+    expect(resizedX).not.toContain(44);
   });
 
   it('extends the left boundary while keeping interior notch geometry fixed in world space', async () => {
