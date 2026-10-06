@@ -93,11 +93,12 @@ describe('height-first mixed modifier boundary resize', () => {
       'add-bottom',
     );
 
-    // Then carve a perimeter notch through that taller bottom edge.
+    // Carve a separate notch through the original bottom perimeter without
+    // severing the downward addition into a second island.
     piece = await edit(
       piece,
       'subtract',
-      { x: 20, y: piece.h - 12, w: 10, h: 20 },
+      { x: 36, y: 22, w: 10, h: 12 },
       'subtract-bottom',
     );
 
