@@ -29,6 +29,18 @@ function near(value: number, target: number): boolean {
   return Math.abs(value - target) <= BOUNDARY_EPSILON;
 }
 
+function isInwardResize(
+  side: PieceSide,
+  oldWidth: number,
+  oldHeight: number,
+  nextWidth: number,
+  nextHeight: number,
+): boolean {
+  return side === 'left' || side === 'right'
+    ? nextWidth < oldWidth - BOUNDARY_EPSILON
+    : nextHeight < oldHeight - BOUNDARY_EPSILON;
+}
+
 function resizedPoint(
   point: PieceFabricationPoint,
   side: PieceSide,
@@ -53,6 +65,146 @@ function resizedPoint(
   };
 }
 
+function inwardBoundaryCoordinate(
+  side: PieceSide,
+  oldWidth: number,
+  oldHeight: number,
+  nextWidth: number,
+  nextHeight: number,
+): number {
+  if (side === 'left') return oldWidth - nextWidth;
+  if (side === 'right') return nextWidth;
+  if (side === 'top') return oldHeight - nextHeight;
+  return nextHeight;
+}
+
+function insideInwardBoundary(
+  point: PieceFabricationPoint,
+  side: PieceSide,
+  boundary: number,
+): boolean {
+  if (side === 'left') return point.x >= boundary - BOUNDARY_EPSILON;
+  if (side === 'right') return point.x <= boundary + BOUNDARY_EPSILON;
+  if (side === 'top') return point.y >= boundary - BOUNDARY_EPSILON;
+  return point.y <= boundary + BOUNDARY_EPSILON;
+}
+
+function boundaryIntersection(
+  from: PieceFabricationPoint,
+  to: PieceFabricationPoint,
+  side: PieceSide,
+  boundary: number,
+): PieceFabricationPoint {
+  if (side === 'left' || side === 'right') {
+    const dx = to.x - from.x;
+    const t = Math.abs(dx) <= BOUNDARY_EPSILON
+      ? 0
+      : (boundary - from.x) / dx;
+    return {
+      x: boundary,
+      y: from.y + (to.y - from.y) * Math.max(0, Math.min(1, t)),
+    };
+  }
+
+  const dy = to.y - from.y;
+  const t = Math.abs(dy) <= BOUNDARY_EPSILON
+    ? 0
+    : (boundary - from.y) / dy;
+  return {
+    x: from.x + (to.x - from.x) * Math.max(0, Math.min(1, t)),
+    y: boundary,
+  };
+}
+
+function sameFabricationPoint(
+  a: PieceFabricationPoint,
+  b: PieceFabricationPoint,
+): boolean {
+  return near(a.x, b.x) && near(a.y, b.y);
+}
+
+function normalizeClippedOutline(
+  points: readonly PieceFabricationPoint[],
+  side: PieceSide,
+  boundary: number,
+  nextWidth: number,
+  nextHeight: number,
+): PieceFabricationPoint[] {
+  const shiftX = side === 'left' ? boundary : 0;
+  const shiftY = side === 'top' ? boundary : 0;
+  const output: PieceFabricationPoint[] = [];
+
+  points.forEach((point) => {
+    const next = {
+      x: round3(Math.max(0, Math.min(nextWidth, point.x - shiftX))),
+      y: round3(Math.max(0, Math.min(nextHeight, point.y - shiftY))),
+    };
+    const previous = output.at(-1);
+    if (!previous || !sameFabricationPoint(previous, next)) output.push(next);
+  });
+
+  if (
+    output.length > 1 &&
+    output[0] &&
+    output.at(-1) &&
+    sameFabricationPoint(output[0], output.at(-1)!)
+  ) {
+    output.pop();
+  }
+
+  return output;
+}
+
+/**
+ * Clip a Piece-local polygon against the half-plane retained by an inward
+ * side-handle drag. This is intentionally different from outward resizing:
+ * inward movement behaves like an eraser, so geometry that falls completely
+ * beyond the moving boundary disappears instead of being dragged along as a
+ * thin sliver.
+ */
+function clipOutlineForInwardResize(
+  points: readonly PieceFabricationPoint[],
+  side: PieceSide,
+  oldWidth: number,
+  oldHeight: number,
+  nextWidth: number,
+  nextHeight: number,
+): PieceFabricationPoint[] {
+  if (points.length < 3) return [];
+  const boundary = inwardBoundaryCoordinate(
+    side,
+    oldWidth,
+    oldHeight,
+    nextWidth,
+    nextHeight,
+  );
+  const clipped: PieceFabricationPoint[] = [];
+  let previous = points.at(-1)!;
+  let previousInside = insideInwardBoundary(previous, side, boundary);
+
+  points.forEach((current) => {
+    const currentInside = insideInwardBoundary(current, side, boundary);
+    if (currentInside) {
+      if (!previousInside) {
+        clipped.push(boundaryIntersection(previous, current, side, boundary));
+      }
+      clipped.push({ ...current });
+    } else if (previousInside) {
+      clipped.push(boundaryIntersection(previous, current, side, boundary));
+    }
+    previous = current;
+    previousInside = currentInside;
+  });
+
+  return normalizeClippedOutline(
+    clipped,
+    side,
+    boundary,
+    nextWidth,
+    nextHeight,
+  );
+}
+
 function touchesVerticalBoundary(
   modifier: PieceShapeModifier,
   boundary: number,
@@ -73,6 +225,52 @@ function touchesHorizontalBoundary(
   );
 }
 
+function clippedModifierForInwardResize(
+  modifier: PieceShapeModifier,
+  side: PieceSide,
+  oldWidth: number,
+  oldHeight: number,
+  nextWidth: number,
+  nextHeight: number,
+): PieceShapeModifier | null {
+  let minX = modifier.x;
+  let minY = modifier.y;
+  let maxX = modifier.x + modifier.w;
+  let maxY = modifier.y + modifier.h;
+
+  if (side === 'left') {
+    const boundary = oldWidth - nextWidth;
+    minX = Math.max(minX, boundary);
+    maxX = Math.min(maxX, oldWidth);
+    minX -= boundary;
+    maxX -= boundary;
+  } else if (side === 'right') {
+    minX = Math.max(minX, 0);
+    maxX = Math.min(maxX, nextWidth);
+  } else if (side === 'top') {
+    const boundary = oldHeight - nextHeight;
+    minY = Math.max(minY, boundary);
+    maxY = Math.min(maxY, oldHeight);
+    minY -= boundary;
+    maxY -= boundary;
+  } else {
+    minY = Math.max(minY, 0);
+    maxY = Math.min(maxY, nextHeight);
+  }
+
+  const width = maxX - minX;
+  const height = maxY - minY;
+  if (width < MIN_MODIFIER_SPAN || height < MIN_MODIFIER_SPAN) return null;
+
+  return {
+    ...modifier,
+    x: round3(minX),
+    y: round3(minY),
+    w: round3(width),
+    h: round3(height),
+  };
+}
+
 function resizedModifier(
   modifier: PieceShapeModifier,
   side: PieceSide,
@@ -80,7 +278,26 @@ function resizedModifier(
   oldHeight: number,
   nextWidth: number,
   nextHeight: number,
-): PieceShapeModifier {
+): PieceShapeModifier | null {
+  if (
+    isInwardResize(
+      side,
+      oldWidth,
+      oldHeight,
+      nextWidth,
+      nextHeight,
+    )
+  ) {
+    return clippedModifierForInwardResize(
+      modifier,
+      side,
+      oldWidth,
+      oldHeight,
+      nextWidth,
+      nextHeight,
+    );
+  }
+
   const dx = nextWidth - oldWidth;
   const dy = nextHeight - oldHeight;
   let x = modifier.x;
@@ -127,22 +344,34 @@ function resizedRecipe(
 ): PieceShapeRecipe | null {
   const recipe = pieceShapeRecipe(piece);
   if (!recipe) return null;
-
-  return {
-    version: 1,
-    frameWidth: round3(nextWidth),
-    frameHeight: round3(nextHeight),
-    baseOuter: recipe.baseOuter.map((point) =>
-      resizedPoint(
-        point,
+  const inward = isInwardResize(
+    side,
+    piece.w,
+    piece.h,
+    nextWidth,
+    nextHeight,
+  );
+  const baseOuter = inward
+    ? clipOutlineForInwardResize(
+        recipe.baseOuter,
         side,
         piece.w,
         piece.h,
         nextWidth,
         nextHeight,
-      ),
-    ),
-    modifiers: recipe.modifiers.map((modifier) =>
+      )
+    : recipe.baseOuter.map((point) =>
+        resizedPoint(
+          point,
+          side,
+          piece.w,
+          piece.h,
+          nextWidth,
+          nextHeight,
+        ),
+      );
+  const modifiers = recipe.modifiers
+    .map((modifier) =>
       resizedModifier(
         modifier,
         side,
@@ -151,14 +380,23 @@ function resizedRecipe(
         nextWidth,
         nextHeight,
       ),
-    ),
+    )
+    .filter((modifier): modifier is PieceShapeModifier => modifier !== null);
+
+  return {
+    version: 1,
+    frameWidth: round3(nextWidth),
+    frameHeight: round3(nextHeight),
+    baseOuter,
+    modifiers,
   };
 }
 
 /**
  * Resize one Piece boundary without rubber-scaling the rest of a custom shape.
- * Geometry on the opposite/interior side stays fixed; construction modifiers
- * only grow/shrink when they actually touch the boundary being moved.
+ * Outward movement extrudes the grabbed boundary. Inward movement clips the
+ * final polygon to the retained half-plane, so projections beyond the handle
+ * are erased instead of collapsing into a thin carried-along remnant.
  */
 export function pieceBoundaryResizeOutline(
   piece: Piece,
@@ -168,7 +406,20 @@ export function pieceBoundaryResizeOutline(
 ): PieceFabricationPoint[] {
   const width = Math.max(0.25, nextWidth);
   const height = Math.max(0.25, nextHeight);
-  return pieceFabricationOutline(piece).map((point) =>
+  const outline = pieceFabricationOutline(piece);
+  if (
+    isInwardResize(side, piece.w, piece.h, width, height)
+  ) {
+    return clipOutlineForInwardResize(
+      outline,
+      side,
+      piece.w,
+      piece.h,
+      width,
+      height,
+    );
+  }
+  return outline.map((point) =>
     resizedPoint(point, side, piece.w, piece.h, width, height),
   );
 }
