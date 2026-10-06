@@ -1,5 +1,6 @@
 import { formatRadiusLabel } from '../core/format-inches';
 import { synchronizeRadiusAnnotations } from '../domain/annotations/radius';
+import { synchronizePieceWelds } from '../domain/pieces';
 import type { ApplicationState } from './state';
 
 /**
@@ -19,7 +20,8 @@ export function synchronizeCommandInvariants(
 
   let changed = false;
   const layouts = state.project.layouts.map((layout) => {
-    const next = synchronizeRadiusAnnotations(layout, formatRadius);
+    const welded = synchronizePieceWelds(layout);
+    const next = synchronizeRadiusAnnotations(welded, formatRadius);
     if (next !== layout) changed = true;
     return next;
   });
