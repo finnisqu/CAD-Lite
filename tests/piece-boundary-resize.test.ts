@@ -217,6 +217,23 @@ describe('one-boundary Piece resize', () => {
     expect(resizedX).not.toContain(44);
   });
 
+  it('keeps the dominant bottom resize axis authoritative despite tiny cross-axis noise', () => {
+    const piece = rectanglePiece();
+    const geometry = {
+      ...pieceGeometry(piece),
+      width: piece.w + 0.02,
+      height: piece.h - 6,
+    };
+    const pose = {
+      x: piece.x,
+      y: piece.y,
+      // Equivalent rotation should not invalidate one-boundary inference.
+      rotation: piece.rotation + 360,
+    };
+
+    expect(inferPieceBoundaryResizeSide(piece, geometry, pose)).toBe('bottom');
+  });
+
   it('extends the left boundary while keeping interior notch geometry fixed in world space', async () => {
     const piece = await multiNotchPiece();
     const delta = 20;
