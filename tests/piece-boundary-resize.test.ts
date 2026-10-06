@@ -3,9 +3,11 @@ import { describe, expect, it } from 'vitest';
 import {
   AppStore,
   CommandDispatcher,
+  PieceInteractionController,
   applicationStateFromLegacyPayload,
   preparePieceRectangleShapeEdit,
   transformPieces,
+  type ToolPointerInput,
 } from '../src/app';
 import {
   inferPieceBoundaryResizeSide,
@@ -29,6 +31,22 @@ const renderOptions: PieceCanvasRenderOptions = {
   showSinkCenterlines: true,
   showCutoutLabels: true,
 };
+
+function pointer(x: number, y: number, buttons = 1): ToolPointerInput {
+  return {
+    pointerId: 1,
+    x,
+    y,
+    button: 0,
+    buttons,
+    modifiers: {
+      shift: false,
+      alt: true,
+      ctrl: false,
+      meta: false,
+    },
+  };
+}
 
 function rectanglePiece(): Piece {
   const [piece] = normalizePieces(
@@ -57,6 +75,23 @@ function testLayout(piece: Piece) {
   return { ...source, pieces: [piece] };
 }
 
+async function edit(
+  piece: Piece,
+  operation: 'add' | 'subtract',
+  rect: { x: number; y: number; w: number; h: number },
+  id: string,
+): Promise<Piece> {
+  const result = await preparePieceRectangleShapeEdit(
+    testLayout(piece),
+    piece.id,
+    rect,
+    operation,
+    id,
+  );
+  if (!result.ok) throw new Error(`${id}: ${result.reason}`);
+  return result.prepared.piece;
+}
+
 async function multiNotchPiece(): Promise<Piece> {
   let piece = rectanglePiece();
   const edits = [
@@ -66,17 +101,34 @@ async function multiNotchPiece(): Promise<Piece> {
     { id: 'bottom-right', rect: { x: 44, y: 20, w: 10, h: 15 } },
   ];
 
-  for (const edit of edits) {
-    const result = await preparePieceRectangleShapeEdit(
-      testLayout(piece),
-      piece.id,
-      edit.rect,
-      'subtract',
-      edit.id,
-    );
-    if (!result.ok) throw new Error(result.reason);
-    piece = result.prepared.piece;
+  for (const item of edits) {
+    piece = await edit(piece, 'subtract', item.rect, item.id);
   }
+  return piece;
+}
+
+async function leftProjectionPiece(): Promise<Piece> {
+  let piece = rectanglePiece();
+  // Leaves a 12-inch-wide upper-left projection, matching the failure where an
+  // inward left resize carried a thin remnant after the handle passed it.
+  piece = await edit(
+    piece,
+    'subtract',
+    { x: 12, y: -5, w: 30, h: 15 },
+    'top-recess',
+  );
+  piece = await edit(
+    piece,
+    'subtract',
+    { x: 25, y: 20, w: 15, h: 15 },
+    'bottom-recess',
+  );
+  piece = await edit(
+    piece,
+    'add',
+    { x: 55, y: 8, w: 10, h: 10 },
+    'right-addition',
+  );
   return piece;
 }
 
@@ -215,6 +267,89 @@ describe('one-boundary Piece resize', () => {
     expect(resizedX).toContain(18);
     expect(resizedX).toContain(34);
     expect(resizedX).not.toContain(44);
+  });
+
+  it('erases an upper-left projection once an inward left handle passes it', async () => {
+    const piece = await leftProjectionPiece();
+    const originalWidth = piece.w;
+    const cut = 18;
+    const state = applicationStateFromLegacyPayload(v159ProjectFixture);
+    const layout = testLayout(piece);
+    const store = new AppStore({
+      ...state,
+      project: { ...state.project, layouts: [layout] },
+      session: {
+        ...state.session,
+        activeLayoutId: layout.id,
+        workspace: 'design',
+        selection: { kind: 'pieces', ids: [piece.id] },
+      },
+    });
+    const commands = new CommandDispatcher(store);
+    const interaction = new PieceInteractionController(store, commands);
+    const startX = piece.x;
+    const startY = piece.y + piece.h / 2;
+
+    expect(
+      interaction.beginResize(piece.id, 'left', pointer(startX, startY)),
+    ).toBe(true);
+    expect(
+      interaction.pointerMove(pointer(startX + cut, startY)),
+    ).toBe(true);
+
+    const previewItem = interaction.getPreview()?.pieces[0];
+    if (!previewItem?.geometry) throw new Error('Expected left-resize preview.');
+    const previewProjected = projectPieceForCanvas(
+      piece,
+      'design',
+      renderOptions,
+      0,
+      {
+        id: piece.id,
+        geometry: previewItem.geometry,
+        pose: previewItem.pose,
+      },
+      true,
+    );
+    const previewLocal = previewProjected.fabricationOutline.map((point) => ({
+      x: point.x - previewProjected.localRect.x,
+      y: point.y - previewProjected.localRect.y,
+    }));
+    const previewLeftYs = previewLocal
+      .filter((point) => Math.abs(point.x) <= 0.001)
+      .map((point) => point.y);
+    expect(previewLeftYs.length).toBeGreaterThan(0);
+    expect(Math.min(...previewLeftYs)).toBe(10);
+    expect(
+      previewLocal.some(
+        (point) => Math.abs(point.x) <= 0.001 && Math.abs(point.y) <= 0.001,
+      ),
+    ).toBe(false);
+
+    expect(
+      interaction.pointerUp(pointer(startX + cut, startY, 0)),
+    ).toBe(true);
+    const resized = store.getState().project.layouts[0]?.pieces[0];
+    if (!resized) throw new Error('Expected resized Piece.');
+    const outline = pieceFabricationOutline(resized);
+    const leftYs = outline
+      .filter((point) => Math.abs(point.x) <= 0.001)
+      .map((point) => point.y);
+
+    expect(resized.x).toBe(piece.x + cut);
+    expect(resized.w).toBe(originalWidth - cut);
+    expect(leftYs.length).toBeGreaterThan(0);
+    expect(Math.min(...leftYs)).toBe(10);
+    expect(
+      outline.some(
+        (point) => Math.abs(point.x) <= 0.001 && Math.abs(point.y) <= 0.001,
+      ),
+    ).toBe(false);
+    expect(pieceShapeModifiers(resized).map((modifier) => modifier.operation)).toEqual([
+      'subtract',
+      'subtract',
+      'add',
+    ]);
   });
 
   it('keeps the dominant bottom resize axis authoritative despite tiny cross-axis noise', () => {
