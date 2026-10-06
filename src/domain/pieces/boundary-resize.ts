@@ -172,7 +172,11 @@ export function pieceBoundaryResizeOutline(
   );
 }
 
-/** Infer the single edge moved by the existing resize preview/commit contract. */
+/**
+ * Infer which single edge moved from the signed size delta and center shift.
+ * Comparing against +/- delta/2 keeps the grabbed edge authoritative in both
+ * directions: a right edge dragged left is still a right-edge resize.
+ */
 export function inferPieceBoundaryResizeSide(
   piece: Piece,
   geometry: PieceGeometry,
@@ -196,8 +200,15 @@ export function inferPieceBoundaryResizeSide(
     -piece.rotation,
   );
 
-  if (widthChanged) return localShift.x < 0 ? 'left' : 'right';
-  return localShift.y < 0 ? 'top' : 'bottom';
+  if (widthChanged) {
+    const rightError = Math.abs(localShift.x - widthDelta / 2);
+    const leftError = Math.abs(localShift.x + widthDelta / 2);
+    return rightError <= leftError ? 'right' : 'left';
+  }
+
+  const bottomError = Math.abs(localShift.y - heightDelta / 2);
+  const topError = Math.abs(localShift.y + heightDelta / 2);
+  return bottomError <= topError ? 'bottom' : 'top';
 }
 
 /**
