@@ -192,3 +192,7 @@ export type {
 
 export { RoomFeatureCanvasInteractions } from './room-feature-canvas-interactions';
 export type { RoomFeatureCanvasInteractionsOptions } from './room-feature-canvas-interactions';
+export { PieceWeldCanvasSurface } from './piece-weld-canvas-surface';
+export type { PieceWeldCanvasSurfaceOptions } from './piece-weld-canvas-surface';
+export { ProductionPieceWeldSurface } from './production-piece-weld-surface';
+export type { ProductionPieceWeldSurfaceOptions } from './production-piece-weld-surface';

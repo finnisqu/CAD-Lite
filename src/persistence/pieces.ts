@@ -12,6 +12,7 @@ import type {
   PieceCutout,
   PieceCutoutKind,
   PieceFabricationShape,
+  PieceFabricationWeld,
 } from '../domain/pieces/types';
 import {
   DEFAULT_FAUCET_HOLE_DIAMETER,
@@ -287,9 +288,36 @@ function fabricationShape(
   return createPieceFabricationShape(points, frameWidth, frameHeight);
 }
 
+function fabricationWeld(raw: unknown): PieceFabricationWeld | null {
+  const source = object(raw);
+  const id = text(source.id).trim();
+  const groupId = text(source.groupId).trim();
+  const anchorPieceId = text(source.anchorPieceId).trim();
+  const sourceSignature = text(source.sourceSignature);
+  const memberIds = Array.isArray(source.memberIds)
+    ? [...new Set(source.memberIds.filter((value): value is string => typeof value === 'string' && value.trim()).map((value) => value.trim()))].sort((a, b) => a.localeCompare(b))
+    : [];
+  const outer = Array.isArray(source.outer)
+    ? source.outer
+        .filter(isJsonObject)
+        .map((point) => ({ x: number(point.x, Number.NaN), y: number(point.y, Number.NaN) }))
+        .filter((point) => Number.isFinite(point.x) && Number.isFinite(point.y))
+    : [];
+  if (!id || !groupId || !anchorPieceId || memberIds.length < 2 || outer.length < 3) return null;
+  return {
+    version: 1,
+    id,
+    groupId,
+    anchorPieceId,
+    memberIds,
+    sourceSignature,
+    outer,
+  };
+}
+
 const known = new Set([
   'id','name','x','y','w','h','rotation','layer','areaId','pieceGroupId','pieceGroupName',
-  'pieceType','tags','attachment','assemblyLinks','slabPlacement','cornerRadii','fabricationShape',
+  'pieceType','tags','attachment','assemblyLinks','slabPlacement','cornerRadii','fabricationShape','fabricationWeld',
   'rTL','rTR','rBR','rBL','overhangs','edgeProfiles','sinks','cutouts','pieceSeams',
   'color','noFill','fillOpacity','splashKind','splashHeight','legacy',
 ]);
@@ -376,6 +404,7 @@ export function normalizePieces(raw: unknown, areaIds: readonly string[], prefix
       slabPlacement: { x: number(slab.x, x), y: number(slab.y, y), rotation: number(slab.rotation, rotation) },
       cornerRadii: { tl: radius('tl','rTL'), tr: radius('tr','rTR'), br: radius('br','rBR'), bl: radius('bl','rBL') },
       fabricationShape: fabricationShape(source.fabricationShape, w, h),
+      fabricationWeld: fabricationWeld(source.fabricationWeld),
       overhangs: {
         front: Math.max(0, number(overhang.front, splash ? 0 : 1.5)),
         back: Math.max(0, number(overhang.back, 0)),

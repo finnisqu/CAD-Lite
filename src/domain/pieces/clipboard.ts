@@ -183,6 +183,7 @@ export function preparePieceClipboardPaste(
     piece.name = isBacksplashPiece(source)
       ? 'Splash'
       : `${source.name || 'Piece'} Copy`;
+    piece.fabricationWeld = null;
     piece.x = round3(source.x + dx);
     piece.y = round3(source.y + dy);
     piece.layer = layer++;

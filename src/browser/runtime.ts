@@ -35,12 +35,14 @@ import { FloorPlanNavigatorSurface } from './floor-plan-navigator-surface';
 import { FloorPlanPreparationSurface } from './floor-plan-preparation-surface';
 import { MaterialSurface } from './material-surface';
 import { PieceCanvasSurface } from './piece-canvas-surface';
+import { PieceWeldCanvasSurface } from './piece-weld-canvas-surface';
 import { ProductionEdgePainterSurface } from './production-edge-painter-surface';
 import { ProductionInspectorSurface } from './production-inspector-surface';
 import { ProductionModeHudSurface } from './production-mode-hud-surface';
 import { ProductionOutputSurface } from './production-output-surface';
 import { ProductionPieceInteractionParitySurface } from './production-piece-interaction-parity-surface';
 import { ProductionPiecePropertiesSurface } from './production-piece-properties-surface';
+import { ProductionPieceWeldSurface } from './production-piece-weld-surface';
 import { ProductionRadiusSurface } from './production-radius-surface';
 import { ProductionSplashSurface } from './production-splash-surface';
 import { ProductionShellSurface } from './production-shell-surface';
@@ -77,6 +79,7 @@ export interface CadLiteBrowserRuntime {
   scratchpadSurface: ScratchpadSurface;
   viewPreferencesSurface: ViewPreferencesSurface;
   productionPiecePropertiesSurface: ProductionPiecePropertiesSurface;
+  productionPieceWeldSurface: ProductionPieceWeldSurface;
   productionPieceInteractionParitySurface: ProductionPieceInteractionParitySurface;
   productionSplashSurface: ProductionSplashSurface;
   productionRadiusSurface: ProductionRadiusSurface;
@@ -88,6 +91,7 @@ export interface CadLiteBrowserRuntime {
   productionViewportSurface: ProductionViewportSurface;
   slabNavigatorSurface: SlabNavigatorSurface;
   pieceCanvas: PieceCanvasSurface;
+  pieceWeldCanvas: PieceWeldCanvasSurface;
   canvasKeyboard: CanvasKeyboardSurface;
   floorPlanCanvas: FloorPlanCanvasSurface;
   floorPlanPreparation: FloorPlanPreparationSurface;
@@ -221,6 +225,12 @@ export function mountCadLiteBrowserRuntime(
   });
   const productionPiecePropertiesSurface =
     new ProductionPiecePropertiesSurface({ root, store, commands });
+  const productionPieceWeldSurface = new ProductionPieceWeldSurface({
+    root,
+    store,
+    commands,
+    createId,
+  });
   const productionPieceInteractionParitySurface =
     new ProductionPieceInteractionParitySurface({ root, store, commands });
   const productionSplashSurface = new ProductionSplashSurface({
@@ -280,6 +290,12 @@ export function mountCadLiteBrowserRuntime(
     annotationInteraction: annotationInteractions,
     tools,
   });
+  const pieceWeldCanvas = new PieceWeldCanvasSurface({
+    root,
+    store,
+    effects,
+    interaction: pieceInteractions,
+  });
   const canvasKeyboard = new CanvasKeyboardSurface({
     root,
     store,
@@ -329,6 +345,7 @@ export function mountCadLiteBrowserRuntime(
   scratchpadSurface.mount();
   viewPreferencesSurface.mount();
   pieceCanvas.mount();
+  pieceWeldCanvas.mount();
   canvasKeyboard.mount();
   floorPlanCanvas.mount();
   floorPlanPreparation.mount();
@@ -336,6 +353,7 @@ export function mountCadLiteBrowserRuntime(
   roomFeatureCanvasInteractions.mount();
   slabNavigatorSurface.mount();
   productionPiecePropertiesSurface.mount();
+  productionPieceWeldSurface.mount();
   productionPieceInteractionParitySurface.mount();
   productionSplashSurface.mount();
   productionRadiusSurface.mount();
@@ -383,6 +401,7 @@ export function mountCadLiteBrowserRuntime(
     scratchpadSurface,
     viewPreferencesSurface,
     productionPiecePropertiesSurface,
+    productionPieceWeldSurface,
     productionPieceInteractionParitySurface,
     productionSplashSurface,
     productionRadiusSurface,
@@ -394,6 +413,7 @@ export function mountCadLiteBrowserRuntime(
     productionViewportSurface,
     slabNavigatorSurface,
     pieceCanvas,
+    pieceWeldCanvas,
     canvasKeyboard,
     floorPlanCanvas,
     floorPlanPreparation,
@@ -427,6 +447,7 @@ export function mountCadLiteBrowserRuntime(
       productionRadiusSurface.unmount();
       productionSplashSurface.unmount();
       productionPieceInteractionParitySurface.unmount();
+      productionPieceWeldSurface.unmount();
       productionPiecePropertiesSurface.unmount();
       slabNavigatorSurface.unmount();
       roomFeatureCanvasInteractions.unmount();
@@ -434,6 +455,7 @@ export function mountCadLiteBrowserRuntime(
       floorPlanPreparation.unmount();
       floorPlanCanvas.unmount();
       canvasKeyboard.unmount();
+      pieceWeldCanvas.unmount();
       pieceCanvas.unmount();
       viewPreferencesSurface.unmount();
       scratchpadSurface.unmount();
