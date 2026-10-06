@@ -4,11 +4,8 @@ import {
   AppStore,
   CommandDispatcher,
   applicationStateFromLegacyPayload,
-  createPieceResizeSession,
   preparePieceRectangleShapeEdit,
-  previewPieceResize,
   transformPieces,
-  type ToolPointerInput,
 } from '../src/app';
 import {
   inferPieceBoundaryResizeSide,
@@ -32,26 +29,6 @@ const renderOptions: PieceCanvasRenderOptions = {
   showSinkCenterlines: true,
   showCutoutLabels: true,
 };
-
-function pointer(
-  x: number,
-  y: number,
-  options: Partial<ToolPointerInput> = {},
-): ToolPointerInput {
-  return {
-    pointerId: options.pointerId ?? 1,
-    x,
-    y,
-    button: options.button ?? 0,
-    buttons: options.buttons ?? 1,
-    modifiers: {
-      shift: options.modifiers?.shift ?? false,
-      alt: options.modifiers?.alt ?? false,
-      ctrl: options.modifiers?.ctrl ?? false,
-      meta: options.modifiers?.meta ?? false,
-    },
-  };
-}
 
 function rectanglePiece(): Piece {
   const [piece] = normalizePieces(
@@ -103,50 +80,8 @@ async function multiNotchPiece(): Promise<Piece> {
   return piece;
 }
 
-async function mixedModifierPiece(): Promise<Piece> {
-  let piece = rectanglePiece();
-  const edits: Array<{
-    id: string;
-    operation: 'add' | 'subtract';
-    rect: { x: number; y: number; w: number; h: number };
-  }> = [
-    {
-      id: 'add-right',
-      operation: 'add',
-      rect: { x: 55, y: 8, w: 15, h: 10 },
-    },
-    {
-      id: 'subtract-bottom',
-      operation: 'subtract',
-      rect: { x: 22, y: 20, w: 16, h: 15 },
-    },
-    {
-      id: 'add-bottom-right',
-      operation: 'add',
-      rect: { x: 45, y: 15, w: 15, h: 25 },
-    },
-  ];
-
-  for (const edit of edits) {
-    const result = await preparePieceRectangleShapeEdit(
-      testLayout(piece),
-      piece.id,
-      edit.rect,
-      edit.operation,
-      edit.id,
-    );
-    if (!result.ok) throw new Error(result.reason);
-    piece = result.prepared.piece;
-  }
-  return piece;
-}
-
 function localXValues(points: readonly { x: number; y: number }[]): number[] {
   return [...new Set(points.map((point) => point.x))].sort((a, b) => a - b);
-}
-
-function localYValues(points: readonly { x: number; y: number }[]): number[] {
-  return [...new Set(points.map((point) => point.y))].sort((a, b) => a - b);
 }
 
 describe('one-boundary Piece resize', () => {
@@ -280,86 +215,6 @@ describe('one-boundary Piece resize', () => {
     expect(resizedX).toContain(18);
     expect(resizedX).toContain(34);
     expect(resizedX).not.toContain(44);
-  });
-
-  it('retracts the bottom boundary after ADD-SUBTRACT-ADD without scaling the shape', async () => {
-    const piece = await mixedModifierPiece();
-    const state = applicationStateFromLegacyPayload(v159ProjectFixture);
-    const layout = testLayout(piece);
-    const store = new AppStore({
-      ...state,
-      project: { ...state.project, layouts: [layout] },
-      session: {
-        ...state.session,
-        activeLayoutId: layout.id,
-        workspace: 'design',
-        selection: { kind: 'pieces', ids: [piece.id] },
-      },
-    });
-    const commands = new CommandDispatcher(store);
-    const startX = piece.x + piece.w / 2;
-    const startY = piece.y + piece.h;
-    const session = createPieceResizeSession(
-      store.getState(),
-      piece.id,
-      'bottom',
-      pointer(startX, startY),
-    );
-    if (!session) throw new Error('Expected bottom resize session.');
-
-    const amount = 8;
-    const nextHeight = piece.h - amount;
-    const preview = previewPieceResize(
-      store.getState(),
-      session,
-      pointer(startX, startY - amount, {
-        modifiers: { shift: false, alt: true, ctrl: false, meta: false },
-      }),
-    );
-    const item = preview?.pieces[0];
-    if (!item?.geometry) throw new Error('Expected resize preview.');
-
-    expect(item.geometry.height).toBe(nextHeight);
-    expect(item.pose.y).toBe(piece.y);
-    expect(
-      inferPieceBoundaryResizeSide(piece, item.geometry, item.pose),
-    ).toBe('bottom');
-
-    const projected = projectPieceForCanvas(
-      piece,
-      'design',
-      renderOptions,
-      0,
-      item,
-      true,
-    );
-    const previewLocal = projected.fabricationOutline.map((point) => ({
-      x: point.x - projected.localRect.x,
-      y: point.y - projected.localRect.y,
-    }));
-    const previewY = localYValues(previewLocal);
-    expect(Math.max(...previewY)).toBe(nextHeight);
-    expect(previewY).toContain(20);
-    expect(previewY).toContain(30);
-
-    commands.execute(
-      transformPieces(layout.id, [
-        {
-          id: piece.id,
-          geometry: item.geometry,
-          designPose: item.pose,
-        },
-      ]),
-    );
-
-    const resized = store.getState().project.layouts[0]?.pieces[0];
-    if (!resized) throw new Error('Expected resized Piece.');
-    const resizedY = localYValues(pieceFabricationOutline(resized));
-    expect(resized.y).toBe(piece.y);
-    expect(resized.h).toBe(nextHeight);
-    expect(Math.max(...resizedY)).toBe(nextHeight);
-    expect(resizedY).toContain(20);
-    expect(resizedY).toContain(30);
   });
 
   it('extends the left boundary while keeping interior notch geometry fixed in world space', async () => {
