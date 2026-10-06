@@ -126,7 +126,7 @@ async function leftProjectionPiece(): Promise<Piece> {
   piece = await edit(
     piece,
     'add',
-    { x: 55, y: 8, w: 10, h: 10 },
+    { x: piece.w - 2, y: 8, w: 12, h: 10 },
     'right-addition',
   );
   return piece;
