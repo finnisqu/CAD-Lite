@@ -123,7 +123,7 @@ async function mixedModifierPiece(): Promise<Piece> {
     {
       id: 'add-bottom-right',
       operation: 'add',
-      rect: { x: 45, y: 25, w: 15, h: 15 },
+      rect: { x: 45, y: 15, w: 15, h: 25 },
     },
   ];
 
