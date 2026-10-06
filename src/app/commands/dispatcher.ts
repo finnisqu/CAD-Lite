@@ -1,4 +1,5 @@
 import { synchronizeCommandInvariants } from '../command-invariants';
+import { synchronizePieceBoundaryResizeInvariants } from '../piece-boundary-resize-invariants';
 import type { ReadonlyApplicationState } from '../state';
 import type {
   AppStore,
@@ -32,6 +33,18 @@ function transactionPersistence(commands: readonly AppCommand[]): PersistencePol
   return commands.some((command) => command.persistence === 'save') ? 'save' : 'skip';
 }
 
+function synchronizedReduction(
+  previous: ReadonlyApplicationState,
+  command: AppCommand,
+  reduced: ReadonlyApplicationState,
+): ReadonlyApplicationState {
+  const shaped =
+    command.type === 'piece.transform'
+      ? synchronizePieceBoundaryResizeInvariants(previous, reduced)
+      : reduced;
+  return synchronizeCommandInvariants(shaped);
+}
+
 export class CommandDispatcher {
   constructor(private readonly store: AppStore) {}
 
@@ -40,7 +53,7 @@ export class CommandDispatcher {
     const reduced = command.reduce(previous);
 
     if (!stateChanged(previous, reduced)) return null;
-    const next = synchronizeCommandInvariants(reduced);
+    const next = synchronizedReduction(previous, command, reduced);
 
     return this.store.commit(next, {
       kind: 'command',
@@ -61,9 +74,10 @@ export class CommandDispatcher {
     const applied: AppCommand[] = [];
 
     commands.forEach((command) => {
-      const reduced = command.reduce(working);
-      if (!stateChanged(working, reduced)) return;
-      working = synchronizeCommandInvariants(reduced);
+      const before = working;
+      const reduced = command.reduce(before);
+      if (!stateChanged(before, reduced)) return;
+      working = synchronizedReduction(before, command, reduced);
       applied.push(command);
     });
 
