@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import {
   booleanViewPreferenceFromControlId,
+  canvasGridMajorLineCoordinate,
   dimensionFormatFromControl,
   dimensionPrecisionFromControl,
 } from '../src/browser/view-preferences-surface';
@@ -61,5 +62,13 @@ describe('view preference controls', () => {
     expect(booleanViewPreferenceFromControlId('lc-show-seams')).toBeNull();
     expect(booleanViewPreferenceFromControlId('lc-piece-snap')).toBeNull();
     expect(booleanViewPreferenceFromControlId('unknown')).toBeNull();
+  });
+});
+
+describe('canvas grid pattern geometry', () => {
+  it('keeps the major stroke center inside the repeating tile', () => {
+    expect(canvasGridMajorLineCoordinate(6, 8)).toBeCloseTo(5.9375, 10);
+    expect(canvasGridMajorLineCoordinate(6, 8)).toBeLessThan(6);
+    expect(canvasGridMajorLineCoordinate(6, 1)).toBe(5.5);
   });
 });
