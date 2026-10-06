@@ -119,6 +119,21 @@ export type PieceFabricationShape = {
   outer: PieceFabricationPoint[];
 };
 
+/**
+ * A weld preserves its authored source Pieces while exposing one derived stone
+ * perimeter. The union outline is stored in the anchor Piece's local frame, so
+ * moving/rotating the whole welded family does not require rewriting topology.
+ */
+export type PieceFabricationWeld = {
+  version: 1;
+  id: string;
+  groupId: string;
+  anchorPieceId: string;
+  memberIds: string[];
+  sourceSignature: string;
+  outer: PieceFabricationPoint[];
+};
+
 // Child detail is preserved at a compatibility boundary until its own batch.
 export type FabricationChild = JsonObject & { id: string };
 export type AssemblyLink = JsonObject & {
@@ -165,6 +180,7 @@ export type Piece = {
   slabPlacement: PiecePose;
   cornerRadii: CornerRadii;
   fabricationShape?: PieceFabricationShape | null;
+  fabricationWeld?: PieceFabricationWeld | null;
   overhangs: { front: number; back: number; left: number; right: number };
   edgeProfiles: Record<PieceSide, string>;
   sinks: PieceSink[];
