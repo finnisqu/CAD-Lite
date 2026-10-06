@@ -124,6 +124,12 @@ export type {
   PreparedPieceShapeEdit,
   PreparePieceShapeEditResult,
 } from './piece-shape-edit';
+export {
+  applyPreparedPieceWeld,
+  preparePieceWeld,
+  unweldPieces,
+} from './piece-welds';
+export type { PreparePieceWeldResult } from './piece-welds';
 
 export {
   addPiece,
