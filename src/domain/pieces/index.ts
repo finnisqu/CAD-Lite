@@ -12,6 +12,7 @@ export * from './geometry';
 export * from './fabrication-shape';
 export * from './shape-modifiers';
 export * from './boundary-resize';
+export * from './welds';
 
 export * from './transforms';
 
