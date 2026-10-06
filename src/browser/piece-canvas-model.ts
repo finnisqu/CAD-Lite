@@ -4,7 +4,9 @@ import {
   DEFAULT_SLAB_CANVAS_WIDTH,
   SLAB_CONTENT_GUTTER,
   cutoutLabelOffset,
+  inferPieceBoundaryResizeSide,
   normalizePieceCutout,
+  pieceBoundaryResizeOutline,
   pieceBoundsFromGeometryPose,
   pieceCenterFromGeometryPose,
   pieceFabricationOutline,
@@ -431,11 +433,23 @@ export function projectPieceForCanvas(
     h: geometry.height,
   };
   const customFabricationShape = pieceHasCustomFabricationShape(piece);
-  const fabricationOutline = pieceFabricationOutline({
-    ...piece,
-    w: geometry.width,
-    h: geometry.height,
-  }).map((point) => ({
+  const resizeSide =
+    workspace === 'design' && override?.geometry && override.pose
+      ? inferPieceBoundaryResizeSide(piece, geometry, pose)
+      : null;
+  const localFabricationOutline = resizeSide
+    ? pieceBoundaryResizeOutline(
+        piece,
+        resizeSide,
+        geometry.width,
+        geometry.height,
+      )
+    : pieceFabricationOutline({
+        ...piece,
+        w: geometry.width,
+        h: geometry.height,
+      });
+  const fabricationOutline = localFabricationOutline.map((point) => ({
     x: localRect.x + point.x,
     y: localRect.y + point.y,
   }));
